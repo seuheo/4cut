@@ -30,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -253,8 +254,7 @@ private fun DayCell(
 ) {
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.1f else 1.0f,
-        animationSpec = tween(durationMillis = 200),
-        label = "scale"
+        animationSpec = tween(durationMillis = 200)
     )
     
     val backgroundColor = when {

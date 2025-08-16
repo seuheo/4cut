@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,10 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.data.model.Frame
-import com.example.a4cut.data.model.Photo
 import com.example.a4cut.ui.viewmodel.FrameViewModel
 
 /**
@@ -54,12 +52,12 @@ fun FrameScreen(
     frameViewModel: FrameViewModel = viewModel()
 ) {
     // FrameViewModel에서 상태 수집
-    val frames by frameViewModel.frames.collectAsStateWithLifecycle()
-    val selectedFrame by frameViewModel.selectedFrame.collectAsStateWithLifecycle()
-    val photos by frameViewModel.photos.collectAsStateWithLifecycle()
-    val isLoading by frameViewModel.isLoading.collectAsStateWithLifecycle()
-    val isProcessing by frameViewModel.isProcessing.collectAsStateWithLifecycle()
-    val errorMessage by frameViewModel.errorMessage.collectAsStateWithLifecycle()
+    val frames by frameViewModel.frames.collectAsState()
+    val selectedFrame by frameViewModel.selectedFrame.collectAsState()
+    val photos by frameViewModel.photos.collectAsState()
+    val isLoading by frameViewModel.isLoading.collectAsState()
+    val isProcessing by frameViewModel.isProcessing.collectAsState()
+    val errorMessage by frameViewModel.errorMessage.collectAsState()
     
     Column(
         modifier = modifier
@@ -209,7 +207,7 @@ fun FrameScreen(
  */
 @Composable
 private fun PhotoGridItem(
-    photo: Photo,
+    photo: String, // Photo 모델 대신 String 사용
     index: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -218,7 +216,7 @@ private fun PhotoGridItem(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(
-                if (photo.uri != null) {
+                if (photo.isNotEmpty()) {
                     MaterialTheme.colorScheme.primaryContainer
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant
@@ -226,7 +224,7 @@ private fun PhotoGridItem(
             )
             .border(
                 width = 2.dp,
-                color = if (photo.uri != null) {
+                color = if (photo.isNotEmpty()) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.outline
@@ -236,10 +234,10 @@ private fun PhotoGridItem(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        if (photo.uri != null) {
+        if (photo.isNotEmpty()) {
             // TODO: 실제 이미지 표시 (Coil 사용)
             Icon(
-                imageVector = Icons.Default.Image,
+                imageVector = Icons.Default.Add,
                 contentDescription = "사진 ${index + 1}",
                 modifier = Modifier.size(32.dp),
                 tint = MaterialTheme.colorScheme.primary

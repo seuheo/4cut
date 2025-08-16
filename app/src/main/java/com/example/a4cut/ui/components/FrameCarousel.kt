@@ -155,20 +155,17 @@ private fun FrameCard(
     // 선택 상태에 따른 애니메이션 값들
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.05f else 1.0f,
-        animationSpec = tween(durationMillis = 300),
-        label = "scale"
+        animationSpec = tween(durationMillis = 300)
     )
     
     val rotation by animateFloatAsState(
         targetValue = if (isSelected) 2f else 0f,
-        animationSpec = tween(durationMillis = 400),
-        label = "rotation"
+        animationSpec = tween(durationMillis = 400)
     )
     
     val elevation by animateFloatAsState(
         targetValue = if (isSelected) 16f else 8f,
-        animationSpec = tween(durationMillis = 300),
-        label = "elevation"
+        animationSpec = tween(durationMillis = 300)
     )
     
     Card(
@@ -321,14 +318,12 @@ private fun AnimatedPageIndicator(
 ) {
     val size by animateFloatAsState(
         targetValue = if (isSelected) 12f else 8f,
-        animationSpec = tween(durationMillis = 300),
-        label = "size"
+        animationSpec = tween(durationMillis = 300)
     )
     
     val alpha by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0.3f,
-        animationSpec = tween(durationMillis = 300),
-        label = "alpha"
+        animationSpec = tween(durationMillis = 300)
     )
     
     Box(

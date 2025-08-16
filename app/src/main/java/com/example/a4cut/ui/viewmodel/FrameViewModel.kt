@@ -3,14 +3,11 @@ package com.example.a4cut.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.model.Frame
-import com.example.a4cut.data.model.Photo
 import com.example.a4cut.data.repository.FrameRepository
-import com.example.a4cut.data.repository.PhotoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.net.Uri
 
 /**
  * 프레임 화면의 ViewModel
@@ -19,7 +16,6 @@ import android.net.Uri
 class FrameViewModel : ViewModel() {
     
     private val frameRepository = FrameRepository()
-    private val photoRepository = PhotoRepository()
     
     // 프레임 관련 상태
     private val _frames = MutableStateFlow<List<Frame>>(emptyList())
@@ -28,9 +24,9 @@ class FrameViewModel : ViewModel() {
     private val _selectedFrame = MutableStateFlow<Frame?>(null)
     val selectedFrame: StateFlow<Frame?> = _selectedFrame.asStateFlow()
     
-    // 사진 관련 상태
-    private val _photos = MutableStateFlow<List<Photo>>(emptyList())
-    val photos: StateFlow<List<Photo>> = _photos.asStateFlow()
+    // 사진 관련 상태 (더미 데이터)
+    private val _photos = MutableStateFlow<List<String>>(List(4) { "" })
+    val photos: StateFlow<List<String>> = _photos.asStateFlow()
     
     // UI 상태
     private val _isLoading = MutableStateFlow(false)
@@ -44,7 +40,6 @@ class FrameViewModel : ViewModel() {
     
     init {
         loadFrames()
-        loadPhotos()
     }
     
     /**
@@ -66,21 +61,6 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 사진 목록 로드
-     */
-    private fun loadPhotos() {
-        viewModelScope.launch {
-            try {
-                photoRepository.photos.collect { photoList ->
-                    _photos.value = photoList
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "사진 로드 실패: ${e.message}"
-            }
-        }
-    }
-    
-    /**
      * 프레임 선택
      */
     fun selectFrame(frame: Frame) {
@@ -89,12 +69,13 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 사진 선택
+     * 사진 선택 (더미 데이터)
      */
-    fun selectPhoto(index: Int, uri: Uri) {
+    fun selectPhoto(index: Int, photoData: String) {
         if (index in 0..3) {
-            val photo = Photo(uri = uri, id = "photo_$index")
-            photoRepository.updatePhotoAt(index, photo)
+            val currentPhotos = _photos.value.toMutableList()
+            currentPhotos[index] = photoData
+            _photos.value = currentPhotos
             clearError()
         } else {
             _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
@@ -106,8 +87,9 @@ class FrameViewModel : ViewModel() {
      */
     fun removePhoto(index: Int) {
         if (index in 0..3) {
-            val emptyPhoto = Photo(id = "photo_$index")
-            photoRepository.updatePhotoAt(index, emptyPhoto)
+            val currentPhotos = _photos.value.toMutableList()
+            currentPhotos[index] = ""
+            _photos.value = currentPhotos
             clearError()
         }
     }
@@ -121,7 +103,7 @@ class FrameViewModel : ViewModel() {
             return
         }
         
-        val hasPhotos = _photos.value.any { it.uri != null }
+        val hasPhotos = _photos.value.any { it.isNotEmpty() }
         if (!hasPhotos) {
             _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
             return
