@@ -19,6 +19,7 @@ import com.example.a4cut.ui.components.CalendarView
 /**
  * 홈 화면
  * KTX 기차 배경 + 프레임 캐러셀 + 캘린더
+ * Phase 2: 레이아웃 비율 최적화 및 시각적 균형 개선
  */
 @Composable
 fun HomeScreen(
@@ -30,41 +31,44 @@ fun HomeScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 제목
-        Text(
-            text = "포토레일",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        // 제목 영역 (고정 높이)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            Text(
+                text = "포토레일",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            Text(
+                text = "PHOTORAIL",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         
-        Text(
-            text = "PHOTORAIL",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-        
-        // KTX 기차 일러스트
+        // KTX 기차 일러스트 (40% - 시각적 중심)
         KTXIllustration(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight(0.4f)
         )
         
-        // 프레임 캐러셀
+        // 프레임 캐러셀 (35% - 사용자 상호작용)
         FrameCarousel(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight(0.35f)
         )
         
-        // 캘린더 뷰
+        // 캘린더 뷰 (25% - 정보 표시)
         CalendarView(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight(0.25f)
         )
     }
 }
