@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">4cut</string>
+    <string name="app_name">KTX 네컷 앱</string>
+    
+    <!-- 네비게이션 탭 제목 -->
+    <string name="nav_home">홈</string>
+    <string name="nav_frame">프레임</string>
+    <string name="nav_calendar">달력</string>
+    <string name="nav_settings">설정</string>
+    <string name="nav_profile">프로필</string>
 </resources>
