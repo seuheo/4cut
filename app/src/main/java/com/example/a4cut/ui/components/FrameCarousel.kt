@@ -36,26 +36,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.data.model.Frame
-import com.example.a4cut.ui.viewmodel.HomeViewModel
 import kotlin.math.abs
 
 /**
  * 프레임 캐러셀 컴포넌트
  * KTX 프레임들을 가로로 스크롤하여 선택할 수 있습니다
  * Phase 2: Repository 패턴 적용 및 ViewModel 연동
+ * Phase 3: State Hoisting 패턴 적용으로 재사용성 향상
  */
 @Composable
 fun FrameCarousel(
     modifier: Modifier = Modifier,
-    homeViewModel: HomeViewModel = viewModel()
+    frames: List<Frame>,
+    isLoading: Boolean,
+    onFrameClick: (Frame) -> Unit
 ) {
-    // HomeViewModel에서 프레임 데이터 수집
-    val frames by homeViewModel.frames.collectAsStateWithLifecycle()
-    val isLoading by homeViewModel.isLoading.collectAsStateWithLifecycle()
-    
     // LazyRow 상태 관리
     val listState = rememberLazyListState()
     
@@ -118,7 +114,7 @@ fun FrameCarousel(
                         frame = frame,
                         index = index,
                         isSelected = index == firstVisibleItemIndex,
-                        onFrameClick = { homeViewModel.selectFrame(frame) },
+                        onFrameClick = { onFrameClick(frame) },
                         modifier = Modifier.padding(
                             start = if (index == 0) 16.dp else 0.dp,
                             end = if (index == frames.size - 1) 16.dp else 0.dp

@@ -21,6 +21,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
 import com.example.a4cut.ui.screens.HomeScreen
+import com.example.a4cut.R
 
 /**
  * 앱의 메인 네비게이션 구조
@@ -85,13 +86,22 @@ fun AppNavigation(
                 FrameScreen()
             }
             composable(Screen.Calendar.route) {
-                EmptyScreen(title = "달력", description = "달력 기능은 추후 구현 예정입니다.")
+                EmptyScreen(
+                    title = stringResource(R.string.title_calendar),
+                    description = stringResource(R.string.description_calendar)
+                )
             }
             composable(Screen.Settings.route) {
-                EmptyScreen(title = "설정", description = "설정 기능은 추후 구현 예정입니다.")
+                EmptyScreen(
+                    title = stringResource(R.string.title_settings),
+                    description = stringResource(R.string.description_settings)
+                )
             }
             composable(Screen.Profile.route) {
-                EmptyScreen(title = "프로필", description = "프로필 기능은 추후 구현 예정입니다.")
+                EmptyScreen(
+                    title = stringResource(R.string.title_profile),
+                    description = stringResource(R.string.description_profile)
+                )
             }
         }
     }

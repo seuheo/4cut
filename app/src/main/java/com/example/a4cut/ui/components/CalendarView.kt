@@ -30,7 +30,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,26 +39,25 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.util.Calendar
 
 /**
  * 캘린더 뷰 컴포넌트
  * 현재 월의 달력을 표시합니다
  * Phase 2: ViewModel 연동 및 상태 관리 개선
+ * Phase 3: State Hoisting 패턴 적용으로 재사용성 향상
  */
 @Composable
 fun CalendarView(
     modifier: Modifier = Modifier,
-    homeViewModel: HomeViewModel = viewModel()
+    currentMonth: Int,
+    currentYear: Int,
+    selectedDate: Calendar?,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onDateSelect: (Calendar) -> Unit,
+    isSpecialDay: (Calendar) -> Boolean
 ) {
-    // HomeViewModel에서 상태 수집
-    val currentMonth by homeViewModel.currentMonth.collectAsStateWithLifecycle()
-    val currentYear by homeViewModel.currentYear.collectAsStateWithLifecycle()
-    val selectedDate by homeViewModel.selectedDate.collectAsStateWithLifecycle()
-    
     // 현재 월의 첫 번째 날과 마지막 날
     val firstDayOfMonth = Calendar.getInstance().apply {
         set(currentYear, currentMonth, 1)
@@ -106,8 +104,8 @@ fun CalendarView(
             .pointerInput(Unit) {
                 detectDragGestures { _, dragAmount ->
                     when {
-                        dragAmount.x > 50 -> homeViewModel.goToPreviousMonth() // 오른쪽으로 스와이프
-                        dragAmount.x < -50 -> homeViewModel.goToNextMonth()     // 왼쪽으로 스와이프
+                        dragAmount.x > 50 -> onPreviousMonth() // 오른쪽으로 스와이프
+                        dragAmount.x < -50 -> onNextMonth()     // 왼쪽으로 스와이프
                     }
                 }
             },
@@ -128,7 +126,7 @@ fun CalendarView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { homeViewModel.goToPreviousMonth() },
+                    onClick = onPreviousMonth,
                     modifier = Modifier
                         .size(40.dp)
                         .scale(1.2f)
@@ -157,7 +155,7 @@ fun CalendarView(
                 }
                 
                 IconButton(
-                    onClick = { homeViewModel.goToNextMonth() },
+                    onClick = onNextMonth,
                     modifier = Modifier
                         .size(40.dp)
                         .scale(1.2f)
@@ -215,10 +213,10 @@ fun CalendarView(
                             date.get(Calendar.MONTH) == selected.get(Calendar.MONTH) &&
                             date.get(Calendar.YEAR) == selected.get(Calendar.YEAR)
                         } ?: false,
-                        isSpecialDay = homeViewModel.isSpecialDay(date), // ViewModel에서 특별한 날 체크
+                        isSpecialDay = isSpecialDay(date), // 전달받은 함수로 특별한 날 체크
                         onClick = {
                             if (date.get(Calendar.MONTH) == currentMonth) {
-                                homeViewModel.selectDate(date)
+                                onDateSelect(date)
                             }
                         }
                     )
