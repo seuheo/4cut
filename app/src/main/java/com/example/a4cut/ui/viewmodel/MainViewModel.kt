@@ -2,78 +2,59 @@ package com.example.a4cut.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.a4cut.data.model.Photo
-import com.example.a4cut.data.repository.PhotoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 /**
- * 메인 화면의 ViewModel
+ * 메인 앱의 ViewModel
+ * 앱의 전반적인 상태와 네비게이션 상태만 관리
+ * 구체적인 화면 로직은 각 화면별 ViewModel에서 처리
  */
 class MainViewModel : ViewModel() {
     
-    private val repository = PhotoRepository()
+    // 네비게이션 관련 상태
+    private val _currentScreen = MutableStateFlow("home")
+    val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
     
-    private val _uiState = MutableStateFlow(MainUiState())
-    val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+    // 앱 전반 상태
+    private val _isAppReady = MutableStateFlow(false)
+    val isAppReady: StateFlow<Boolean> = _isAppReady.asStateFlow()
+    
+    // 에러 상태
+    private val _globalErrorMessage = MutableStateFlow<String?>(null)
+    val globalErrorMessage: StateFlow<String?> = _globalErrorMessage.asStateFlow()
     
     init {
-        // 초기 4컷 사진 데이터 생성 (플레이스홀더)
-        val initialPhotos = List(4) { index ->
-            Photo(id = "photo_$index")
-        }
-        repository.updatePhotos(initialPhotos)
-        
-        // UI 상태 업데이트
-        viewModelScope.launch {
-            repository.photos.collect { photos ->
-                _uiState.value = _uiState.value.copy(photos = photos)
-            }
-        }
+        // 앱 초기화 완료
+        _isAppReady.value = true
     }
     
     /**
-     * 사진 선택 처리
+     * 현재 화면 변경
      */
-    fun selectPhoto(index: Int, uri: android.net.Uri) {
-        val photo = Photo(uri = uri, id = "photo_$index")
-        repository.updatePhotoAt(index, photo)
+    fun setCurrentScreen(screen: String) {
+        _currentScreen.value = screen
     }
     
     /**
-     * 사진 저장 처리
+     * 전역 에러 메시지 설정
      */
-    fun savePhotos() {
-        // TODO: 이미지 합성 및 저장 로직 구현
-        _uiState.value = _uiState.value.copy(isSaving = true)
-        
-        viewModelScope.launch {
-            // 저장 완료 후 상태 업데이트
-            _uiState.value = _uiState.value.copy(isSaving = false)
-        }
+    fun setGlobalError(message: String) {
+        _globalErrorMessage.value = message
     }
     
     /**
-     * 인스타그램 공유 처리
+     * 전역 에러 메시지 초기화
      */
-    fun shareToInstagram() {
-        // TODO: 인스타그램 공유 로직 구현
-        _uiState.value = _uiState.value.copy(isSharing = true)
-        
-        viewModelScope.launch {
-            // 공유 완료 후 상태 업데이트
-            _uiState.value = _uiState.value.copy(isSharing = false)
-        }
+    fun clearGlobalError() {
+        _globalErrorMessage.value = null
+    }
+    
+    /**
+     * 앱 상태 확인
+     */
+    fun checkAppStatus(): Boolean {
+        return _isAppReady.value
     }
 }
-
-/**
- * 메인 UI 상태
- */
-data class MainUiState(
-    val photos: List<Photo> = emptyList(),
-    val isSaving: Boolean = false,
-    val isSharing: Boolean = false
-)

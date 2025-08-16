@@ -12,18 +12,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.ui.components.KTXIllustration
 import com.example.a4cut.ui.components.FrameCarousel
 import com.example.a4cut.ui.components.CalendarView
+import com.example.a4cut.ui.viewmodel.HomeViewModel
 
 /**
  * 홈 화면
  * KTX 기차 배경 + 프레임 캐러셀 + 캘린더
- * Phase 2: 레이아웃 비율 최적화 및 시각적 균형 개선
+ * Phase 2: ViewModel 연동 및 상태 관리 개선
  */
 @Composable
 fun HomeScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    homeViewModel: HomeViewModel = viewModel()
 ) {
     Column(
         modifier = modifier
@@ -61,14 +64,16 @@ fun HomeScreen(
         FrameCarousel(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.35f)
+                .weight(0.35f),
+            homeViewModel = homeViewModel
         )
         
         // 캘린더 뷰 (25% - 정보 표시)
         CalendarView(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.25f)
+                .weight(0.25f),
+            homeViewModel = homeViewModel
         )
     }
 }
