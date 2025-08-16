@@ -36,26 +36,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.a4cut.data.model.Frame
 import kotlin.math.abs
 
 /**
  * 프레임 캐러셀 컴포넌트
  * KTX 프레임들을 가로로 스크롤하여 선택할 수 있습니다
- * Phase 2: 애니메이션 효과 추가 (카드 회전, 하이라이트, 페이지 인디케이터)
+ * Phase 2: Repository 패턴 적용 및 ViewModel 연동
+ * Phase 3: State Hoisting 패턴 적용으로 재사용성 향상
  */
 @Composable
 fun FrameCarousel(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    frames: List<Frame>,
+    isLoading: Boolean,
+    onFrameClick: (Frame) -> Unit
 ) {
-    // 임시 프레임 데이터 (나중에 실제 데이터로 교체)
-    val frames = remember {
-        listOf(
-            FrameData("KTX 기본", "25.07.18", "서울역", "제목"),
-            FrameData("KTX 프리미엄", "23.05.05", "부산역", "제목"),
-            FrameData("KTX 특별", "16.03.01", "전주역", "제목")
-        )
-    }
-    
     // LazyRow 상태 관리
     val listState = rememberLazyListState()
     
@@ -78,36 +74,68 @@ fun FrameCarousel(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        LazyRow(
-            state = listState,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            itemsIndexed(frames) { index, frame ->
-                FrameCard(
-                    frame = frame,
-                    index = index,
-                    isSelected = index == firstVisibleItemIndex,
-                    modifier = Modifier.padding(
-                        start = if (index == 0) 16.dp else 0.dp,
-                        end = if (index == frames.size - 1) 16.dp else 0.dp
-                    )
+        if (isLoading) {
+            // 로딩 상태 표시
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "프레임을 불러오는 중...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 페이지 인디케이터 (애니메이션 포함)
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            frames.forEachIndexed { index, _ ->
-                AnimatedPageIndicator(
-                    isSelected = index == firstVisibleItemIndex,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+        } else if (frames.isEmpty()) {
+            // 프레임이 없을 때 표시
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "사용 가능한 프레임이 없습니다",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        } else {
+            // 프레임 목록 표시
+            LazyRow(
+                state = listState,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                itemsIndexed(frames) { index, frame ->
+                    FrameCard(
+                        frame = frame,
+                        index = index,
+                        isSelected = index == firstVisibleItemIndex,
+                        onFrameClick = { onFrameClick(frame) },
+                        modifier = Modifier.padding(
+                            start = if (index == 0) 16.dp else 0.dp,
+                            end = if (index == frames.size - 1) 16.dp else 0.dp
+                        )
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 페이지 인디케이터 (애니메이션 포함)
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                frames.forEachIndexed { index, _ ->
+                    AnimatedPageIndicator(
+                        isSelected = index == firstVisibleItemIndex,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
             }
         }
     }
@@ -118,28 +146,26 @@ fun FrameCarousel(
  */
 @Composable
 private fun FrameCard(
-    frame: FrameData,
+    frame: Frame,
     index: Int,
     isSelected: Boolean,
+    onFrameClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 선택 상태에 따른 애니메이션 값들
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.05f else 1.0f,
-        animationSpec = tween(durationMillis = 300),
-        label = "scale"
+        animationSpec = tween(durationMillis = 300)
     )
     
     val rotation by animateFloatAsState(
         targetValue = if (isSelected) 2f else 0f,
-        animationSpec = tween(durationMillis = 400),
-        label = "rotation"
+        animationSpec = tween(durationMillis = 400)
     )
     
     val elevation by animateFloatAsState(
         targetValue = if (isSelected) 16f else 8f,
-        animationSpec = tween(durationMillis = 300),
-        label = "elevation"
+        animationSpec = tween(durationMillis = 300)
     )
     
     Card(
@@ -258,6 +284,26 @@ private fun FrameCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            
+            // 프리미엄 표시 (프리미엄 프레임인 경우)
+            if (frame.isPremium) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "PREMIUM",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
@@ -272,14 +318,12 @@ private fun AnimatedPageIndicator(
 ) {
     val size by animateFloatAsState(
         targetValue = if (isSelected) 12f else 8f,
-        animationSpec = tween(durationMillis = 300),
-        label = "size"
+        animationSpec = tween(durationMillis = 300)
     )
     
     val alpha by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0.3f,
-        animationSpec = tween(durationMillis = 300),
-        label = "alpha"
+        animationSpec = tween(durationMillis = 300)
     )
     
     Box(
@@ -291,13 +335,3 @@ private fun AnimatedPageIndicator(
             )
     )
 }
-
-/**
- * 프레임 데이터 클래스
- */
-private data class FrameData(
-    val name: String,
-    val date: String,
-    val station: String,
-    val title: String
-)

@@ -31,9 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,16 +45,20 @@ import java.util.Calendar
 /**
  * 캘린더 뷰 컴포넌트
  * 현재 월의 달력을 표시합니다
- * Phase 2: 사용자 상호작용 기능 추가 (월 변경, 날짜 선택, 스와이프)
+ * Phase 2: ViewModel 연동 및 상태 관리 개선
+ * Phase 3: State Hoisting 패턴 적용으로 재사용성 향상
  */
 @Composable
 fun CalendarView(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currentMonth: Int,
+    currentYear: Int,
+    selectedDate: Calendar?,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onDateSelect: (Calendar) -> Unit,
+    isSpecialDay: (Calendar) -> Boolean
 ) {
-    var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
-    var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
-    var selectedDate by remember { mutableStateOf<Calendar?>(null) }
-    
     // 현재 월의 첫 번째 날과 마지막 날
     val firstDayOfMonth = Calendar.getInstance().apply {
         set(currentYear, currentMonth, 1)
@@ -98,33 +99,14 @@ fun CalendarView(
     
     val allDays = previousMonthDays + currentMonthDays + nextMonthDays
     
-    // 월 변경 함수들
-    val goToPreviousMonth: () -> Unit = {
-        if (currentMonth == 0) {
-            currentMonth = 11
-            currentYear--
-        } else {
-            currentMonth--
-        }
-    }
-    
-    val goToNextMonth: () -> Unit = {
-        if (currentMonth == 11) {
-            currentMonth = 0
-            currentYear++
-        } else {
-            currentMonth++
-        }
-    }
-    
     Card(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectDragGestures { _, dragAmount ->
                     when {
-                        dragAmount.x > 50 -> goToPreviousMonth() // 오른쪽으로 스와이프
-                        dragAmount.x < -50 -> goToNextMonth()     // 왼쪽으로 스와이프
+                        dragAmount.x > 50 -> onPreviousMonth() // 오른쪽으로 스와이프
+                        dragAmount.x < -50 -> onNextMonth()     // 왼쪽으로 스와이프
                     }
                 }
             },
@@ -145,7 +127,7 @@ fun CalendarView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = goToPreviousMonth,
+                    onClick = onPreviousMonth,
                     modifier = Modifier
                         .size(40.dp)
                         .scale(1.2f)
@@ -174,7 +156,7 @@ fun CalendarView(
                 }
                 
                 IconButton(
-                    onClick = goToNextMonth,
+                    onClick = onNextMonth,
                     modifier = Modifier
                         .size(40.dp)
                         .scale(1.2f)
@@ -232,10 +214,10 @@ fun CalendarView(
                             date.get(Calendar.MONTH) == selected.get(Calendar.MONTH) &&
                             date.get(Calendar.YEAR) == selected.get(Calendar.YEAR)
                         } ?: false,
-                        isSpecialDay = isSpecialDay(date), // 특별한 날 체크
+                        isSpecialDay = isSpecialDay(date), // 전달받은 함수로 특별한 날 체크
                         onClick = {
                             if (date.get(Calendar.MONTH) == currentMonth) {
-                                selectedDate = date
+                                onDateSelect(date)
                             }
                         }
                     )
@@ -272,8 +254,7 @@ private fun DayCell(
 ) {
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.1f else 1.0f,
-        animationSpec = tween(durationMillis = 200),
-        label = "scale"
+        animationSpec = tween(durationMillis = 200)
     )
     
     val backgroundColor = when {
@@ -320,23 +301,5 @@ private fun DayCell(
                     .align(Alignment.BottomCenter)
             )
         }
-    }
-}
-
-/**
- * 특별한 날인지 확인하는 함수
- * KTX 관련 특별한 날들을 정의
- */
-private fun isSpecialDay(date: Calendar): Boolean {
-    val month = date.get(Calendar.MONTH) + 1
-    val day = date.get(Calendar.DATE)
-    
-    // KTX 관련 특별한 날들 (예시)
-    return when {
-        month == 4 && day == 1 -> true  // KTX 개통일 (예시)
-        month == 12 && day == 25 -> true // 크리스마스
-        month == 1 && day == 1 -> true   // 새해
-        month == 8 && day == 15 -> true  // 광복절
-        else -> false
     }
 }
