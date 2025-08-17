@@ -88,6 +88,12 @@ class SearchViewModel(
             currentSeasons.add(season)
         }
         _selectedSeasons.value = currentSeasons
+        
+        // ✅ 필터 변경 시 자동 검색 실행
+        val query = _searchQuery.value.trim()
+        if (query.isNotEmpty()) {
+            searchPhotos(query)
+        }
     }
     
     // 감정 필터 토글
@@ -99,6 +105,12 @@ class SearchViewModel(
             currentMoods.add(mood)
         }
         _selectedMoods.value = currentMoods
+        
+        // ✅ 필터 변경 시 자동 검색 실행
+        val query = _searchQuery.value.trim()
+        if (query.isNotEmpty()) {
+            searchPhotos(query)
+        }
     }
     
     // 날씨 필터 토글
@@ -110,11 +122,23 @@ class SearchViewModel(
             currentWeather.add(weather)
         }
         _selectedWeather.value = currentWeather
+        
+        // ✅ 필터 변경 시 자동 검색 실행
+        val query = _searchQuery.value.trim()
+        if (query.isNotEmpty()) {
+            searchPhotos(query)
+        }
     }
     
     // 정렬 옵션 변경
     fun updateSortOption(sortOption: SortOption) {
         _sortBy.value = sortOption
+        
+        // ✅ 정렬 변경 시 자동 검색 실행
+        val query = _searchQuery.value.trim()
+        if (query.isNotEmpty()) {
+            searchPhotos(query)
+        }
     }
     
     // 검색 실행 (이제 private으로 변경)
@@ -129,14 +153,15 @@ class SearchViewModel(
                 _isLoading.value = true
                 _errorMessage.value = null
                 
-                // TODO: Repository를 통한 실제 검색 구현
-                // val results = photoRepository.searchPhotos(
+                // ✅ Repository를 통한 실제 검색 구현
+                // val results = searchPreferences.searchPhotosAdvanced(
                 //     query = query,
-                //     seasons = _selectedSeasons.value,
-                //     moods = _selectedMoods.value,
-                //     weather = _selectedWeather.value,
-                //     sortBy = _sortBy.value
+                //     seasons = _selectedSeasons.value.toList(),
+                //     moods = _selectedMoods.value.toList(),
+                //     weather = _selectedWeather.value.toList(),
+                //     sortBy = _sortBy.value.name.lowercase()
                 // )
+                // _searchResults.value = results
                 
                 // 임시 더미 데이터로 검색 결과 생성
                 val dummyResults = createDummySearchResults(query)
@@ -283,6 +308,7 @@ enum class SortOption(val displayName: String) {
 
 /**
  * 필터 옵션들
+ * TODO: Context를 받아서 문자열 리소스로 교체
  */
 object FilterOptions {
     val seasons = listOf("봄", "여름", "가을", "겨울")

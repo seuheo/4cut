@@ -77,6 +77,36 @@ interface PhotoDao {
     @Query("SELECT * FROM photos WHERE title LIKE '%' || :query || '%' OR location LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchPhotos(query: String): Flow<List<PhotoEntity>>
     
+    /**
+     * 고급 검색: 쿼리, 계절, 감정, 날씨 필터링을 포함한 검색
+     */
+    @Query("SELECT * FROM photos WHERE " +
+           "(:query = '' OR title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' OR tags LIKE '%' || :query || '%') " +
+           "AND (:seasons IS NULL OR :seasons = '[]' OR season IN (:seasons)) " +
+           "AND (:moods IS NULL OR :moods = '[]' OR mood IN (:moods)) " +
+           "AND (:weather IS NULL OR :weather = '[]' OR weather IN (:weather)) " +
+           "ORDER BY " +
+           "CASE " +
+           "WHEN :sortBy = 'latest' THEN createdAt END DESC, " +
+           "CASE " +
+           "WHEN :sortBy = 'oldest' THEN createdAt END ASC, " +
+           "CASE " +
+           "WHEN :sortBy = 'favorite' THEN isFavorite END DESC, " +
+           "CASE " +
+           "WHEN :sortBy = 'location' THEN location END ASC, " +
+           "CASE " +
+           "WHEN :sortBy = 'season' THEN season END ASC, " +
+           "CASE " +
+           "WHEN :sortBy = 'mood' THEN mood END ASC"
+    )
+    fun searchPhotosAdvanced(
+        query: String,
+        seasons: List<String>,
+        moods: List<String>,
+        weather: List<String>,
+        sortBy: String
+    ): Flow<List<PhotoEntity>>
+    
     // 새로운 확장 쿼리들 (미래 기능을 위한 준비)
     /**
      * 계절별 사진 조회
