@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1080dp"
+    android:height="1920dp"
+    android:viewportWidth="1080"
+    android:viewportHeight="1920">
+    
+    <!-- 메인 배경 (KTX 블루) -->
+    <path
+        android:fillColor="#1E3A8A"
+        android:pathData="M0,0 L1080,0 L1080,1920 L0,1920 Z" />
+    
+    <!-- 상단 장식 바 (KTX 오렌지) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M0,0 L1080,0 L1080,80 L0,80 Z" />
+    
+    <!-- 하단 장식 바 (KTX 오렌지) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M0,1840 L1080,1840 L1080,1920 L0,1920 Z" />
+    
+    <!-- 좌측 장식 바 (KTX 오렌지) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M0,0 L80,0 L80,1920 L0,1920 Z" />
+    
+    <!-- 우측 장식 바 (KTX 오렌지) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M1000,0 L1080,0 L1080,1920 L1000,1920 Z" />
+    
+    <!-- 상단 KTX 로고 영역 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M400,120 L680,120 L680,200 L400,200 Z" />
+    
+    <!-- 상단 텍스트 "KTX" -->
+    <path
+        android:fillColor="#1E3A8A"
+        android:pathData="M420,140 L660,140 L660,180 L420,180 Z" />
+    
+    <!-- 하단 텍스트 "4컷 포토" -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M400,1860 L680,1860 L680,1900 L400,1900 Z" />
+    
+    <!-- 좌측 텍스트 "여행의" -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M100,400 L180,400 L180,1520 L100,1520 Z" />
+    
+    <!-- 우측 텍스트 "순간" -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M900,400 L980,400 L980,1520 L900,1520 Z" />
+    
+    <!-- 모서리 장식 (둥근 모서리 효과) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M0,0 A80,80 0 0,1 80,80 L0,80 Z" />
+    
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M1000,0 A80,80 0 0,0 1080,80 L1000,80 Z" />
+    
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M0,1840 A80,80 0 0,0 80,1920 L0,1920 Z" />
+    
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M1000,1840 A80,80 0 0,1 1080,1920 L1000,1920 Z" />
+    
+    <!-- 중앙 장식 요소 (4컷 사진 영역 표시) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.1"
+        android:pathData="M120,120 L960,120 L960,1800 L120,1800 Z" />
+    
+    <!-- 4컷 사진 영역 구분선 (가로) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M120,960 L960,960 L960,980 L120,980 Z" />
+    
+    <!-- 4컷 사진 영역 구분선 (세로) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M540,120 L560,120 L560,1800 L540,1800 Z" />
+    
+</vector>

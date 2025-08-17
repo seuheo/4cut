@@ -1,5 +1,6 @@
 package com.example.a4cut.ui.screens
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,12 +40,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.data.model.Frame
+import com.example.a4cut.ui.components.PhotoGrid
 import com.example.a4cut.ui.viewmodel.FrameViewModel
 
 /**
  * 프레임 화면
  * 4컷 사진 선택 + 프레임 적용 + 미리보기
- * Phase 2: ViewModel 연동 및 실제 기능 구현
+ * Phase 3: PhotoGrid 컴포넌트 통합 및 이미지 선택 기능 구현
  */
 @Composable
 fun FrameScreen(
@@ -66,7 +68,7 @@ fun FrameScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "프레임 선택",
+            text = "KTX 프레임 적용",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -92,34 +94,20 @@ fun FrameScreen(
             }
         }
         
-        // 4컷 사진 선택 그리드
-        Text(
-            text = "4컷 사진 선택",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .align(Alignment.Start)
-                .padding(bottom = 8.dp)
-        )
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        // 4컷 사진 선택 그리드 (PhotoGrid 컴포넌트 사용)
+        PhotoGrid(
+            photos = photos,
+            onPhotoClick = { index -> 
+                // 사진 클릭 시 토글 동작: 있으면 제거, 없으면 추가 준비
+                frameViewModel.togglePhotoSelection(index)
+            },
+            onAddPhotoClick = { frameViewModel.openImagePicker() },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .padding(bottom = 24.dp)
-        ) {
-            itemsIndexed(photos) { index, photo ->
-                PhotoGridItem(
-                    photo = photo,
-                    index = index,
-                    onClick = { /* TODO: 사진 선택 다이얼로그 */ },
-                    modifier = Modifier.size(96.dp)
-                )
-            }
-        }
+                .weight(1f)
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
         
         // 프레임 선택
         Text(
@@ -159,12 +147,10 @@ fun FrameScreen(
             }
         }
         
-        Spacer(modifier = Modifier.weight(1f))
-        
         // 액션 버튼들
         Button(
             onClick = { frameViewModel.startImageComposition() },
-            enabled = selectedFrame != null && !isProcessing,
+            enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
@@ -185,7 +171,7 @@ fun FrameScreen(
         ) {
             Button(
                 onClick = { frameViewModel.saveImage() },
-                enabled = selectedFrame != null && !isProcessing,
+                enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("저장")
@@ -193,70 +179,10 @@ fun FrameScreen(
             
             Button(
                 onClick = { frameViewModel.shareToInstagram() },
-                enabled = selectedFrame != null && !isProcessing,
+                enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("공유")
-            }
-        }
-    }
-}
-
-/**
- * 사진 그리드 아이템
- */
-@Composable
-private fun PhotoGridItem(
-    photo: String, // Photo 모델 대신 String 사용
-    index: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(
-                if (photo.isNotEmpty()) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                }
-            )
-            .border(
-                width = 2.dp,
-                color = if (photo.isNotEmpty()) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        if (photo.isNotEmpty()) {
-            // TODO: 실제 이미지 표시 (Coil 사용)
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "사진 ${index + 1}",
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "사진 추가",
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.outline
-                )
-                Text(
-                    text = "사진 ${index + 1}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
             }
         }
     }
