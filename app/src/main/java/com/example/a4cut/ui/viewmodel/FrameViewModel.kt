@@ -2,6 +2,7 @@ package com.example.a4cut.ui.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,8 @@ import com.example.a4cut.data.model.Frame
 import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.ui.utils.ImagePicker
 import com.example.a4cut.ui.utils.PermissionHelper
+import com.example.a4cut.ui.utils.ImageComposer
+import com.example.a4cut.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +27,8 @@ class FrameViewModel : ViewModel() {
     private val frameRepository = FrameRepository()
     private var imagePicker: ImagePicker? = null
     private var permissionHelper: PermissionHelper? = null
+    private var imageComposer: ImageComposer? = null // ImageComposer 추가
+    private var context: Context? = null // Context 저장
     
     // 프레임 관련 상태
     private val _frames = MutableStateFlow<List<Frame>>(emptyList())
@@ -50,6 +55,10 @@ class FrameViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
+    // 합성된 최종 이미지를 저장할 상태
+    private val _composedImage = MutableStateFlow<Bitmap?>(null)
+    val composedImage: StateFlow<Bitmap?> = _composedImage.asStateFlow()
+    
     // 이미지 선택 결과
     private val _imagePickerResult = MutableStateFlow<List<Uri>?>(null)
     val imagePickerResult: StateFlow<List<Uri>?> = _imagePickerResult.asStateFlow()
@@ -62,8 +71,10 @@ class FrameViewModel : ViewModel() {
      * Context 설정 (권한 및 이미지 처리에 필요)
      */
     fun setContext(context: Context) {
+        this.context = context
         imagePicker = ImagePicker(context)
         permissionHelper = PermissionHelper(context)
+        imageComposer = ImageComposer(context) // ImageComposer 초기화
         checkImagePermission()
     }
     
@@ -225,12 +236,30 @@ class FrameViewModel : ViewModel() {
         viewModelScope.launch {
             _isProcessing.value = true
             try {
-                // TODO: 실제 이미지 합성 로직 구현
-                // 현재는 시뮬레이션만 수행
-                kotlinx.coroutines.delay(2000) // 2초 대기
+                // 기존 합성된 이미지 메모리 해제
+                _composedImage.value?.let { bitmap ->
+                    if (!bitmap.isRecycled) {
+                        bitmap.recycle()
+                    }
+                }
                 
-                // 성공 시 처리
-                clearError()
+                // 실제 KTX 시그니처 프레임 리소스 로드
+                val frameBitmap = loadKtxFrameBitmap()
+                
+                imageComposer?.let { composer ->
+                    val result = composer.composeImage(
+                        photos = _photos.value,
+                        frameBitmap = frameBitmap
+                    )
+                    _composedImage.value = result // 합성 결과 저장
+                    clearError()
+                } ?: run {
+                    _errorMessage.value = "이미지 합성기를 초기화할 수 없습니다"
+                }
+                
+                // 프레임 메모리 해제
+                frameBitmap.recycle()
+                
             } catch (e: Exception) {
                 _errorMessage.value = "이미지 합성 실패: ${e.message}"
             } finally {
@@ -243,24 +272,24 @@ class FrameViewModel : ViewModel() {
      * 이미지 저장
      */
     fun saveImage() {
-        if (_selectedFrame.value == null) {
-            _errorMessage.value = "프레임을 선택해주세요"
+        val imageToSave = _composedImage.value
+        if (imageToSave == null) {
+            _errorMessage.value = "합성된 이미지가 없습니다. 먼저 이미지 합성을 해주세요."
             return
         }
-        
-        val hasPhotos = _photos.value.any { it != null }
-        if (!hasPhotos) {
-            _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
-            return
-        }
-        
+
         viewModelScope.launch {
             _isProcessing.value = true
             try {
-                // TODO: 실제 이미지 저장 로직 구현
-                kotlinx.coroutines.delay(1500) // 1.5초 대기
+                val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
+                val success = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
                 
-                clearError()
+                if (success == true) {
+                    clearError()
+                    // 성공 메시지는 UI에서 Snackbar로 표시
+                } else {
+                    _errorMessage.value = "이미지 저장에 실패했습니다."
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "이미지 저장 실패: ${e.message}"
             } finally {
@@ -273,21 +302,19 @@ class FrameViewModel : ViewModel() {
      * 인스타그램 공유
      */
     fun shareToInstagram() {
-        if (_selectedFrame.value == null) {
-            _errorMessage.value = "프레임을 선택해주세요"
+        val imageToShare = _composedImage.value
+        if (imageToShare == null) {
+            _errorMessage.value = "합성된 이미지가 없습니다. 먼저 이미지 합성을 해주세요."
             return
         }
-        
-        val hasPhotos = _photos.value.any { it != null }
-        if (!hasPhotos) {
-            _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
-            return
-        }
-        
+
         viewModelScope.launch {
             _isProcessing.value = true
             try {
                 // TODO: 실제 인스타그램 공유 로직 구현
+                // 1. 합성된 이미지를 임시 파일로 저장
+                // 2. Instagram Story Intent 생성
+                // 3. 공유 실행
                 kotlinx.coroutines.delay(1000) // 1초 대기
                 
                 clearError()
@@ -328,6 +355,34 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
+     * KTX 시그니처 프레임 리소스를 Bitmap으로 로드
+     */
+    private fun loadKtxFrameBitmap(): Bitmap {
+        return try {
+            context?.let { ctx ->
+                // drawable 리소스에서 KTX 프레임 로드
+                val options = BitmapFactory.Options().apply {
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                }
+                BitmapFactory.decodeResource(ctx.resources, R.drawable.ktx_frame_signature, options)
+                    ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+            } ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+        } catch (e: Exception) {
+            // 리소스 로드 실패 시 기본 프레임 생성
+            createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+        }
+    }
+    
+    /**
+     * 임시 프레임 생성 함수 (fallback용)
+     */
+    private fun createDefaultFrameBitmap(width: Int, height: Int): Bitmap {
+        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(0xFF1E3A8A.toInt()) // KTX 블루
+        }
+    }
+    
+    /**
      * ViewModel 정리 시 Bitmap 메모리 해제
      */
     override fun onCleared() {
@@ -338,6 +393,12 @@ class FrameViewModel : ViewModel() {
                 if (!it.isRecycled) {
                     it.recycle()
                 }
+            }
+        }
+        // 합성된 이미지도 메모리 해제
+        _composedImage.value?.let { bitmap ->
+            if (!bitmap.isRecycled) {
+                bitmap.recycle()
             }
         }
     }
