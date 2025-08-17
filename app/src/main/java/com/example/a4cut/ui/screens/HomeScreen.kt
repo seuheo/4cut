@@ -71,8 +71,7 @@ fun HomeScreen(
             PhotoLogSection(
                 photoLogs = photoLogs,
                 onFavoriteToggle = { photo -> homeViewModel.toggleFavorite(photo) },
-                onDelete = { photo -> homeViewModel.deletePhoto(photo) },
-                onPhotoClick = { photo -> /* TODO: 상세 보기 */ }
+                onCardClick = { photo -> /* TODO: 상세 보기 */ }
             )
         }
         
@@ -201,8 +200,7 @@ private fun EmptyStateSection(onNavigateToFrame: () -> Unit) {
 private fun PhotoLogSection(
     photoLogs: List<PhotoEntity>,
     onFavoriteToggle: (PhotoEntity) -> Unit,
-    onDelete: (PhotoEntity) -> Unit,
-    onPhotoClick: (PhotoEntity) -> Unit
+    onCardClick: (PhotoEntity) -> Unit
 ) {
     LazyRow(
         modifier = Modifier
@@ -215,8 +213,7 @@ private fun PhotoLogSection(
             PhotoLogCard(
                 photo = photo,
                 onFavoriteToggle = onFavoriteToggle,
-                onDelete = onDelete,
-                onPhotoClick = onPhotoClick
+                onCardClick = onCardClick
             )
         }
     }
