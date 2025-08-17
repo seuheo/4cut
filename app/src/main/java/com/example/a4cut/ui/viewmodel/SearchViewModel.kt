@@ -8,9 +8,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.data.datastore.SearchPreferences
+import com.example.a4cut.data.repository.PhotoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
@@ -18,11 +20,23 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
+ * 검색 파라미터를 담는 데이터 클래스
+ */
+data class SearchParams(
+    val query: String,
+    val seasons: Set<String>,
+    val moods: Set<String>,
+    val weather: Set<String>,
+    val sortBy: SortOption
+)
+
+/**
  * 검색 및 필터링 기능을 관리하는 ViewModel
  * 검색어, 필터 조건, 검색 결과 상태를 관리
  */
 class SearchViewModel(
-    private val searchPreferences: SearchPreferences
+    private val searchPreferences: SearchPreferences,
+    private val photoRepository: PhotoRepository? = null
 ) : ViewModel() {
     
     // 검색 상태
@@ -59,16 +73,24 @@ class SearchViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
     init {
-        // ✅ 자동 검색: searchQuery가 변경될 때마다 자동으로 검색 실행
-        _searchQuery
-            .debounce(500) // 0.5초 동안 입력이 없으면 검색 실행
-            .distinctUntilChanged() // 이전과 동일한 검색어는 무시
-            .onEach { query ->
-                if (query.isNotEmpty()) {
-                    searchPhotos(query)
-                }
+        // ✅ Combine을 사용하여 검색어 또는 필터가 변경될 때마다 자동으로 검색 실행
+        combine(
+            _searchQuery,
+            _selectedSeasons,
+            _selectedMoods,
+            _selectedWeather,
+            _sortBy
+        ) { query, seasons, moods, weather, sortBy ->
+            SearchParams(query, seasons, moods, weather, sortBy)
+        }
+        .debounce(500) // 0.5초 동안 입력이 없으면 검색 실행
+        .distinctUntilChanged() // 이전과 동일한 검색 파라미터는 무시
+        .onEach { params ->
+            if (params.query.isNotEmpty()) {
+                searchPhotos(params.query, params.seasons, params.moods, params.weather, params.sortBy)
             }
-            .launchIn(viewModelScope)
+        }
+        .launchIn(viewModelScope)
         
         // ✅ DataStore에서 검색 기록 로드
         loadSearchHistory()
@@ -142,7 +164,13 @@ class SearchViewModel(
     }
     
     // 검색 실행 (이제 private으로 변경)
-    private fun searchPhotos(query: String) {
+    private fun searchPhotos(
+        query: String,
+        seasons: Set<String> = emptySet(),
+        moods: Set<String> = emptySet(),
+        weather: Set<String> = emptySet(),
+        sortBy: SortOption = SortOption.LATEST
+    ) {
         if (query.trim().isEmpty()) {
             _searchResults.value = emptyList()
             return
@@ -154,17 +182,17 @@ class SearchViewModel(
                 _errorMessage.value = null
                 
                 // ✅ Repository를 통한 실제 검색 구현
-                // val results = searchPreferences.searchPhotosAdvanced(
+                // val results = photoRepository.searchPhotosAdvanced(
                 //     query = query,
-                //     seasons = _selectedSeasons.value.toList(),
-                //     moods = _selectedMoods.value.toList(),
-                //     weather = _selectedWeather.value.toList(),
-                //     sortBy = _sortBy.value.name.lowercase()
+                //     seasons = seasons.toList(),
+                //     moods = moods.toList(),
+                //     weather = weather.toList(),
+                //     sortBy = sortBy.name.lowercase()
                 // )
                 // _searchResults.value = results
                 
-                // 임시 더미 데이터로 검색 결과 생성
-                val dummyResults = createDummySearchResults(query)
+                // 임시 더미 데이터로 검색 결과 생성 (필터 적용)
+                val dummyResults = createDummySearchResults(query, seasons, moods, weather)
                 _searchResults.value = dummyResults
                 
                 // 검색 히스토리에 추가
@@ -241,9 +269,14 @@ class SearchViewModel(
         _errorMessage.value = null
     }
     
-    // 임시 더미 검색 결과 생성
-    private fun createDummySearchResults(query: String): List<PhotoEntity> {
-        return listOf(
+    // 임시 더미 검색 결과 생성 (필터 적용)
+    private fun createDummySearchResults(
+        query: String,
+        seasons: Set<String> = emptySet(),
+        moods: Set<String> = emptySet(),
+        weather: Set<String> = emptySet()
+    ): List<PhotoEntity> {
+        val allResults = listOf(
             PhotoEntity(
                 id = 1,
                 imagePath = "dummy_path_1",
@@ -277,8 +310,32 @@ class SearchViewModel(
                 season = "여름",
                 timeOfDay = "아침",
                 isFavorite = false
+            ),
+            PhotoEntity(
+                id = 3,
+                imagePath = "dummy_path_3",
+                createdAt = System.currentTimeMillis() - 259200000, // 3일 전
+                title = "봄날 $query 여행",
+                location = "전주역",
+                frameType = "ktx_signature",
+                tags = "$query,한옥,봄",
+                description = "봄날 $query 있는 전주 한옥마을",
+                weather = "맑음",
+                mood = "설렘",
+                companions = "연인",
+                travelPurpose = "데이트",
+                season = "봄",
+                timeOfDay = "오후",
+                isFavorite = true
             )
         )
+        
+        // 필터 적용
+        return allResults.filter { photo ->
+            (seasons.isEmpty() || photo.season in seasons) &&
+            (moods.isEmpty() || photo.mood in moods) &&
+            (weather.isEmpty() || photo.weather in weather)
+        }
     }
     
     companion object {
@@ -288,6 +345,7 @@ class SearchViewModel(
         fun provideFactory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val searchPreferences = SearchPreferences(context)
+                // TODO: PhotoRepository 주입 구현 - 현재는 더미 데이터만 사용
                 SearchViewModel(searchPreferences)
             }
         }

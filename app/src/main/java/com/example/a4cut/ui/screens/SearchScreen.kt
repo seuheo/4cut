@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.a4cut.R
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.ui.components.PhotoLogCard
 import com.example.a4cut.ui.viewmodel.FilterOptions
 import com.example.a4cut.ui.viewmodel.SearchViewModel
@@ -34,11 +35,11 @@ import com.example.a4cut.ui.viewmodel.SortOption
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    viewModel: SearchViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToPhotoDetail: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val viewModel: SearchViewModel = viewModel()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val searchHistory by viewModel.searchHistory.collectAsState()
