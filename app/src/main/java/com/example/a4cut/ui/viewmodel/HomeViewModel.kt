@@ -43,9 +43,14 @@ class HomeViewModel : ViewModel() {
      * Context 설정 및 데이터베이스 초기화
      */
     fun setContext(context: Context) {
-        val database = AppDatabase.getDatabase(context)
-        photoRepository = PhotoRepository(database.photoDao())
-        loadPhotoLogs()
+        try {
+            val database = AppDatabase.getDatabase(context)
+            photoRepository = PhotoRepository(database.photoDao())
+            loadPhotoLogs()
+        } catch (e: Exception) {
+            _errorMessage.value = "데이터베이스 초기화 실패: ${e.message}"
+            e.printStackTrace()
+        }
     }
     
     /**
@@ -58,20 +63,32 @@ class HomeViewModel : ViewModel() {
                 try {
                     // 사진 목록과 개수 동시 로드
                     launch {
-                        repository.getAllPhotos().collect { photos ->
-                            _photoLogs.value = photos
+                        try {
+                            repository.getAllPhotos().collect { photos ->
+                                _photoLogs.value = photos
+                            }
+                        } catch (e: Exception) {
+                            _errorMessage.value = "사진 목록 로드 실패: ${e.message}"
                         }
                     }
                     
                     launch {
-                        repository.getPhotoCount().collect { count ->
-                            _photoCount.value = count
+                        try {
+                            repository.getPhotoCount().collect { count ->
+                                _photoCount.value = count
+                            }
+                        } catch (e: Exception) {
+                            _errorMessage.value = "사진 개수 로드 실패: ${e.message}"
                         }
                     }
                     
                     launch {
-                        repository.getFavoritePhotoCount().collect { count ->
-                            _favoritePhotoCount.value = count
+                        try {
+                            repository.getFavoritePhotoCount().collect { count ->
+                                _favoritePhotoCount.value = count
+                            }
+                        } catch (e: Exception) {
+                            _errorMessage.value = "즐겨찾기 개수 로드 실패: ${e.message}"
                         }
                     }
                     

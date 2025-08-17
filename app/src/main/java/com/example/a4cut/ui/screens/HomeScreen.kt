@@ -35,9 +35,14 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     
-    // ViewModel 초기화
+    // ViewModel 초기화 - 안전한 초기화
     LaunchedEffect(Unit) {
-        homeViewModel.setContext(context)
+        try {
+            homeViewModel.setContext(context)
+        } catch (e: Exception) {
+            // 초기화 실패 시 기본 상태 유지
+            e.printStackTrace()
+        }
     }
     
     // ViewModel의 상태들을 수집
