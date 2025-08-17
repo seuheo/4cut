@@ -24,6 +24,7 @@ import coil.compose.AsyncImage
 import com.example.a4cut.data.database.entity.PhotoEntity
 import java.text.SimpleDateFormat
 import java.util.*
+import android.net.Uri
 
 /**
  * 포토로그에 표시될 개별 사진 카드 컴포넌트
@@ -67,7 +68,7 @@ fun PhotoLogCard(
                     .padding(12.dp)
             ) {
                 AsyncImage(
-                    model = photo.imagePath,
+                    model = Uri.parse(photo.imagePath),
                     contentDescription = "저장된 네컷사진",
                     modifier = Modifier
                         .fillMaxSize()

@@ -298,13 +298,13 @@ class FrameViewModel : ViewModel() {
             _isProcessing.value = true
             try {
                 val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
-                val success = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
+                val savedUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
                 
-                if (success == true) {
+                if (savedUri != null) {
                     // 갤러리 저장 성공 시 데이터베이스에도 저장
                     try {
                         photoRepository?.createKTXPhoto(
-                            imagePath = fileName,
+                            imagePath = savedUri.toString(),
                             title = "KTX 네컷 사진",
                             location = "KTX 역",
                             tags = "ktx,4cut,여행"

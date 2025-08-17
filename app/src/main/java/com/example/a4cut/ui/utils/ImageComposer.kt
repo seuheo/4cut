@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import kotlinx.coroutines.Dispatchers
@@ -115,9 +116,9 @@ class ImageComposer(private val context: Context) {
      * Bitmap 이미지를 갤러리에 JPEG 형식으로 저장
      * @param bitmap 저장할 Bitmap
      * @param displayName 파일명 (예: "KTX_4cut_20241219.jpg")
-     * @return 저장 성공 시 true, 실패 시 false
+     * @return 저장 성공 시 URI, 실패 시 null
      */
-    suspend fun saveBitmapToGallery(bitmap: Bitmap, displayName: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun saveBitmapToGallery(bitmap: Bitmap, displayName: String): Uri? = withContext(Dispatchers.IO) {
         val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
         } else {
@@ -149,7 +150,7 @@ class ImageComposer(private val context: Context) {
                     contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
                     resolver.update(it, contentValues, null, null)
                 }
-                return@withContext true
+                return@withContext it
             } catch (e: Exception) {
                 // 저장 실패 시 생성된 URI 삭제
                 resolver.delete(it, null, null)

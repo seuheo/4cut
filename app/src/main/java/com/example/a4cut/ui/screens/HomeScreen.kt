@@ -207,7 +207,7 @@ private fun PhotoLogSection(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(),
+            .height(300.dp),
         contentPadding = PaddingValues(horizontal = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
