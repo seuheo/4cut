@@ -130,12 +130,51 @@ fun AppNavigation(
                     location = "더미 위치",
                     frameType = "ktx_signature"
                 )
+                
+                // PhotoDetailViewModel 생성 (실제로는 ViewModelFactory를 사용해야 함)
+                val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>()
+                
+                // 사진 정보 설정
+                androidx.compose.runtime.LaunchedEffect(photoId) {
+                    photoDetailViewModel.setPhoto(dummyPhoto)
+                }
+                
                 PhotoDetailScreen(
-                    photo = dummyPhoto,
+                    viewModel = photoDetailViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onEditPhoto = { /* TODO: 편집 화면으로 이동 */ },
-                    onToggleFavorite = { /* TODO: 즐겨찾기 토글 */ },
-                    onDeletePhoto = { /* TODO: 삭제 처리 */ }
+                    onNavigateToEdit = { navController.navigate("photo_edit/$photoId") }
+                )
+            }
+            
+            // 사진 편집 화면
+            composable(
+                route = "photo_edit/{photoId}",
+                arguments = listOf(
+                    navArgument("photoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
+                
+                // PhotoDetailViewModel 생성 (실제로는 ViewModelFactory를 사용해야 함)
+                val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>()
+                
+                // 사진 정보 설정
+                androidx.compose.runtime.LaunchedEffect(photoId) {
+                    // TODO: 실제 데이터베이스에서 photoId로 사진 정보를 가져와야 함
+                    val dummyPhoto = PhotoEntity(
+                        id = photoId,
+                        imagePath = "dummy_path",
+                        createdAt = System.currentTimeMillis(),
+                        title = "더미 제목",
+                        location = "더미 위치",
+                        frameType = "ktx_signature"
+                    )
+                    photoDetailViewModel.setPhoto(dummyPhoto)
+                }
+                
+                com.example.a4cut.ui.screens.PhotoEditScreen(
+                    viewModel = photoDetailViewModel,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
