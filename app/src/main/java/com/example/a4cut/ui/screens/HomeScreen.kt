@@ -142,7 +142,7 @@ private fun LoadingSection() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(1f),
+            .fillMaxHeight(),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
@@ -159,7 +159,7 @@ private fun EmptyStateSection(onNavigateToFrame: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(1f),
+            .fillMaxHeight(),
         contentAlignment = Alignment.Center
     ) {
         Column(

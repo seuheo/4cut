@@ -155,9 +155,9 @@ class ImageComposer(private val context: Context) {
                 // 저장 실패 시 생성된 URI 삭제
                 resolver.delete(it, null, null)
                 e.printStackTrace()
-                return@withContext false
+                return@withContext null
             }
-        } ?: return@withContext false
+        } ?: return@withContext null
     }
 
     /**
