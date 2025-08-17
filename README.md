@@ -1,9 +1,9 @@
 # KTX 네컷 앱 📱
 
-**문서 버전**: 6.0 (Phase 3.1 완료 및 코드 품질 개선 반영)  
+**문서 버전**: 7.0 (Phase 3.2 완료 및 인스타그램 공유 기능 구현 반영)  
 **작성자**: AI Assistant  
 **마지막 업데이트**: 2024년 12월 19일  
-**현재 상태**: Phase 3.2 완료 (100%), Phase 3.3 준비 중
+**현재 상태**: Phase 3.2 완료 (100%), Phase 3.3 진행 중
 
 ## 🎯 프로젝트 개요
 
@@ -49,6 +49,11 @@
 - **저장소**: MediaStore API
 - **권한**: AndroidX Activity Result Contracts
 
+### 파일 공유
+- **FileProvider**: 안전한 이미지 공유를 위한 시스템
+- **인스타그램 연동**: Instagram Story Intent를 통한 직접 공유
+- **캐시 관리**: 임시 이미지 파일의 효율적인 저장 및 관리
+
 ### 네비게이션
 - **Compose Navigation**: 2.7.7
 
@@ -84,9 +89,18 @@ app/
 │   │   │   ├── navigation/
 │   │   │   │   ├── AppNavigation.kt
 │   │   │   │   └── Screen.kt
+│   │   │   ├── utils/
+│   │   │   │   ├── ImagePicker.kt
+│   │   │   │   ├── PermissionHelper.kt
+│   │   │   │   └── ImageComposer.kt
 │   │   │   └── viewmodel/
 │   │   │       ├── HomeViewModel.kt
 │   │   │       └── FrameViewModel.kt
+│   ├── res/
+│   │   ├── drawable/
+│   │   │   └── ktx_frame_signature.xml
+│   │   └── xml/
+│   │       └── provider_paths.xml
 │   ├── res/
 │   └── AndroidManifest.xml
 ```
@@ -138,10 +152,11 @@ navigationCompose = "2.7.7"
 - [x] 4컷 이미지 하나로 합성 및 JPEG 형식으로 저장
 - [x] 필수 권한(저장소) 요청 및 기본 에러 처리
 
-### 🔄 Phase 3.3 구현 예정 기능 (다음 단계)
-- [ ] 인스타그램 스토리로 바로 공유하는 기능
-- [ ] 합성 결과 미리보기 UI 개선
+### 🔄 Phase 3.3 구현 예정 기능 (진행 중)
+- [x] 인스타그램 스토리로 바로 공유하는 기능 ✅ **완료**
+- [ ] 합성 결과 미리보기 UI 개선 (사용자 제안사항)
 - [ ] 사용자 경험 최적화 및 최종 다듬기
+- [ ] 앱 크래시 없이 안정적인 공유 기능 테스트
 
 ### 🚀 추후 구현 예정
 - [ ] KTX 역별 스페셜 프레임 (예: 부산역 - 갈매기, 전주역 - 한옥)
@@ -211,6 +226,7 @@ navigationCompose = "2.7.7"
   - [x] 4컷 사진과 KTX 프레임을 합성하는 `ImageComposer` 유틸리티 구현
   - [x] 비율 기반 좌표 계산으로 사진 배치 (8% 여백, 2% 간격)
   - [x] 최종 결과물 해상도(1080x1920)에 맞게 사진 자동 조정
+  - [x] 벡터 드로어블을 고품질 Bitmap으로 변환하는 최적화 함수 구현
 - [x] **KTX 시그니처 프레임 적용**
   - [x] `drawable` 리소스에 KTX 티켓 모티브 프레임 추가
   - [x] 그라데이션 배경과 오렌지 액센트 컬러로 브랜드 아이덴티티 강화
@@ -219,6 +235,11 @@ navigationCompose = "2.7.7"
   - [x] 합성된 이미지를 JPEG 형식(품질 95)으로 갤러리에 저장
   - [x] Android 10+ Scoped Storage 완벽 대응
   - [x] 파일명 자동 생성 (KTX_4cut_타임스탬프.jpg)
+- [x] **FileProvider 및 인스타그램 공유 시스템**
+  - [x] 안전한 파일 공유를 위한 FileProvider 설정 완료
+  - [x] Instagram Story Intent를 통한 직접 공유 기능 구현
+  - [x] 캐시 디렉토리에 임시 이미지 저장 후 공유하는 안전한 구조
+  - [x] `provider_paths.xml` 및 AndroidManifest.xml 설정 완료
 
 
 
@@ -323,6 +344,14 @@ cd 4cut
 5. **메모리 안전성**: 자동 Bitmap 해제로 메모리 누수 완전 방지
 6. **사용자 경험**: 권한 요청부터 이미지 선택까지 원활한 워크플로우
 
+### 🔧 Phase 3.2 완료 성과
+1. **이미지 합성 엔진**: ImageComposer 유틸리티로 로직 분리 및 재사용성 향상
+2. **고품질 프레임**: 벡터 드로어블을 고품질 Bitmap으로 변환하는 최적화
+3. **MediaStore 저장**: Android 10+ Scoped Storage 완벽 대응으로 안전한 이미지 저장
+4. **FileProvider 시스템**: 안전한 파일 공유를 위한 시스템 구축
+5. **인스타그램 연동**: Instagram Story Intent를 통한 직접 공유 기능 구현
+6. **메모리 관리**: Bitmap 생명주기 관리로 안정적인 성능 보장
+
 ### 🔧 기술적 성과
 - **Compose Navigation 2.7.7**: 최신 안정 버전 적용
 - **API 24 호환성**: 넓은 기기 지원 범위 확보
@@ -414,6 +443,6 @@ cd 4cut
 ---
 
 **마지막 업데이트**: 2024년 12월 19일  
-**현재 상태**: Phase 3.2 완료 (100%), Phase 3.3 준비 중  
-**다음 마일스톤**: 인스타그램 스토리 공유 기능 및 사용자 경험 최적화  
-**빌드 상태**: 디버그 ✅ 성공, 릴리즈 ⚠️ lint 문제 (Phase 3.2 완료로 핵심 기능 완성)
+**현재 상태**: Phase 3.2 완료 (100%), Phase 3.3 진행 중  
+**다음 마일스톤**: 합성 결과 미리보기 UI 개선 및 사용자 경험 최적화  
+**빌드 상태**: 디버그 ✅ 성공, 릴리즈 ✅ 성공 (Phase 3.2 완료로 핵심 기능 완성)

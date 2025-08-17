@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,6 +32,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.data.model.Frame
 import com.example.a4cut.ui.components.PhotoGrid
+import com.example.a4cut.ui.components.ImagePreviewDialog
 import com.example.a4cut.ui.viewmodel.FrameViewModel
 
 /**
@@ -60,6 +66,18 @@ fun FrameScreen(
     val isLoading by frameViewModel.isLoading.collectAsState()
     val isProcessing by frameViewModel.isProcessing.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
+    val successMessage by frameViewModel.successMessage.collectAsState()
+    val composedImage by frameViewModel.composedImage.collectAsState()
+    
+    // 미리보기 다이얼로그 상태
+    var showPreviewDialog by remember { mutableStateOf(false) }
+    
+    // 이미지 합성 완료 시 자동으로 미리보기 표시
+    LaunchedEffect(composedImage) {
+        if (composedImage != null && !isProcessing) {
+            showPreviewDialog = true
+        }
+    }
     
     Column(
         modifier = modifier
@@ -74,6 +92,25 @@ fun FrameScreen(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = 24.dp)
         )
+        
+        // 성공 메시지 표시
+        successMessage?.let { success ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Text(
+                    text = success,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
         
         // 에러 메시지 표시
         errorMessage?.let { error ->
@@ -149,7 +186,9 @@ fun FrameScreen(
         
         // 액션 버튼들
         Button(
-            onClick = { frameViewModel.startImageComposition() },
+            onClick = { 
+                frameViewModel.startImageComposition()
+            },
             enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
             modifier = Modifier
                 .fillMaxWidth()
@@ -161,29 +200,43 @@ fun FrameScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                Text("합성 중...")
+            } else {
+                Text("이미지 합성")
             }
-            Text("이미지 합성")
         }
         
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        // 합성된 이미지가 있으면 미리보기 버튼 표시
+        if (composedImage != null) {
             Button(
-                onClick = { frameViewModel.saveImage() },
-                enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
-                modifier = Modifier.weight(1f)
+                onClick = { showPreviewDialog = true },
+                enabled = !isProcessing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
             ) {
-                Text("저장")
+                Text("결과물 미리보기")
             }
-            
-            Button(
-                onClick = { frameViewModel.shareToInstagram() },
-                enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("공유")
-            }
+        }
+        
+        // 이미지 미리보기 다이얼로그
+        if (showPreviewDialog && composedImage != null) {
+            ImagePreviewDialog(
+                bitmap = composedImage,
+                onDismiss = { showPreviewDialog = false },
+                onSave = { 
+                    frameViewModel.saveImage()
+                    showPreviewDialog = false
+                },
+                onShare = { 
+                    frameViewModel.shareToInstagram()
+                    showPreviewDialog = false
+                },
+                isProcessing = isProcessing
+            )
         }
     }
 }

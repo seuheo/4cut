@@ -294,7 +294,7 @@ class FrameViewModel : ViewModel() {
                 
                 if (success == true) {
                     clearError()
-                    // 성공 메시지는 UI에서 Snackbar로 표시
+                    _successMessage.value = "이미지가 갤러리에 성공적으로 저장되었습니다!"
                 } else {
                     _errorMessage.value = "이미지 저장에 실패했습니다."
                 }
@@ -340,11 +340,22 @@ class FrameViewModel : ViewModel() {
         }
     }
     
+    // 성공 메시지 상태
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
+    
     /**
      * 에러 메시지 초기화
      */
     private fun clearError() {
         _errorMessage.value = null
+    }
+    
+    /**
+     * 성공 메시지 초기화
+     */
+    private fun clearSuccess() {
+        _successMessage.value = null
     }
     
     /**
