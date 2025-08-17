@@ -23,6 +23,7 @@ import java.time.ZoneId
 class HomeViewModel : ViewModel() {
     
     private var photoRepository: PhotoRepository? = null
+    private var context: Context? = null
     
     // UI 상태
     private val _isLoading = MutableStateFlow(false)
@@ -34,6 +35,10 @@ class HomeViewModel : ViewModel() {
     // 테스트 모드 상태
     private val _isTestMode = MutableStateFlow(false)
     val isTestMode: StateFlow<Boolean> = _isTestMode.asStateFlow()
+    
+    // 테스트 데이터 개수 상태
+    private val _testDataCount = MutableStateFlow(0)
+    val testDataCount: StateFlow<Int> = _testDataCount.asStateFlow()
     
     // 포토로그 데이터
     private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
@@ -83,6 +88,7 @@ class HomeViewModel : ViewModel() {
      */
     fun setContext(context: Context) {
         try {
+            this.context = context
             val database = AppDatabase.getDatabase(context)
             photoRepository = PhotoRepository(database.photoDao())
             loadPhotoLogs()
@@ -99,42 +105,19 @@ class HomeViewModel : ViewModel() {
     private fun loadPhotoLogs() {
         photoRepository?.let { repository ->
             viewModelScope.launch {
-                _isLoading.value = true
                 try {
-                    // 사진 목록과 개수 동시 로드
-                    launch {
-                        try {
-                            repository.getAllPhotos().collect { photos ->
-                                _photoLogs.value = photos
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "사진 목록 로드 실패: ${e.message}"
-                        }
+                    _isLoading.value = true
+                    repository.getAllPhotos().collect { photos ->
+                        _photoLogs.value = photos
+                        _photoCount.value = photos.size
+                        _favoritePhotoCount.value = photos.count { it.isFavorite }
+                        
+                        // Phase 4.3.2: 테스트 데이터 개수 업데이트
+                        _testDataCount.value = photos.count { it.title.contains("(") && it.title.contains(")") }
                     }
-                    
-                    launch {
-                        try {
-                            repository.getPhotoCount().collect { count ->
-                                _photoCount.value = count
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "사진 개수 로드 실패: ${e.message}"
-                        }
-                    }
-                    
-                    launch {
-                        try {
-                            repository.getFavoritePhotoCount().collect { count ->
-                                _favoritePhotoCount.value = count
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "즐겨찾기 개수 로드 실패: ${e.message}"
-                        }
-                    }
-                    
-                    clearError()
                 } catch (e: Exception) {
-                    _errorMessage.value = "포토로그 로드 실패: ${e.message}"
+                    _errorMessage.value = "데이터 로드 실패: ${e.message}"
+                    e.printStackTrace()
                 } finally {
                     _isLoading.value = false
                 }
@@ -323,35 +306,62 @@ class HomeViewModel : ViewModel() {
     }
     
     /**
-     * 테스트 데이터 삭제
+     * Phase 4.3.2: 테스트 데이터 생성
+     * TestDataGenerator를 사용하여 테스트용 포토로그 데이터를 일괄 생성
      */
-    private fun clearTestData() {
+    fun generateTestData() {
         photoRepository?.let { repository ->
             viewModelScope.launch {
                 try {
-                    // 테스트 데이터만 삭제 (제목으로 구분)
-                    val testTitles = listOf(
-                        "첫 번째 KTX 여행",
-                        "부산 해운대 여행", 
-                        "제주도 한라산 등반",
-                        "전주 한옥마을 탐방",
-                        "강릉 커피거리"
-                    )
+                    _isLoading.value = true
                     
-                    _photoLogs.value.forEach { photo ->
-                        if (testTitles.contains(photo.title)) {
-                            repository.deletePhoto(photo)
-                        }
+                    // TestDataGenerator 사용
+                    val testDataGenerator = com.example.a4cut.util.TestDataGenerator(repository, context!!)
+                    val generatedCount = testDataGenerator.generateTestPhotologs()
+                    
+                    if (generatedCount > 0) {
+                        _errorMessage.value = "테스트 데이터 $generatedCount 개 생성됨"
+                        // 데이터 새로고침
+                        loadPhotoLogs()
+                    } else {
+                        _errorMessage.value = "테스트 데이터 생성 실패"
                     }
+                } catch (e: Exception) {
+                    _errorMessage.value = "테스트 데이터 생성 실패: ${e.message}"
+                    e.printStackTrace()
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+    
+    /**
+     * Phase 4.3.2: 테스트 데이터 삭제
+     * TestDataGenerator를 사용하여 테스트용 포토로그 데이터를 일괄 삭제
+     */
+    fun clearTestData() {
+        photoRepository?.let { repository ->
+            viewModelScope.launch {
+                try {
+                    _isLoading.value = true
                     
-                    // 목록 새로고침
-                    loadPhotoLogs()
+                    // TestDataGenerator 사용
+                    val testDataGenerator = com.example.a4cut.util.TestDataGenerator(repository, context!!)
+                    val deletedCount = testDataGenerator.clearTestData()
                     
-                    // 테스트 데이터 삭제 후 성공 메시지
-                    _errorMessage.value = "테스트 데이터가 삭제되었습니다."
+                    if (deletedCount > 0) {
+                        _errorMessage.value = "테스트 데이터 $deletedCount 개 삭제됨"
+                        // 데이터 새로고침
+                        loadPhotoLogs()
+                    } else {
+                        _errorMessage.value = "삭제할 테스트 데이터 없음"
+                    }
                 } catch (e: Exception) {
                     _errorMessage.value = "테스트 데이터 삭제 실패: ${e.message}"
                     e.printStackTrace()
+                } finally {
+                    _isLoading.value = false
                 }
             }
         }
