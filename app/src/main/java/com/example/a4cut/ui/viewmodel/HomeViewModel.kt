@@ -1,124 +1,151 @@
 package com.example.a4cut.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.a4cut.data.model.Frame
-import com.example.a4cut.data.repository.FrameRepository
+import com.example.a4cut.data.database.AppDatabase
+import com.example.a4cut.data.repository.PhotoRepository
+import com.example.a4cut.data.database.entity.PhotoEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Calendar
 
 /**
- * 홈 화면의 ViewModel
- * KTX 일러스트, 프레임 캐러셀, 캘린더 관련 상태와 로직을 관리
+ * 새로운 홈 화면의 ViewModel
+ * 포토로그 기능과 KTX 브랜드 특화 데이터 관리
  */
 class HomeViewModel : ViewModel() {
     
-    private val frameRepository = FrameRepository()
-    
-    // 프레임 관련 상태
-    private val _frames = MutableStateFlow<List<Frame>>(emptyList())
-    val frames: StateFlow<List<Frame>> = _frames.asStateFlow()
-    
-    // 캘린더 관련 상태
-    private val _currentMonth = MutableStateFlow(Calendar.getInstance().get(Calendar.MONTH))
-    val currentMonth: StateFlow<Int> = _currentMonth.asStateFlow()
-    
-    private val _currentYear = MutableStateFlow(Calendar.getInstance().get(Calendar.YEAR))
-    val currentYear: StateFlow<Int> = _currentYear.asStateFlow()
-    
-    private val _selectedDate = MutableStateFlow<Calendar?>(null)
-    val selectedDate: StateFlow<Calendar?> = _selectedDate.asStateFlow()
+    private var photoRepository: PhotoRepository? = null
     
     // UI 상태
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
-    init {
-        loadFrames()
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    
+    // 포토로그 데이터
+    private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
+    val photoLogs: StateFlow<List<PhotoEntity>> = _photoLogs.asStateFlow()
+    
+    private val _photoCount = MutableStateFlow(0)
+    val photoCount: StateFlow<Int> = _photoCount.asStateFlow()
+    
+    private val _favoritePhotoCount = MutableStateFlow(0)
+    val favoritePhotoCount: StateFlow<Int> = _favoritePhotoCount.asStateFlow()
+    
+    /**
+     * Context 설정 및 데이터베이스 초기화
+     */
+    fun setContext(context: Context) {
+        val database = AppDatabase.getDatabase(context)
+        photoRepository = PhotoRepository(database.photoDao())
+        loadPhotoLogs()
     }
     
     /**
-     * 프레임 목록 로드
+     * 포토로그 데이터 로드
      */
-    private fun loadFrames() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                // FrameRepository에서 프레임 데이터 수집
-                frameRepository.frames.collect { frameList ->
-                    _frames.value = frameList
+    private fun loadPhotoLogs() {
+        photoRepository?.let { repository ->
+            viewModelScope.launch {
+                _isLoading.value = true
+                try {
+                    // 사진 목록과 개수 동시 로드
+                    launch {
+                        repository.getAllPhotos().collect { photos ->
+                            _photoLogs.value = photos
+                        }
+                    }
+                    
+                    launch {
+                        repository.getPhotoCount().collect { count ->
+                            _photoCount.value = count
+                        }
+                    }
+                    
+                    launch {
+                        repository.getFavoritePhotoCount().collect { count ->
+                            _favoritePhotoCount.value = count
+                        }
+                    }
+                    
+                    clearError()
+                } catch (e: Exception) {
+                    _errorMessage.value = "포토로그 로드 실패: ${e.message}"
+                } finally {
+                    _isLoading.value = false
                 }
-            } finally {
-                _isLoading.value = false
             }
         }
     }
     
     /**
-     * 이전 달로 이동
+     * 즐겨찾기 토글
      */
-    fun goToPreviousMonth() {
-        if (_currentMonth.value == 0) {
-            _currentMonth.value = 11
-            _currentYear.value = _currentYear.value - 1
-        } else {
-            _currentMonth.value = _currentMonth.value - 1
+    fun toggleFavorite(photo: PhotoEntity) {
+        photoRepository?.let { repository ->
+            viewModelScope.launch {
+                try {
+                    repository.toggleFavorite(photo)
+                } catch (e: Exception) {
+                    _errorMessage.value = "즐겨찾기 변경 실패: ${e.message}"
+                }
+            }
         }
     }
     
     /**
-     * 다음 달로 이동
+     * 사진 삭제
      */
-    fun goToNextMonth() {
-        if (_currentMonth.value == 11) {
-            _currentMonth.value = 0
-            _currentYear.value = _currentYear.value + 1
-        } else {
-            _currentMonth.value = _currentMonth.value + 1
+    fun deletePhoto(photo: PhotoEntity) {
+        photoRepository?.let { repository ->
+            viewModelScope.launch {
+                try {
+                    repository.deletePhoto(photo)
+                    // 삭제 후 목록 새로고침
+                    loadPhotoLogs()
+                } catch (e: Exception) {
+                    _errorMessage.value = "사진 삭제 실패: ${e.message}"
+                }
+            }
         }
     }
     
     /**
-     * 날짜 선택
+     * 검색 기능
      */
-    fun selectDate(date: Calendar) {
-        _selectedDate.value = date
-    }
-    
-    /**
-     * 특별한 날인지 확인
-     */
-    fun isSpecialDay(date: Calendar): Boolean {
-        val month = date.get(Calendar.MONTH) + 1
-        val day = date.get(Calendar.DATE)
-        
-        // KTX 관련 특별한 날들
-        return when {
-            month == 4 && day == 1 -> true  // KTX 개통일 (예시)
-            month == 12 && day == 25 -> true // 크리스마스
-            month == 1 && day == 1 -> true   // 새해
-            month == 8 && day == 15 -> true  // 광복절
-            else -> false
+    fun searchPhotos(query: String) {
+        photoRepository?.let { repository ->
+            viewModelScope.launch {
+                try {
+                    repository.searchPhotos(query).collect { photos ->
+                        _photoLogs.value = photos
+                    }
+                } catch (e: Exception) {
+                    _errorMessage.value = "검색 실패: ${e.message}"
+                }
+            }
         }
     }
     
     /**
-     * 프레임 선택
+     * 에러 메시지 초기화
      */
-    fun selectFrame(frame: Frame) {
-        // TODO: 선택된 프레임을 다른 ViewModel과 공유하는 로직 구현
-        // 현재는 로깅만 수행
-        println("선택된 프레임: ${frame.name}")
+    private fun clearError() {
+        _errorMessage.value = null
     }
     
     /**
-     * 프리미엄 프레임만 가져오기
+     * 데이터 새로고침
      */
-    fun getPremiumFrames(): List<Frame> {
-        return frameRepository.getPremiumFrames()
+    fun refreshData() {
+        loadPhotoLogs()
     }
 }
 
