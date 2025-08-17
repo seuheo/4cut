@@ -77,6 +77,8 @@ dependencies {
     // DataStore (설정 및 데이터 영구 저장)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     
+    // Accompanist Pager 제거 - LazyRow로 대체
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)

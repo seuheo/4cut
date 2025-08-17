@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.ui.components.CalendarView
-import com.example.a4cut.ui.components.PhotoLogCard
+import com.example.a4cut.ui.components.TrainWindowCarousel
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.time.format.DateTimeFormatter
 
@@ -23,7 +23,6 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     onNavigateToPhotoDetail: (String) -> Unit,
-    onNavigateToSearch: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val homeViewModel: HomeViewModel = viewModel()
@@ -40,9 +39,9 @@ fun HomeScreen(
     }
     
     // ViewModel의 상태들을 수집
-    val latestPhoto by homeViewModel.latestPhoto.collectAsState()
+    val latestPhotos by homeViewModel.latestPhotos.collectAsState()
     val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
-    val isLoading by homeViewModel.isLoading.collectAsState()
+    // val isLoading by homeViewModel.isLoading.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
     val isTestMode by homeViewModel.isTestMode.collectAsState()
     
@@ -78,7 +77,7 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // PDF 상단의 대표 사진 섹션
+            // KTX 기차 창문 캐러셀 섹션
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "나의 여행", // PDF의 "나의 여행" 부분
@@ -87,33 +86,14 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
 
-            latestPhoto?.let { photo ->
-                val formattedDate = java.time.Instant.ofEpochMilli(photo.createdAt)
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .format(DateTimeFormatter.ofPattern("yy.MM.dd"))
-                Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                // 기존 PhotoLogCard를 재사용하여 대표 사진 표시
-                PhotoLogCard(
-                    photo = photo,
-                    onFavoriteToggle = { homeViewModel.toggleFavorite(photo) },
-                    onCardClick = { onNavigateToPhotoDetail(photo.id.toString()) }
-                )
-            } ?: run {
-                // 사진이 없을 때 표시될 내용
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("아직 기록된 여행이 없어요.")
-                }
-            }
+            // KTX 기차 창문 캐러셀로 최신 사진들 표시
+            TrainWindowCarousel(
+                photos = latestPhotos,
+                onPhotoClick = { photo ->
+                    onNavigateToPhotoDetail(photo.id.toString())
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
