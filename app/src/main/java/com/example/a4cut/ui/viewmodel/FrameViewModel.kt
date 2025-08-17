@@ -306,8 +306,7 @@ class FrameViewModel : ViewModel() {
                         photoRepository?.createKTXPhoto(
                             imagePath = savedUri.toString(),
                             title = "KTX 네컷 사진",
-                            location = "KTX 역",
-                            tags = "ktx,4cut,여행"
+                            location = "KTX 역"
                         )
                         _successMessage.value = "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
                     } catch (dbException: Exception) {

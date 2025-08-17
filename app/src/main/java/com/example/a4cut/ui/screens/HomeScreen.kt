@@ -31,13 +31,19 @@ import com.example.a4cut.data.database.entity.PhotoEntity
 fun HomeScreen(
     modifier: Modifier = Modifier,
     homeViewModel: HomeViewModel = viewModel(),
-    onNavigateToFrame: () -> Unit = {}
+    onNavigateToFrame: () -> Unit = {},
+    onNavigateToPhotoDetail: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     
-    // ViewModel 초기화
+    // ViewModel 초기화 - 안전한 초기화
     LaunchedEffect(Unit) {
-        homeViewModel.setContext(context)
+        try {
+            homeViewModel.setContext(context)
+        } catch (e: Exception) {
+            // 초기화 실패 시 기본 상태 유지
+            e.printStackTrace()
+        }
     }
     
     // ViewModel의 상태들을 수집
@@ -46,6 +52,7 @@ fun HomeScreen(
     val favoritePhotoCount by homeViewModel.favoritePhotoCount.collectAsState()
     val isLoading by homeViewModel.isLoading.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
+    val isTestMode by homeViewModel.isTestMode.collectAsState()
     
     Column(
         modifier = modifier
@@ -57,7 +64,9 @@ fun HomeScreen(
         HeaderSection(
             photoCount = photoCount,
             favoritePhotoCount = favoritePhotoCount,
-            onRefresh = { homeViewModel.refreshData() }
+            onRefresh = { homeViewModel.refreshData() },
+            onToggleTestMode = { homeViewModel.toggleTestMode() },
+            isTestMode = isTestMode
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -71,8 +80,7 @@ fun HomeScreen(
             PhotoLogSection(
                 photoLogs = photoLogs,
                 onFavoriteToggle = { photo -> homeViewModel.toggleFavorite(photo) },
-                onDelete = { photo -> homeViewModel.deletePhoto(photo) },
-                onPhotoClick = { photo -> /* TODO: 상세 보기 */ }
+                onCardClick = { photo -> onNavigateToPhotoDetail(photo.id) }
             )
         }
         
@@ -95,7 +103,9 @@ fun HomeScreen(
 private fun HeaderSection(
     photoCount: Int,
     favoritePhotoCount: Int,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onToggleTestMode: () -> Unit,
+    isTestMode: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -123,12 +133,34 @@ private fun HeaderSection(
                 }
             }
             
-            IconButton(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "새로고침",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 테스트 모드 토글 버튼
+                Button(
+                    onClick = onToggleTestMode,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isTestMode) 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.secondary
+                    ),
+                    modifier = Modifier.height(40.dp)
+                ) {
+                    Text(
+                        text = if (isTestMode) "테스트 끄기" else "테스트 켜기",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+                
+                // 새로고침 버튼
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "새로고침",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
@@ -201,8 +233,7 @@ private fun EmptyStateSection(onNavigateToFrame: () -> Unit) {
 private fun PhotoLogSection(
     photoLogs: List<PhotoEntity>,
     onFavoriteToggle: (PhotoEntity) -> Unit,
-    onDelete: (PhotoEntity) -> Unit,
-    onPhotoClick: (PhotoEntity) -> Unit
+    onCardClick: (PhotoEntity) -> Unit
 ) {
     LazyRow(
         modifier = Modifier
@@ -215,8 +246,7 @@ private fun PhotoLogSection(
             PhotoLogCard(
                 photo = photo,
                 onFavoriteToggle = onFavoriteToggle,
-                onDelete = onDelete,
-                onPhotoClick = onPhotoClick
+                onCardClick = onCardClick
             )
         }
     }
