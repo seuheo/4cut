@@ -112,9 +112,7 @@ fun FrameCarousel(
                 itemsIndexed(frames) { index, frame ->
                     FrameCard(
                         frame = frame,
-                        index = index,
                         isSelected = index == firstVisibleItemIndex,
-                        onFrameClick = { onFrameClick(frame) },
                         modifier = Modifier.padding(
                             start = if (index == 0) 16.dp else 0.dp,
                             end = if (index == frames.size - 1) 16.dp else 0.dp
@@ -147,9 +145,7 @@ fun FrameCarousel(
 @Composable
 private fun FrameCard(
     frame: Frame,
-    index: Int,
     isSelected: Boolean,
-    onFrameClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 선택 상태에 따른 애니메이션 값들
@@ -241,7 +237,7 @@ private fun FrameCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.padding(8.dp)
                 ) {
-                    repeat(4) { photoIndex ->
+                    repeat(4) { _ ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)

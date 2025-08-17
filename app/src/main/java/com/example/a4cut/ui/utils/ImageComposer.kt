@@ -160,6 +160,30 @@ class ImageComposer(private val context: Context) {
     }
 
     /**
+     * 벡터 드로어블을 고품질 Bitmap으로 변환
+     * @param context Context
+     * @param drawableId 벡터 드로어블 리소스 ID
+     * @param width 원하는 너비
+     * @param height 원하는 높이
+     * @return 고품질 Bitmap
+     */
+    fun loadVectorDrawableAsBitmap(
+        context: Context,
+        drawableId: Int,
+        width: Int,
+        height: Int
+    ): Bitmap {
+        val drawable = context.getDrawable(drawableId)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        drawable?.setBounds(0, 0, width, height)
+        drawable?.draw(canvas)
+        
+        return bitmap
+    }
+
+    /**
      * Bitmap 메모리 해제 (메모리 누수 방지)
      * @param bitmap 해제할 Bitmap
      */
