@@ -49,8 +49,7 @@ import kotlin.math.abs
 fun FrameCarousel(
     modifier: Modifier = Modifier,
     frames: List<Frame>,
-    isLoading: Boolean,
-    onFrameClick: (Frame) -> Unit
+    isLoading: Boolean
 ) {
     // LazyRow 상태 관리
     val listState = rememberLazyListState()

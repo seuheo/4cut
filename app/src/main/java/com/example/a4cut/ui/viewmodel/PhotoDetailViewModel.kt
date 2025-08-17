@@ -118,15 +118,15 @@ class PhotoDetailViewModel : ViewModel() {
      * 즐겨찾기 토글
      */
     fun toggleFavorite() {
-        val currentPhoto = _uiState.value.photo ?: return
+        val photo = _uiState.value.photo ?: return
         
         viewModelScope.launch {
             try {
                 // TODO: Repository를 통한 실제 즐겨찾기 토글 구현
-                // photoRepository.toggleFavorite(currentPhoto)
+                // photoRepository.toggleFavorite(photo)
                 
                 // UI 상태 업데이트
-                val updatedPhoto = currentPhoto.copy(isFavorite = !currentPhoto.isFavorite)
+                val updatedPhoto = photo.copy(isFavorite = !photo.isFavorite)
                 _uiState.value = _uiState.value.copy(photo = updatedPhoto)
                 
             } catch (e: Exception) {
@@ -141,14 +141,14 @@ class PhotoDetailViewModel : ViewModel() {
      * 사진 삭제
      */
     fun deletePhoto() {
-        val currentPhoto = _uiState.value.photo ?: return
+        if (_uiState.value.photo == null) return
         
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
                 
                 // TODO: Repository를 통한 실제 삭제 구현
-                // photoRepository.deletePhoto(currentPhoto)
+                // photoRepository.deletePhoto(_uiState.value.photo!!)
                 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

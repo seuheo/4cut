@@ -21,8 +21,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -133,7 +133,7 @@ fun CalendarView(
                         .scale(1.2f)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowLeft,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                         contentDescription = "이전 달",
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -162,7 +162,7 @@ fun CalendarView(
                         .scale(1.2f)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = "다음 달",
                         tint = MaterialTheme.colorScheme.primary
                     )

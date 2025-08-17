@@ -5,7 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -29,7 +29,7 @@ fun PhotoEditScreen(
     onNavigateBack: () -> Unit
 ) {
     val editData by viewModel.editData.collectAsState()
-    val isEditMode by viewModel.isEditMode.collectAsState()
+
     
     // 로컬 편집 상태
     var localTitle by remember { mutableStateOf(editData.title) }
@@ -50,7 +50,7 @@ fun PhotoEditScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "뒤로가기"
                         )
                     }
