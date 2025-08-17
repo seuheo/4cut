@@ -14,6 +14,7 @@ import com.example.a4cut.ui.components.CalendarView
 import com.example.a4cut.ui.components.TrainWindowCarousel
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 /**
  * 새로운 홈 화면 - PDF 시안 기반
@@ -99,8 +100,8 @@ fun HomeScreen(
 
             // 달력 뷰
             CalendarView(
-                currentMonth = java.time.LocalDate.now().monthValue - 1, // Calendar는 0-based
-                currentYear = java.time.LocalDate.now().year,
+                currentMonth = Calendar.getInstance().get(Calendar.MONTH), // Calendar는 0-based
+                currentYear = Calendar.getInstance().get(Calendar.YEAR),
                 selectedDate = null, // 현재 선택된 날짜 없음
                 onPreviousMonth = { /* 이전 달로 이동 */ },
                 onNextMonth = { /* 다음 달로 이동 */ },
@@ -111,9 +112,14 @@ fun HomeScreen(
                 },
                 isSpecialDay = { calendar ->
                     // 사진이 있는 날짜를 특별한 날로 표시
-                    val localDate = java.time.Instant.ofEpochMilli(calendar.timeInMillis)
-                        .atZone(java.time.ZoneId.systemDefault())
-                        .toLocalDate()
+                    val calendarDate = Calendar.getInstance().apply {
+                        timeInMillis = calendar.timeInMillis
+                    }
+                    val localDate = java.time.LocalDate.of(
+                        calendarDate.get(Calendar.YEAR),
+                        calendarDate.get(Calendar.MONTH) + 1,
+                        calendarDate.get(Calendar.DAY_OF_MONTH)
+                    )
                     datesWithPhotos.contains(localDate)
                 }
             )
