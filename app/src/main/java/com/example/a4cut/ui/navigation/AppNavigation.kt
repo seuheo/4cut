@@ -89,9 +89,6 @@ fun AppNavigation(
                 HomeScreen(
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
-                    },
-                    onNavigateToSearch = {
-                        navController.navigate("search")
                     }
                 )
             }
