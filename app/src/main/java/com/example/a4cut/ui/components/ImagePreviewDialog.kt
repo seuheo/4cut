@@ -39,7 +39,7 @@ fun ImagePreviewDialog(
 ) {
     if (bitmap == null) return
     
-    val context = LocalContext.current
+    // LocalContext는 사용하지 않으므로 제거
     
     Dialog(
         onDismissRequest = onDismiss,
