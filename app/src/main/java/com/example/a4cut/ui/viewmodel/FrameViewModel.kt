@@ -1,9 +1,13 @@
 package com.example.a4cut.ui.viewmodel
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.model.Frame
@@ -58,6 +62,10 @@ class FrameViewModel : ViewModel() {
     // 합성된 최종 이미지를 저장할 상태
     private val _composedImage = MutableStateFlow<Bitmap?>(null)
     val composedImage: StateFlow<Bitmap?> = _composedImage.asStateFlow()
+    
+    // 인스타그램 공유 Intent 상태
+    private val _instagramShareIntent = MutableStateFlow<android.content.Intent?>(null)
+    val instagramShareIntent: StateFlow<android.content.Intent?> = _instagramShareIntent.asStateFlow()
     
     // 이미지 선택 결과
     private val _imagePickerResult = MutableStateFlow<List<Uri>?>(null)
@@ -311,11 +319,17 @@ class FrameViewModel : ViewModel() {
         viewModelScope.launch {
             _isProcessing.value = true
             try {
-                // TODO: 실제 인스타그램 공유 로직 구현
                 // 1. 합성된 이미지를 임시 파일로 저장
-                // 2. Instagram Story Intent 생성
-                // 3. 공유 실행
-                kotlinx.coroutines.delay(1000) // 1초 대기
+                val sharedImageFile = saveImageToCache(imageToShare)
+                
+                // 2. Instagram Story Intent 생성 및 실행
+                context?.let { ctx ->
+                    val intent = createInstagramStoryIntent(ctx, sharedImageFile)
+                    // Intent 실행은 UI에서 처리해야 하므로 콜백으로 전달
+                    _instagramShareIntent.value = intent
+                } ?: run {
+                    _errorMessage.value = "공유를 위한 컨텍스트를 찾을 수 없습니다."
+                }
                 
                 clearError()
             } catch (e: Exception) {
@@ -355,17 +369,18 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * KTX 시그니처 프레임 리소스를 Bitmap으로 로드
+     * KTX 시그니처 프레임 리소스를 고품질 Bitmap으로 로드
      */
     private fun loadKtxFrameBitmap(): Bitmap {
         return try {
             context?.let { ctx ->
-                // drawable 리소스에서 KTX 프레임 로드
-                val options = BitmapFactory.Options().apply {
-                    inPreferredConfig = Bitmap.Config.ARGB_8888
-                }
-                BitmapFactory.decodeResource(ctx.resources, R.drawable.ktx_frame_signature, options)
-                    ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+                // ImageComposer의 고품질 벡터 드로어블 로딩 함수 사용
+                imageComposer?.loadVectorDrawableAsBitmap(
+                    context = ctx,
+                    drawableId = R.drawable.ktx_frame_signature,
+                    width = ImageComposer.OUTPUT_WIDTH,
+                    height = ImageComposer.OUTPUT_HEIGHT
+                ) ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
             } ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
         } catch (e: Exception) {
             // 리소스 로드 실패 시 기본 프레임 생성
@@ -379,6 +394,40 @@ class FrameViewModel : ViewModel() {
     private fun createDefaultFrameBitmap(width: Int, height: Int): Bitmap {
         return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
             eraseColor(0xFF1E3A8A.toInt()) // KTX 블루
+        }
+    }
+    
+    /**
+     * Bitmap을 캐시 파일로 저장
+     */
+    private fun saveImageToCache(bitmap: Bitmap): File {
+        val cacheDir = context?.cacheDir ?: throw IllegalStateException("Context not available")
+        val imagesDir = File(cacheDir, "images")
+        if (!imagesDir.exists()) {
+            imagesDir.mkdirs()
+        }
+        
+        val imageFile = File(imagesDir, "ktx_4cut_${System.currentTimeMillis()}.jpg")
+        FileOutputStream(imageFile).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+        }
+        return imageFile
+    }
+    
+    /**
+     * 인스타그램 스토리 공유 Intent 생성
+     */
+    private fun createInstagramStoryIntent(context: Context, imageFile: File): Intent {
+        val imageUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            imageFile
+        )
+        
+        return Intent("com.instagram.share.ADD_TO_STORY").apply {
+            setDataAndType(imageUri, "image/jpeg")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra("interactive_asset_uri", imageUri)
         }
     }
     
