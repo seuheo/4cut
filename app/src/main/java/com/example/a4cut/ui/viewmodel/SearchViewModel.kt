@@ -1,18 +1,29 @@
 package com.example.a4cut.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.a4cut.data.database.entity.PhotoEntity
+import com.example.a4cut.data.datastore.SearchPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
  * 검색 및 필터링 기능을 관리하는 ViewModel
  * 검색어, 필터 조건, 검색 결과 상태를 관리
  */
-class SearchViewModel : ViewModel() {
+class SearchViewModel(
+    private val searchPreferences: SearchPreferences
+) : ViewModel() {
     
     // 검색 상태
     private val _searchQuery = MutableStateFlow("")
@@ -47,7 +58,23 @@ class SearchViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
-    // 검색어 업데이트
+    init {
+        // ✅ 자동 검색: searchQuery가 변경될 때마다 자동으로 검색 실행
+        _searchQuery
+            .debounce(500) // 0.5초 동안 입력이 없으면 검색 실행
+            .distinctUntilChanged() // 이전과 동일한 검색어는 무시
+            .onEach { query ->
+                if (query.isNotEmpty()) {
+                    searchPhotos(query)
+                }
+            }
+            .launchIn(viewModelScope)
+        
+        // ✅ DataStore에서 검색 기록 로드
+        loadSearchHistory()
+    }
+    
+    // 검색어 업데이트 (이제 자동 검색이 실행됩니다)
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
@@ -90,11 +117,10 @@ class SearchViewModel : ViewModel() {
         _sortBy.value = sortOption
     }
     
-    // 검색 실행
-    fun performSearch() {
-        val query = _searchQuery.value.trim()
-        if (query.isEmpty()) {
-            _errorMessage.value = "검색어를 입력해주세요"
+    // 검색 실행 (이제 private으로 변경)
+    private fun searchPhotos(query: String) {
+        if (query.trim().isEmpty()) {
+            _searchResults.value = emptyList()
             return
         }
         
@@ -127,14 +153,30 @@ class SearchViewModel : ViewModel() {
         }
     }
     
-    // 검색 히스토리에 추가
-    private fun addToSearchHistory(query: String) {
+    // 수동 검색 실행 (필터 변경 시 사용)
+    fun performSearch() {
+        val query = _searchQuery.value.trim()
+        if (query.isNotEmpty()) {
+            searchPhotos(query)
+        }
+    }
+    
+    // ✅ DataStore에서 검색 기록 로드
+    private fun loadSearchHistory() {
+        viewModelScope.launch {
+            searchPreferences.searchHistory.collect { history ->
+                _searchHistory.value = history
+            }
+        }
+    }
+    
+    // ✅ 검색 히스토리에 추가 (DataStore에 영구 저장)
+    private suspend fun addToSearchHistory(query: String) {
+        searchPreferences.addSearchQuery(query)
+        // UI 상태도 업데이트
         val currentHistory = _searchHistory.value.toMutableList()
-        // 중복 제거
         currentHistory.remove(query)
-        // 맨 앞에 추가
         currentHistory.add(0, query)
-        // 최대 10개만 유지
         if (currentHistory.size > 10) {
             currentHistory.removeAt(currentHistory.size - 1)
         }
@@ -153,6 +195,14 @@ class SearchViewModel : ViewModel() {
         _selectedMoods.value = emptySet()
         _selectedWeather.value = emptySet()
         _sortBy.value = SortOption.LATEST
+    }
+    
+    // ✅ 검색 기록 초기화 (DataStore도 함께 초기화)
+    fun clearSearchHistory() {
+        viewModelScope.launch {
+            searchPreferences.clearSearchHistory()
+            _searchHistory.value = emptyList()
+        }
     }
     
     // 검색 결과 초기화
@@ -204,6 +254,18 @@ class SearchViewModel : ViewModel() {
                 isFavorite = false
             )
         )
+    }
+    
+    companion object {
+        /**
+         * SearchViewModel을 생성하기 위한 Factory
+         */
+        fun provideFactory(context: Context): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val searchPreferences = SearchPreferences(context)
+                SearchViewModel(searchPreferences)
+            }
+        }
     }
 }
 

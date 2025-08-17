@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.example.a4cut.data.database.dao.PhotoDao
 import com.example.a4cut.data.database.entity.PhotoEntity
+import com.example.a4cut.data.database.converter.Converters
 
 /**
  * 앱의 메인 데이터베이스 클래스
@@ -16,6 +18,7 @@ import com.example.a4cut.data.database.entity.PhotoEntity
     version = 2,
     exportSchema = false
 )
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     
     /**
