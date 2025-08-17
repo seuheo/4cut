@@ -98,11 +98,7 @@ fun AppNavigation(
             
             // 검색 화면
             composable("search") {
-                val context = LocalContext.current
                 SearchScreen(
-                    viewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.SearchViewModel>(
-                        factory = com.example.a4cut.ui.viewmodel.SearchViewModel.provideFactory(context)
-                    ),
                     onNavigateBack = {
                         navController.popBackStack()
                     },
