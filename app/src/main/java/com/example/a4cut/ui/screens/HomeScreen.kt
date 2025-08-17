@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -31,8 +32,8 @@ import com.example.a4cut.data.database.entity.PhotoEntity
 fun HomeScreen(
     modifier: Modifier = Modifier,
     homeViewModel: HomeViewModel = viewModel(),
-    onNavigateToFrame: () -> Unit = {},
-    onNavigateToPhotoDetail: (Int) -> Unit = {}
+    onNavigateToPhotoDetail: (Int) -> Unit = {},
+    onNavigateToSearch: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -66,7 +67,8 @@ fun HomeScreen(
             favoritePhotoCount = favoritePhotoCount,
             onRefresh = { homeViewModel.refreshData() },
             onToggleTestMode = { homeViewModel.toggleTestMode() },
-            isTestMode = isTestMode
+            isTestMode = isTestMode,
+            onNavigateToSearch = onNavigateToSearch
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -75,7 +77,7 @@ fun HomeScreen(
         if (isLoading) {
             LoadingSection()
         } else if (photoLogs.isEmpty()) {
-            EmptyStateSection(onNavigateToFrame = onNavigateToFrame)
+            EmptyStateSection()
         } else {
             PhotoLogSection(
                 photoLogs = photoLogs,
@@ -87,7 +89,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.weight(1f))
         
         // 하단 액션 버튼
-        ActionButtonSection(onNavigateToFrame = onNavigateToFrame)
+        ActionButtonSection()
         
         // 에러 메시지 표시
         errorMessage?.let { message ->
@@ -105,7 +107,8 @@ private fun HeaderSection(
     favoritePhotoCount: Int,
     onRefresh: () -> Unit,
     onToggleTestMode: () -> Unit,
-    isTestMode: Boolean
+    isTestMode: Boolean,
+    onNavigateToSearch: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -136,6 +139,15 @@ private fun HeaderSection(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // 검색 버튼
+                IconButton(onClick = onNavigateToSearch) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "검색",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
                 // 테스트 모드 토글 버튼
                 Button(
                     onClick = onToggleTestMode,
@@ -187,7 +199,7 @@ private fun LoadingSection() {
  * 빈 상태 섹션
  */
 @Composable
-private fun EmptyStateSection(onNavigateToFrame: () -> Unit) {
+private fun EmptyStateSection() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -256,9 +268,9 @@ private fun PhotoLogSection(
  * 액션 버튼 섹션
  */
 @Composable
-private fun ActionButtonSection(onNavigateToFrame: () -> Unit) {
-    Button(
-        onClick = onNavigateToFrame,
+private fun ActionButtonSection() {
+            Button(
+            onClick = { /* TODO: 프레임 화면으로 이동 구현 */ },
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),

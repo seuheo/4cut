@@ -35,7 +35,7 @@ fun PhotoLogCard(
     onCardClick: (PhotoEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+
     val dateFormat = remember { SimpleDateFormat("MM.dd", Locale.getDefault()) }
     
     Card(

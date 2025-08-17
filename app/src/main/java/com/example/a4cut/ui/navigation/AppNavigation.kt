@@ -24,6 +24,7 @@ import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
 import com.example.a4cut.ui.screens.HomeScreen
 import com.example.a4cut.ui.screens.PhotoDetailScreen
+import com.example.a4cut.ui.screens.SearchScreen
 import com.example.a4cut.R
 import com.example.a4cut.data.database.entity.PhotoEntity
 
@@ -87,11 +88,27 @@ fun AppNavigation(
                 HomeScreen(
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
+                    },
+                    onNavigateToSearch = {
+                        navController.navigate("search")
                     }
                 )
             }
             composable(Screen.Frame.route) {
                 FrameScreen()
+            }
+            
+            // 검색 화면
+            composable("search") {
+                SearchScreen(
+                    viewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.SearchViewModel>(),
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToPhotoDetail = { photoId ->
+                        navController.navigate("photo_detail/$photoId")
+                    }
+                )
             }
             composable(Screen.Calendar.route) {
                 EmptyScreen(
