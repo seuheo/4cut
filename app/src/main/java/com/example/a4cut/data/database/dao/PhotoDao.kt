@@ -24,6 +24,12 @@ interface PhotoDao {
     suspend fun insertPhoto(photo: PhotoEntity): Long
     
     /**
+     * 사진 일괄 추가 (테스트 데이터 생성용)
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPhotos(photos: List<PhotoEntity>): List<Long>
+    
+    /**
      * 사진 정보 업데이트
      */
     @Update

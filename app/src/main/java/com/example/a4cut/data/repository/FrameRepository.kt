@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * 프레임 데이터를 관리하는 Repository
- * 현재는 로컬 더미 데이터를 제공하지만, 추후 서버나 데이터베이스 연동 가능
+ * Phase 4.3.2: KTX 프레임 시스템 확장 및 고품질 테마 프레임 추가
  */
 class FrameRepository {
     
@@ -21,6 +21,7 @@ class FrameRepository {
     
     /**
      * 초기 프레임 데이터 로드
+     * Phase 4.3.2: 신규 KTX 테마 프레임 2종 추가
      */
     private fun loadInitialFrames() {
         val initialFrames = listOf(
@@ -55,6 +56,23 @@ class FrameRepository {
                 station = "대구역",
                 title = "클래식 프레임",
                 isPremium = false
+            ),
+            // Phase 4.3.2: 신규 KTX 테마 프레임 추가
+            Frame(
+                id = 5,
+                name = "KTX 봄날",
+                date = "24.03.15",
+                station = "여수엑스포역",
+                title = "봄날 프레임",
+                isPremium = false
+            ),
+            Frame(
+                id = 6,
+                name = "KTX 가을",
+                date = "24.10.20",
+                station = "강릉역",
+                title = "가을 프레임",
+                isPremium = true
             )
         )
         
@@ -80,6 +98,22 @@ class FrameRepository {
      */
     fun getPremiumFrames(): List<Frame> {
         return _frames.value.filter { it.isPremium }
+    }
+    
+    /**
+     * 테마별 프레임 가져오기
+     * Phase 4.3.2: 테마 기반 프레임 필터링 기능 추가
+     */
+    fun getFramesByTheme(theme: String): List<Frame> {
+        return when (theme.lowercase()) {
+            "ktx" -> _frames.value.filter { it.name.contains("KTX", ignoreCase = true) }
+            "premium" -> getPremiumFrames()
+            "seasonal" -> _frames.value.filter { 
+                it.name.contains("봄날", ignoreCase = true) || 
+                it.name.contains("가을", ignoreCase = true) 
+            }
+            else -> _frames.value
+        }
     }
     
     /**

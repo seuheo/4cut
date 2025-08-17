@@ -123,14 +123,95 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 ErrorMessageSection(message = message)
             }
+            
+            // Phase 4.3.2: 테스트 데이터 생성 버튼 (테스트 모드에서만 표시)
+            if (isTestMode) {
+                Spacer(modifier = Modifier.height(24.dp))
+                TestDataGenerationSection(
+                    onGenerateTestData = { homeViewModel.generateTestData() },
+                    onClearTestData = { homeViewModel.clearTestData() },
+                    testDataCount = homeViewModel.testDataCount.collectAsState().value
+                )
+            }
         }
     }
 }
 
-
-
-
-
+/**
+ * 테스트 데이터 생성 섹션
+ * Phase 4.3.2: 개발 속도와 테스트 효율을 높이기 위한 테스트 데이터 생성 기능
+ */
+@Composable
+private fun TestDataGenerationSection(
+    onGenerateTestData: () -> Unit,
+    onClearTestData: () -> Unit,
+    testDataCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "🧪 테스트 데이터 관리",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "테스트 데이터: $testDataCount 개",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = onGenerateTestData,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("테스트 데이터 생성")
+                }
+                
+                Button(
+                    onClick = onClearTestData,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("테스트 데이터 삭제")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "버튼 클릭 한 번으로 15개의 테스트 포토로그 데이터를 생성합니다",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+    }
+}
 
 
 /**

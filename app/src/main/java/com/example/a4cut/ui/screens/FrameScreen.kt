@@ -47,12 +47,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.data.model.Frame
 import com.example.a4cut.ui.components.PhotoGrid
 import com.example.a4cut.ui.components.ImagePreviewDialog
+import com.example.a4cut.ui.components.FrameCarousel
+import com.example.a4cut.ui.components.FramePreview
 import com.example.a4cut.ui.viewmodel.FrameViewModel
 
 /**
  * 프레임 화면
  * 4컷 사진 선택 + 프레임 적용 + 미리보기
- * Phase 3: PhotoGrid 컴포넌트 통합 및 이미지 선택 기능 구현
+ * Phase 4.3.2: 실시간 프레임 미리보기 및 직관적인 프레임 선택 UI 구현
  */
 @Composable
 fun FrameScreen(
@@ -146,43 +148,28 @@ fun FrameScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // 프레임 선택
-        Text(
-            text = "프레임 선택",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+        // Phase 4.3.2: 개선된 프레임 선택 UI (FrameCarousel 사용)
+        FrameCarousel(
+            frames = frames,
+            isLoading = isLoading,
+            selectedFrameId = selectedFrame?.id,
+            onFrameSelected = { frame -> frameViewModel.selectFrame(frame) },
             modifier = Modifier
-                .align(Alignment.Start)
-                .padding(bottom = 8.dp)
+                .fillMaxWidth()
+                .height(320.dp)
         )
         
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            // 프레임 목록 (가로 스크롤)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp)
-            ) {
-                frames.forEach { frame ->
-                    FrameSelectionCard(
-                        frame = frame,
-                        isSelected = selectedFrame?.id == frame.id,
-                        onClick = { frameViewModel.selectFrame(frame) },
-                        modifier = Modifier.width(120.dp)
-                    )
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Phase 4.3.2: 실시간 프레임 미리보기 (FramePreview 사용)
+        FramePreview(
+            frame = selectedFrame,
+            photos = photos.filterNotNull(),
+            isLoading = isProcessing,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
         
         // 액션 버튼들
         Button(

@@ -3,6 +3,7 @@ package com.example.a4cut.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,9 +24,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,24 +44,21 @@ import kotlin.math.abs
 /**
  * 프레임 캐러셀 컴포넌트
  * KTX 프레임들을 가로로 스크롤하여 선택할 수 있습니다
- * Phase 2: Repository 패턴 적용 및 ViewModel 연동
- * Phase 3: State Hoisting 패턴 적용으로 재사용성 향상
+ * Phase 4.3.2: 직관적인 프레임 선택 UI 및 실시간 미리보기 기능 구현
  */
 @Composable
 fun FrameCarousel(
     modifier: Modifier = Modifier,
     frames: List<Frame>,
-    isLoading: Boolean
+    isLoading: Boolean,
+    selectedFrameId: Int? = null,
+    onFrameSelected: (Frame) -> Unit = {}
 ) {
-    // LazyRow 상태 관리
-    val listState = rememberLazyListState()
+    // 선택된 프레임 ID 상태 관리
+    var localSelectedFrameId by remember { mutableStateOf(selectedFrameId) }
     
-    // 현재 보이는 첫 번째 아이템 인덱스
-    val firstVisibleItemIndex by remember {
-        derivedStateOf {
-            listState.firstVisibleItemIndex
-        }
-    }
+    // 실제 선택된 프레임 ID (외부에서 전달된 값 우선)
+    val currentSelectedFrameId = selectedFrameId ?: localSelectedFrameId
     
     Column(
         modifier = modifier.fillMaxSize(),
@@ -104,33 +103,112 @@ fun FrameCarousel(
         } else {
             // 프레임 목록 표시
             LazyRow(
-                state = listState,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(frames) { index, frame ->
                     FrameCard(
                         frame = frame,
-                        isSelected = index == firstVisibleItemIndex,
-                        modifier = Modifier.padding(
-                            start = if (index == 0) 16.dp else 0.dp,
-                            end = if (index == frames.size - 1) 16.dp else 0.dp
-                        )
+                        isSelected = frame.id == currentSelectedFrameId,
+                        modifier = Modifier
+                            .padding(
+                                start = if (index == 0) 16.dp else 0.dp,
+                                end = if (index == frames.size - 1) 16.dp else 0.dp
+                            )
+                            .clickable {
+                                localSelectedFrameId = frame.id
+                                onFrameSelected(frame)
+                            }
                     )
                 }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 페이지 인디케이터 (애니메이션 포함)
+            // 페이지 인디케이터 (선택된 프레임 기준)
             Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                frames.forEachIndexed { index, _ ->
+                frames.forEachIndexed { index, frame ->
                     AnimatedPageIndicator(
-                        isSelected = index == firstVisibleItemIndex,
+                        isSelected = frame.id == currentSelectedFrameId,
                         modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
+            
+            // 선택된 프레임 정보 표시
+            currentSelectedFrameId?.let { selectedId ->
+                frames.find { it.id == selectedId }?.let { selectedFrame ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SelectedFrameInfo(frame = selectedFrame)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 선택된 프레임 정보 표시 컴포넌트
+ */
+@Composable
+private fun SelectedFrameInfo(
+    frame: Frame,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "선택된 프레임",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.Medium
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = frame.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                textAlign = TextAlign.Center
+            )
+            
+            Text(
+                text = "${frame.station} • ${frame.date}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+            
+            if (frame.isPremium) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "PREMIUM",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
