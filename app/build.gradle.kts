@@ -71,6 +71,12 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
     
+    // Gson (JSON 직렬화/역직렬화)
+    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // DataStore (설정 및 데이터 영구 저장)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)

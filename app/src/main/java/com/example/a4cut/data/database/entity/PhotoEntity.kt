@@ -12,8 +12,11 @@ data class PhotoEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     
-    // 이미지 경로 (갤러리 URI)
+    // 이미지 경로 (갤러리 URI) - 단일 이미지용
     val imagePath: String,
+    
+    // 4컷 이미지 URI 목록 (4컷 사진 지원용)
+    val imageUris: List<String> = emptyList(),
     
     // 생성 날짜 (타임스탬프)
     val createdAt: Long,
