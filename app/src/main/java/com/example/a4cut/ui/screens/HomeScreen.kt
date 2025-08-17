@@ -31,7 +31,8 @@ import com.example.a4cut.data.database.entity.PhotoEntity
 fun HomeScreen(
     modifier: Modifier = Modifier,
     homeViewModel: HomeViewModel = viewModel(),
-    onNavigateToFrame: () -> Unit = {}
+    onNavigateToFrame: () -> Unit = {},
+    onNavigateToPhotoDetail: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -76,7 +77,7 @@ fun HomeScreen(
             PhotoLogSection(
                 photoLogs = photoLogs,
                 onFavoriteToggle = { photo -> homeViewModel.toggleFavorite(photo) },
-                onCardClick = { photo -> /* TODO: 상세 보기 */ }
+                onCardClick = { photo -> onNavigateToPhotoDetail(photo.id) }
             )
         }
         
