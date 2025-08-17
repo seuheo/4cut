@@ -13,7 +13,7 @@ import com.example.a4cut.data.database.entity.PhotoEntity
  */
 @Database(
     entities = [PhotoEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

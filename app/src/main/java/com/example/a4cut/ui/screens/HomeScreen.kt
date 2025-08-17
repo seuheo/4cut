@@ -52,6 +52,7 @@ fun HomeScreen(
     val favoritePhotoCount by homeViewModel.favoritePhotoCount.collectAsState()
     val isLoading by homeViewModel.isLoading.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
+    val isTestMode by homeViewModel.isTestMode.collectAsState()
     
     Column(
         modifier = modifier
@@ -63,7 +64,9 @@ fun HomeScreen(
         HeaderSection(
             photoCount = photoCount,
             favoritePhotoCount = favoritePhotoCount,
-            onRefresh = { homeViewModel.refreshData() }
+            onRefresh = { homeViewModel.refreshData() },
+            onToggleTestMode = { homeViewModel.toggleTestMode() },
+            isTestMode = isTestMode
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -100,7 +103,9 @@ fun HomeScreen(
 private fun HeaderSection(
     photoCount: Int,
     favoritePhotoCount: Int,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onToggleTestMode: () -> Unit,
+    isTestMode: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -128,12 +133,34 @@ private fun HeaderSection(
                 }
             }
             
-            IconButton(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "새로고침",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 테스트 모드 토글 버튼
+                Button(
+                    onClick = onToggleTestMode,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isTestMode) 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.secondary
+                    ),
+                    modifier = Modifier.height(40.dp)
+                ) {
+                    Text(
+                        text = if (isTestMode) "테스트 끄기" else "테스트 켜기",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+                
+                // 새로고침 버튼
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "새로고침",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
