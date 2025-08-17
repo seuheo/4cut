@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.a4cut.R
 import com.example.a4cut.ui.components.PhotoLogCard
 import com.example.a4cut.ui.viewmodel.FilterOptions
 import com.example.a4cut.ui.viewmodel.SearchViewModel
@@ -54,7 +56,7 @@ fun SearchScreen(
     ) {
         // TopAppBar
         TopAppBar(
-            title = { Text("검색") },
+            title = { Text(stringResource(R.string.search_button)) },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
@@ -64,7 +66,7 @@ fun SearchScreen(
                 // 필터 초기화 버튼
                 if (selectedSeasons.isNotEmpty() || selectedMoods.isNotEmpty() || selectedWeather.isNotEmpty()) {
                     TextButton(onClick = { viewModel.clearFilters() }) {
-                        Text("필터 초기화")
+                        Text(stringResource(R.string.clear_filters))
                     }
                 }
             }
@@ -159,7 +161,7 @@ fun SearchScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("확인")
+                        Text(stringResource(R.string.confirm))
                     }
                 }
             ) {
@@ -191,12 +193,12 @@ private fun SearchBar(
         modifier = Modifier
             .fillMaxWidth()
             .focusRequester(focusRequester),
-        placeholder = { Text("제목, 태그, 설명으로 검색") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "검색") },
+        placeholder = { Text(stringResource(R.string.search_placeholder)) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_button)) },
         trailingIcon = {
             if (searchQuery.isNotEmpty()) {
                 IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "검색어 지우기")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.search_clear))
                 }
             }
         },
@@ -216,7 +218,7 @@ private fun SearchBar(
     ) {
         Icon(Icons.Default.Search, contentDescription = null)
         Spacer(modifier = Modifier.width(8.dp))
-        Text("검색")
+        Text(stringResource(R.string.search_button))
     }
 }
 
@@ -230,7 +232,7 @@ private fun SearchHistorySection(
 ) {
     Column {
         Text(
-            text = "최근 검색어",
+            text = stringResource(R.string.search_history_title),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -267,7 +269,7 @@ private fun FilterSection(
     ) {
         // 계절 필터
         FilterChipGroup(
-            title = "계절",
+            title = stringResource(R.string.season_filter_title),
             options = FilterOptions.seasons,
             selectedOptions = selectedSeasons,
             onOptionToggle = onSeasonToggle
@@ -275,7 +277,7 @@ private fun FilterSection(
         
         // 감정 필터
         FilterChipGroup(
-            title = "감정",
+            title = stringResource(R.string.mood_filter_title),
             options = FilterOptions.moods,
             selectedOptions = selectedMoods,
             onOptionToggle = onMoodToggle
@@ -283,7 +285,7 @@ private fun FilterSection(
         
         // 날씨 필터
         FilterChipGroup(
-            title = "날씨",
+            title = stringResource(R.string.weather_filter_title),
             options = FilterOptions.weather,
             selectedOptions = selectedWeather,
             onOptionToggle = onWeatherToggle
@@ -332,7 +334,7 @@ private fun SortSection(
 ) {
     Column {
         Text(
-            text = "정렬",
+            text = stringResource(R.string.sort_options_title),
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -373,13 +375,13 @@ private fun EmptySearchResult() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "검색 결과가 없습니다",
+                text = stringResource(R.string.no_search_results),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "다른 검색어나 필터를 시도해보세요",
+                text = stringResource(R.string.search_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
