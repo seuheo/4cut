@@ -28,15 +28,69 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoDetailScreen(
-    photo: PhotoEntity,
+    viewModel: com.example.a4cut.ui.viewmodel.PhotoDetailViewModel,
     onNavigateBack: () -> Unit,
-    onEditPhoto: (PhotoEntity) -> Unit,
-    onToggleFavorite: (PhotoEntity) -> Unit,
-    onDeletePhoto: (PhotoEntity) -> Unit,
+    onNavigateToEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val photo = uiState.photo
     val dateFormat = remember { SimpleDateFormat("yyyy년 MM월 dd일 HH:mm", Locale.getDefault()) }
+    
+    // 삭제 확인 다이얼로그 상태
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    // 사진이 없으면 로딩 표시
+    if (photo == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+    
+    // 삭제 확인 다이얼로그
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("사진 삭제") },
+            text = { Text("정말 이 사진을 삭제하시겠습니까?\n삭제된 사진은 복구할 수 없습니다.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deletePhoto()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("삭제", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+    
+    // 뒤로가기 네비게이션 처리
+    LaunchedEffect(uiState.shouldNavigateBack) {
+        if (uiState.shouldNavigateBack) {
+            onNavigateBack()
+            viewModel.resetNavigationState()
+        }
+    }
+    
+    // 메시지 표시
+    LaunchedEffect(uiState.message, uiState.errorMessage) {
+        if (uiState.message != null || uiState.errorMessage != null) {
+            // 3초 후 메시지 자동 제거
+            kotlinx.coroutines.delay(3000)
+            viewModel.clearMessage()
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -49,7 +103,7 @@ fun PhotoDetailScreen(
                 },
                 actions = {
                     // 즐겨찾기 토글 버튼
-                    IconButton(onClick = { onToggleFavorite(photo) }) {
+                    IconButton(onClick = { viewModel.toggleFavorite() }) {
                         Icon(
                             imageVector = if (photo.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = if (photo.isFavorite) "즐겨찾기 해제" else "즐겨찾기 추가",
@@ -58,12 +112,12 @@ fun PhotoDetailScreen(
                     }
                     
                     // 편집 버튼
-                    IconButton(onClick = { onEditPhoto(photo) }) {
+                    IconButton(onClick = onNavigateToEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "편집")
                     }
                     
                     // 삭제 버튼
-                    IconButton(onClick = { onDeletePhoto(photo) }) {
+                    IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, contentDescription = "삭제")
                     }
                 }
@@ -76,6 +130,23 @@ fun PhotoDetailScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
+            // 메시지 표시
+            if (uiState.message != null) {
+                MessageCard(
+                    message = uiState.message!!,
+                    isError = false,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            
+            if (uiState.errorMessage != null) {
+                MessageCard(
+                    message = uiState.errorMessage!!,
+                    isError = true,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            
             // 1. 전체 화면 사진 표시
             PhotoDisplaySection(photo = photo)
             
@@ -458,5 +529,54 @@ private fun FlowRow(
         horizontalArrangement = horizontalArrangement
     ) {
         content()
+    }
+}
+
+/**
+ * 메시지 표시 카드
+ */
+@Composable
+private fun MessageCard(
+    message: String,
+    isError: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isError) 
+                MaterialTheme.colorScheme.errorContainer 
+            else 
+                MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (isError) Icons.Default.Warning else Icons.Default.CheckCircle,
+                contentDescription = if (isError) "오류" else "성공",
+                tint = if (isError) 
+                    MaterialTheme.colorScheme.onErrorContainer 
+                else 
+                    MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isError) 
+                    MaterialTheme.colorScheme.onErrorContainer 
+                else 
+                    MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
