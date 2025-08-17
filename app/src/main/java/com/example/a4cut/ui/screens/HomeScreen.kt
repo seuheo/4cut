@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     onNavigateToPhotoDetail: (String) -> Unit,
+    onNavigateToFrame: (List<String>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val homeViewModel: HomeViewModel = viewModel()
@@ -68,6 +69,24 @@ fun HomeScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // TODO: Phase 4.3.2 Week 1에서 실제 사진 선택 구현
+                    // 현재는 테스트용 더미 이미지 URI로 프레임 화면 이동
+                    val dummyImageUris = listOf(
+                        "content://dummy/image1",
+                        "content://dummy/image2", 
+                        "content://dummy/image3",
+                        "content://dummy/image4"
+                    )
+                    onNavigateToFrame(dummyImageUris)
+                },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Text("+", style = MaterialTheme.typography.headlineMedium)
+            }
         }
     ) { paddingValues ->
         Column(

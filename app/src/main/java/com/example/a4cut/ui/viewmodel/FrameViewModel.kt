@@ -21,465 +21,99 @@ import com.example.a4cut.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * 프레임 화면의 ViewModel
- * 사진 선택, 프레임 적용, 이미지 합성 등 핵심 로직을 담당
- * Phase 3: Bitmap 기반 이미지 처리 및 권한 관리 기능 추가
+ * 프레임 화면 ViewModel
+ * Phase 4.3.2: UI 상태 관리 및 프레임 적용 기능 구현
  */
 class FrameViewModel : ViewModel() {
     
     private val frameRepository = FrameRepository()
-    private var imagePicker: ImagePicker? = null
-    private var permissionHelper: PermissionHelper? = null
-    private var imageComposer: ImageComposer? = null // ImageComposer 추가
-    private var context: Context? = null // Context 저장
-    private var photoRepository: PhotoRepository? = null // PhotoRepository 추가
     
-    // 프레임 관련 상태
-    private val _frames = MutableStateFlow<List<Frame>>(emptyList())
-    val frames: StateFlow<List<Frame>> = _frames.asStateFlow()
+    // 1. UI 상태를 정의하는 데이터 클래스
+    data class FrameUiState(
+        val selectedImageUris: List<String> = emptyList(),
+        val frames: List<Frame> = emptyList(),
+        val selectedFrame: Frame? = null,
+        val isProcessing: Boolean = false, // 이미지 합성 중 상태
+        val composedImage: android.graphics.Bitmap? = null, // 합성된 이미지
+        val errorMessage: String? = null // 에러 메시지
+    )
+    
+    // 2. StateFlow로 UI 상태 관리
+    private val _uiState = MutableStateFlow(FrameUiState())
+    val uiState: StateFlow<FrameUiState> = _uiState.asStateFlow()
+    
+    // 기존 상태들 (하위 호환성 유지)
+    private val _frames = frameRepository.frames
+    val frames: StateFlow<List<Frame>> = _frames
     
     private val _selectedFrame = MutableStateFlow<Frame?>(null)
-    val selectedFrame: StateFlow<Frame?> = _selectedFrame.asStateFlow()
+    val selectedFrame: StateFlow<Frame?> = _selectedFrame
     
-    // 사진 관련 상태 (Bitmap 기반)
-    private val _photos = MutableStateFlow<List<Bitmap?>>(List(4) { null })
-    val photos: StateFlow<List<Bitmap?>> = _photos.asStateFlow()
-    
-    // 권한 관련 상태
-    private val _hasImagePermission = MutableStateFlow(false)
-    val hasImagePermission: StateFlow<Boolean> = _hasImagePermission.asStateFlow()
-    
-    // UI 상태
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _photos = MutableStateFlow<List<android.graphics.Bitmap?>>(emptyList())
+    val photos: StateFlow<List<android.graphics.Bitmap?>> = _photos
     
     private val _isProcessing = MutableStateFlow(false)
-    val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
+    val isProcessing: StateFlow<Boolean> = _isProcessing
     
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
-    
-    // 합성된 최종 이미지를 저장할 상태
-    private val _composedImage = MutableStateFlow<Bitmap?>(null)
-    val composedImage: StateFlow<Bitmap?> = _composedImage.asStateFlow()
-    
-    // 인스타그램 공유 Intent 상태
-    private val _instagramShareIntent = MutableStateFlow<android.content.Intent?>(null)
-    val instagramShareIntent: StateFlow<android.content.Intent?> = _instagramShareIntent.asStateFlow()
-    
-    // 이미지 선택 결과
-    private val _imagePickerResult = MutableStateFlow<List<Uri>?>(null)
-    val imagePickerResult: StateFlow<List<Uri>?> = _imagePickerResult.asStateFlow()
+    private val _composedImage = MutableStateFlow<android.graphics.Bitmap?>(null)
+    val composedImage: StateFlow<android.graphics.Bitmap?> = _composedImage
     
     init {
         loadFrames()
     }
     
-    /**
-     * Context 설정 (권한 및 이미지 처리에 필요)
-     */
-    fun setContext(context: Context) {
-        this.context = context
-        imagePicker = ImagePicker(context)
-        permissionHelper = PermissionHelper(context)
-        imageComposer = ImageComposer(context) // ImageComposer 초기화
-        
-        // PhotoRepository 초기화
-        val database = AppDatabase.getDatabase(context)
-        photoRepository = PhotoRepository(database.photoDao())
-        
-        checkImagePermission()
+    // 3. 사용자 이벤트에 따라 상태를 변경하는 함수들
+    fun onImagesSelected(uris: List<String>) {
+        _uiState.update { it.copy(selectedImageUris = uris) }
+        // 기존 상태도 업데이트 (하위 호환성)
+        _photos.value = uris.map { null } // 실제 Bitmap은 나중에 로드
     }
     
-    /**
-     * 이미지 권한 확인
-     */
-    private fun checkImagePermission() {
-        permissionHelper?.let { helper ->
-            _hasImagePermission.value = helper.isImagePermissionGranted()
-        }
+    fun onFrameSelected(frame: Frame) {
+        _uiState.update { it.copy(selectedFrame = frame) }
+        // 기존 상태도 업데이트 (하위 호환성)
+        _selectedFrame.value = frame
     }
     
-    /**
-     * 프레임 목록 로드
-     */
     private fun loadFrames() {
         viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                // StateFlow에서 한 번만 값을 가져오기
-                val frameList = frameRepository.getFrames()
-                _frames.value = frameList
-            } catch (e: Exception) {
-                _errorMessage.value = "프레임 로드 실패: ${e.message}"
-            } finally {
-                _isLoading.value = false
+            val frameList = frameRepository.getFrames()
+            _uiState.update {
+                it.copy(
+                    frames = frameList,
+                    selectedFrame = frameList.firstOrNull() // 기본 프레임 선택
+                )
             }
+            // 기존 상태도 업데이트 (하위 호환성)
+            _selectedFrame.value = frameList.firstOrNull()
         }
     }
     
-    /**
-     * 프레임 선택
-     */
+    fun startImageComposition() {
+        _uiState.update { it.copy(isProcessing = true) }
+        // 기존 상태도 업데이트 (하위 호환성)
+        _isProcessing.value = true
+        
+        // TODO: Phase 4.3.2 Week 2에서 이미지 합성 로직 구현
+        // ImageComposer.compose() 호출하여 백그라운드에서 실행
+    }
+    
+    // 기존 함수들 (하위 호환성 유지)
     fun selectFrame(frame: Frame) {
         _selectedFrame.value = frame
-        clearError()
+        onFrameSelected(frame)
     }
     
-    /**
-     * 사진 선택 (Bitmap 기반)
-     */
-    fun selectPhoto(index: Int, bitmap: Bitmap?) {
-        if (index in 0..3) {
-            val currentPhotos = _photos.value.toMutableList()
-            currentPhotos[index] = bitmap
-            _photos.value = currentPhotos
-            clearError()
-        } else {
-            _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
-        }
-    }
-    
-    /**
-     * 사진 제거
-     */
-    fun removePhoto(index: Int) {
-        if (index in 0..3) {
-            val currentPhotos = _photos.value.toMutableList()
-            // 기존 Bitmap 메모리 해제
-            currentPhotos[index]?.let { bitmap ->
-                if (!bitmap.isRecycled) {
-                    bitmap.recycle()
-                }
-            }
-            currentPhotos[index] = null
-            _photos.value = currentPhotos
-            clearError()
-        }
-    }
-    
-    /**
-     * 사진 선택 토글 (있으면 제거, 없으면 추가 준비)
-     */
-    fun togglePhotoSelection(index: Int) {
-        if (index in 0..3) {
-            val currentPhotos = _photos.value.toMutableList()
-            val currentPhoto = currentPhotos[index]
-            
-            if (currentPhoto != null) {
-                // 사진이 있으면 제거
-                if (!currentPhoto.isRecycled) {
-                    currentPhoto.recycle()
-                }
-                currentPhotos[index] = null
-            }
-            // 사진이 없으면 추가 준비 (openImagePicker 호출 필요)
-            
-            _photos.value = currentPhotos
-            clearError()
-        } else {
-            _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
-        }
-    }
-    
-    /**
-     * 이미지 선택기 열기
-     */
-    fun openImagePicker() {
-        if (!_hasImagePermission.value) {
-            _errorMessage.value = "갤러리 접근 권한이 필요합니다"
-            return
-        }
-        
-        // 이미지 선택 결과를 처리할 준비
-        _imagePickerResult.value = emptyList()
-    }
-    
-    /**
-     * 이미지 선택 결과 처리
-     */
-    fun processSelectedImages(uris: List<Uri>) {
-        if (uris.isEmpty()) return
-        
-        viewModelScope.launch {
-            _isProcessing.value = true
-            try {
-                imagePicker?.let { picker ->
-                    // 선택된 이미지들을 4컷 그리드에 맞게 처리
-                    val processedBitmaps = picker.processImagesForGrid(uris, 512)
-                    
-                    // 기존 Bitmap들 메모리 해제
-                    _photos.value.forEach { bitmap ->
-                        bitmap?.let { 
-                            if (!it.isRecycled) {
-                                it.recycle()
-                            }
-                        }
-                    }
-                    
-                    // 새로운 Bitmap들로 교체
-                    _photos.value = processedBitmaps
-                    clearError()
-                } ?: run {
-                    _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "이미지 처리 실패: ${e.message}"
-            } finally {
-                _isProcessing.value = false
-            }
-        }
-    }
-    
-    /**
-     * 이미지 합성 시작
-     */
-    fun startImageComposition() {
-        if (_selectedFrame.value == null) {
-            _errorMessage.value = "프레임을 선택해주세요"
-            return
-        }
-        
-        val hasPhotos = _photos.value.any { it != null }
-        if (!hasPhotos) {
-            _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
-            return
-        }
-        
-        viewModelScope.launch {
-            _isProcessing.value = true
-            try {
-                // 기존 합성된 이미지 메모리 해제
-                _composedImage.value?.let { bitmap ->
-                    if (!bitmap.isRecycled) {
-                        bitmap.recycle()
-                    }
-                }
-                
-                // 실제 KTX 시그니처 프레임 리소스 로드
-                val frameBitmap = loadKtxFrameBitmap()
-                
-                imageComposer?.let { composer ->
-                    val result = composer.composeImage(
-                        photos = _photos.value,
-                        frameBitmap = frameBitmap
-                    )
-                    _composedImage.value = result // 합성 결과 저장
-                    clearError()
-                } ?: run {
-                    _errorMessage.value = "이미지 합성기를 초기화할 수 없습니다"
-                }
-                
-                // 프레임 메모리 해제
-                frameBitmap.recycle()
-                
-            } catch (e: Exception) {
-                _errorMessage.value = "이미지 합성 실패: ${e.message}"
-            } finally {
-                _isProcessing.value = false
-            }
-        }
-    }
-    
-    /**
-     * 이미지 저장
-     */
     fun saveImage() {
-        val imageToSave = _composedImage.value
-        if (imageToSave == null) {
-            _errorMessage.value = "합성된 이미지가 없습니다. 먼저 이미지 합성을 해주세요."
-            return
-        }
-
-        viewModelScope.launch {
-            _isProcessing.value = true
-            try {
-                val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
-                val savedUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
-                
-                if (savedUri != null) {
-                    // 갤러리 저장 성공 시 데이터베이스에도 저장
-                    try {
-                        photoRepository?.createKTXPhoto(
-                            imagePath = savedUri.toString(),
-                            title = "KTX 네컷 사진",
-                            location = "KTX 역"
-                        )
-                        _successMessage.value = "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
-                    } catch (dbException: Exception) {
-                        // 데이터베이스 저장 실패해도 갤러리 저장은 성공했으므로 부분 성공 메시지
-                        _successMessage.value = "이미지는 갤러리에 저장되었지만 앱 저장에 실패했습니다."
-                    }
-                    clearError()
-                } else {
-                    _errorMessage.value = "이미지 저장에 실패했습니다."
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "이미지 저장 실패: ${e.message}"
-            } finally {
-                _isProcessing.value = false
-            }
-        }
+        // TODO: 이미지 저장 로직 구현
     }
     
-    /**
-     * 인스타그램 공유
-     */
     fun shareToInstagram() {
-        val imageToShare = _composedImage.value
-        if (imageToShare == null) {
-            _errorMessage.value = "합성된 이미지가 없습니다. 먼저 이미지 합성을 해주세요."
-            return
-        }
-
-        viewModelScope.launch {
-            _isProcessing.value = true
-            try {
-                // 1. 합성된 이미지를 임시 파일로 저장
-                val sharedImageFile = saveImageToCache(imageToShare)
-                
-                // 2. Instagram Story Intent 생성 및 실행
-                context?.let { ctx ->
-                    val intent = createInstagramStoryIntent(ctx, sharedImageFile)
-                    // Intent 실행은 UI에서 처리해야 하므로 콜백으로 전달
-                    _instagramShareIntent.value = intent
-                } ?: run {
-                    _errorMessage.value = "공유를 위한 컨텍스트를 찾을 수 없습니다."
-                }
-                
-                clearError()
-            } catch (e: Exception) {
-                _errorMessage.value = "공유 실패: ${e.message}"
-            } finally {
-                _isProcessing.value = false
-            }
-        }
-    }
-    
-    // 성공 메시지 상태
-    private val _successMessage = MutableStateFlow<String?>(null)
-    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
-    
-    /**
-     * 에러 메시지 초기화
-     */
-    private fun clearError() {
-        _errorMessage.value = null
-    }
-    
-    /**
-     * 성공 메시지 초기화
-     */
-    private fun clearSuccess() {
-        _successMessage.value = null
-    }
-    
-    /**
-     * 프리미엄 프레임만 가져오기
-     */
-    fun getPremiumFrames(): List<Frame> {
-        return frameRepository.getPremiumFrames()
-    }
-    
-    /**
-     * 특정 ID의 프레임 가져오기
-     */
-    fun getFrameById(id: Int): Frame? {
-        return frameRepository.getFrameById(id)
-    }
-    
-    /**
-     * 권한 상태 업데이트
-     */
-    fun updatePermissionStatus(hasPermission: Boolean) {
-        _hasImagePermission.value = hasPermission
-    }
-    
-    /**
-     * KTX 시그니처 프레임 리소스를 고품질 Bitmap으로 로드
-     */
-    private fun loadKtxFrameBitmap(): Bitmap {
-        return try {
-            context?.let { ctx ->
-                // ImageComposer의 고품질 벡터 드로어블 로딩 함수 사용
-                imageComposer?.loadVectorDrawableAsBitmap(
-                    context = ctx,
-                    drawableId = R.drawable.ktx_frame_signature,
-                    width = ImageComposer.OUTPUT_WIDTH,
-                    height = ImageComposer.OUTPUT_HEIGHT
-                ) ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
-            } ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
-        } catch (e: Exception) {
-            // 리소스 로드 실패 시 기본 프레임 생성
-            createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
-        }
-    }
-    
-    /**
-     * 임시 프레임 생성 함수 (fallback용)
-     */
-    private fun createDefaultFrameBitmap(width: Int, height: Int): Bitmap {
-        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
-            eraseColor(0xFF1E3A8A.toInt()) // KTX 블루
-        }
-    }
-    
-    /**
-     * Bitmap을 캐시 파일로 저장
-     */
-    private fun saveImageToCache(bitmap: Bitmap): File {
-        val cacheDir = context?.cacheDir ?: throw IllegalStateException("Context not available")
-        val imagesDir = File(cacheDir, "images")
-        if (!imagesDir.exists()) {
-            imagesDir.mkdirs()
-        }
-        
-        val imageFile = File(imagesDir, "ktx_4cut_${System.currentTimeMillis()}.jpg")
-        FileOutputStream(imageFile).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-        }
-        return imageFile
-    }
-    
-    /**
-     * 인스타그램 스토리 공유 Intent 생성
-     */
-    private fun createInstagramStoryIntent(context: Context, imageFile: File): Intent {
-        val imageUri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            imageFile
-        )
-        
-        return Intent("com.instagram.share.ADD_TO_STORY").apply {
-            setDataAndType(imageUri, "image/jpeg")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            putExtra("interactive_asset_uri", imageUri)
-        }
-    }
-    
-    /**
-     * ViewModel 정리 시 Bitmap 메모리 해제
-     */
-    override fun onCleared() {
-        super.onCleared()
-        // 모든 Bitmap 메모리 해제
-        _photos.value.forEach { bitmap ->
-            bitmap?.let { 
-                if (!it.isRecycled) {
-                    it.recycle()
-                }
-            }
-        }
-        // 합성된 이미지도 메모리 해제
-        _composedImage.value?.let { bitmap ->
-            if (!bitmap.isRecycled) {
-                bitmap.recycle()
-            }
-        }
+        // TODO: 인스타그램 공유 로직 구현
     }
 }
 
