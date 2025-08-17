@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * 새로운 홈 화면의 ViewModel
@@ -42,6 +44,39 @@ class HomeViewModel : ViewModel() {
     
     private val _favoritePhotoCount = MutableStateFlow(0)
     val favoritePhotoCount: StateFlow<Int> = _favoritePhotoCount.asStateFlow()
+    
+    // ❌ latestPhoto 제거
+    /*
+    val latestPhoto: StateFlow<PhotoEntity?> = photoLogs.map { photos ->
+        photos.maxByOrNull { it.createdAt }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    */
+    
+    // ✅ 추가: 가장 최근 사진 최대 5개를 리스트로 제공 (캐러셀용)
+    val latestPhotos: StateFlow<List<PhotoEntity>> = photoLogs.map { photos ->
+        photos.sortedByDescending { it.createdAt }.take(5)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+    
+    // ✅ 추가: 사진이 존재하는 모든 날짜 목록을 가져옵니다. (달력 표시용)
+    val datesWithPhotos: StateFlow<List<LocalDate>> = photoLogs.map { photos ->
+        photos.map { 
+            java.time.Instant.ofEpochMilli(it.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate() 
+        }.distinct().sorted()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
     
     /**
      * Context 설정 및 데이터베이스 초기화
@@ -198,7 +233,7 @@ class HomeViewModel : ViewModel() {
                     val testPhotos = listOf(
                         PhotoEntity(
                             imagePath = "https://picsum.photos/id/1/400/600",
-                            createdAt = System.currentTimeMillis() - (86400000 * 30), // 30일 전
+                            createdAt = System.currentTimeMillis() - (86400000L * 30), // 30일 전
                             title = "첫 번째 KTX 여행",
                             location = "서울역",
                             frameType = "ktx_signature",
@@ -213,7 +248,7 @@ class HomeViewModel : ViewModel() {
                         ),
                         PhotoEntity(
                             imagePath = "https://picsum.photos/id/10/400/600",
-                            createdAt = System.currentTimeMillis() - (86400000 * 15), // 15일 전
+                            createdAt = System.currentTimeMillis() - (86400000L * 15), // 15일 전
                             title = "부산 해운대 여행",
                             location = "부산역",
                             frameType = "ktx_signature",
@@ -228,7 +263,7 @@ class HomeViewModel : ViewModel() {
                         ),
                         PhotoEntity(
                             imagePath = "https://picsum.photos/id/20/400/600",
-                            createdAt = System.currentTimeMillis() - (86400000 * 7), // 7일 전
+                            createdAt = System.currentTimeMillis() - (86400000L * 7), // 7일 전
                             title = "제주도 한라산 등반",
                             location = "제주역",
                             frameType = "ktx_signature",
@@ -243,7 +278,7 @@ class HomeViewModel : ViewModel() {
                         ),
                         PhotoEntity(
                             imagePath = "https://picsum.photos/id/30/400/600",
-                            createdAt = System.currentTimeMillis() - (86400000 * 3), // 3일 전
+                            createdAt = System.currentTimeMillis() - (86400000L * 3), // 3일 전
                             title = "전주 한옥마을 탐방",
                             location = "전주역",
                             frameType = "ktx_signature",
@@ -258,7 +293,7 @@ class HomeViewModel : ViewModel() {
                         ),
                         PhotoEntity(
                             imagePath = "https://picsum.photos/id/40/400/600",
-                            createdAt = System.currentTimeMillis() - (86400000 * 1), // 1일 전
+                            createdAt = System.currentTimeMillis() - (86400000L * 1), // 1일 전
                             title = "강릉 커피거리",
                             location = "강릉역",
                             frameType = "ktx_signature",

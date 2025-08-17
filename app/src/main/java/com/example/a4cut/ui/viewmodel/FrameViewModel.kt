@@ -110,9 +110,9 @@ class FrameViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                frameRepository.frames.collect { frameList ->
-                    _frames.value = frameList
-                }
+                // StateFlow에서 한 번만 값을 가져오기
+                val frameList = frameRepository.getFrames()
+                _frames.value = frameList
             } catch (e: Exception) {
                 _errorMessage.value = "프레임 로드 실패: ${e.message}"
             } finally {

@@ -31,11 +31,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -70,6 +70,14 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
+    
+    // Gson (JSON 직렬화/역직렬화)
+    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // DataStore (설정 및 데이터 영구 저장)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // Accompanist Pager 제거 - LazyRow로 대체
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

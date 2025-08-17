@@ -68,6 +68,17 @@ class PhotoRepository(private val photoDao: PhotoDao) {
     fun searchPhotos(query: String): Flow<List<PhotoEntity>> = photoDao.searchPhotos(query)
     
     /**
+     * 고급 검색: 쿼리, 계절, 감정, 날씨 필터링을 포함한 검색
+     */
+    fun searchPhotosAdvanced(
+        query: String,
+        seasons: List<String>,
+        moods: List<String>,
+        weather: List<String>,
+        sortBy: String
+    ): Flow<List<PhotoEntity>> = photoDao.searchPhotosAdvanced(query, seasons, moods, weather, sortBy)
+    
+    /**
      * KTX 4컷 사진 생성 (편의 메서드) - 확장된 메타데이터 지원
      */
     suspend fun createKTXPhoto(
