@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * 새로운 홈 화면의 ViewModel
@@ -42,6 +44,28 @@ class HomeViewModel : ViewModel() {
     
     private val _favoritePhotoCount = MutableStateFlow(0)
     val favoritePhotoCount: StateFlow<Int> = _favoritePhotoCount.asStateFlow()
+    
+    // ✅ 추가: 가장 최근 사진 1개를 가져옵니다. (PDF 상단 대표 이미지용)
+    val latestPhoto: StateFlow<PhotoEntity?> = photoLogs.map { photos ->
+        photos.maxByOrNull { it.createdAt }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
+    // ✅ 추가: 사진이 존재하는 모든 날짜 목록을 가져옵니다. (달력 표시용)
+    val datesWithPhotos: StateFlow<List<LocalDate>> = photoLogs.map { photos ->
+        photos.map { 
+            java.time.Instant.ofEpochMilli(it.createdAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate() 
+        }.distinct().sorted()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
     
     /**
      * Context 설정 및 데이터베이스 초기화
