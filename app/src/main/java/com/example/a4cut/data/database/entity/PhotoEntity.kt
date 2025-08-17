@@ -31,5 +31,15 @@ data class PhotoEntity(
     val frameType: String = "ktx_signature",
     
     // 컬러 테마 (프레임 색상 정보)
-    val colorTheme: String = "ktx_blue"
+    val colorTheme: String = "ktx_blue",
+    
+    // 추가 메타데이터 (미래 기능 확장용)
+    val tags: String = "",                 // 쉼표로 구분된 태그들
+    val description: String = "",           // 사진 설명
+    val weather: String = "",              // 촬영 당시 날씨
+    val mood: String = "",                 // 사진의 분위기/감정
+    val companions: String = "",           // 함께한 사람들
+    val travelPurpose: String = "",        // 여행 목적 (출장, 여행, 출장 등)
+    val season: String = "",               // 촬영 계절
+    val timeOfDay: String = ""             // 촬영 시간대 (아침, 점심, 저녁, 밤)
 )

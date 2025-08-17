@@ -76,4 +76,47 @@ interface PhotoDao {
      */
     @Query("SELECT * FROM photos WHERE title LIKE '%' || :query || '%' OR location LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchPhotos(query: String): Flow<List<PhotoEntity>>
+    
+    // 새로운 확장 쿼리들 (미래 기능을 위한 준비)
+    /**
+     * 계절별 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE season = :season ORDER BY createdAt DESC")
+    fun getPhotosBySeason(season: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 시간대별 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE timeOfDay = :timeOfDay ORDER BY createdAt DESC")
+    fun getPhotosByTimeOfDay(timeOfDay: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 날씨별 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE weather = :weather ORDER BY createdAt DESC")
+    fun getPhotosByWeather(weather: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 여행 목적별 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE travelPurpose = :purpose ORDER BY createdAt DESC")
+    fun getPhotosByTravelPurpose(purpose: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 태그별 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE tags LIKE '%' || :tag || '%' ORDER BY createdAt DESC")
+    fun getPhotosByTag(tag: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 연도별 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE strftime('%Y', datetime(createdAt/1000, 'unixepoch')) = :year ORDER BY createdAt DESC")
+    fun getPhotosByYear(year: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 월별 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE strftime('%Y-%m', datetime(createdAt/1000, 'unixepoch')) = :yearMonth ORDER BY createdAt DESC")
+    fun getPhotosByYearMonth(yearMonth: String): Flow<List<PhotoEntity>>
 }
