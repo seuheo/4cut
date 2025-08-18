@@ -232,7 +232,7 @@ class HomeViewModel : ViewModel() {
                     // 테스트 데이터 추가
                     val testPhotos = listOf(
                         PhotoEntity(
-                            imagePath = "https://picsum.photos/id/1/400/600",
+                            imagePath = "/storage/emulated/0/Pictures/test_photo_1.jpg",
                             createdAt = System.currentTimeMillis() - (86400000L * 30), // 30일 전
                             title = "첫 번째 KTX 여행",
                             location = "서울역",
@@ -247,7 +247,7 @@ class HomeViewModel : ViewModel() {
                             timeOfDay = "오전"
                         ),
                         PhotoEntity(
-                            imagePath = "https://picsum.photos/id/10/400/600",
+                            imagePath = "/storage/emulated/0/Pictures/test_photo_2.jpg",
                             createdAt = System.currentTimeMillis() - (86400000L * 15), // 15일 전
                             title = "부산 해운대 여행",
                             location = "부산역",
@@ -262,7 +262,7 @@ class HomeViewModel : ViewModel() {
                             timeOfDay = "오후"
                         ),
                         PhotoEntity(
-                            imagePath = "https://picsum.photos/id/20/400/600",
+                            imagePath = "/storage/emulated/0/Pictures/test_photo_3.jpg",
                             createdAt = System.currentTimeMillis() - (86400000L * 7), // 7일 전
                             title = "제주도 한라산 등반",
                             location = "제주역",
@@ -277,7 +277,7 @@ class HomeViewModel : ViewModel() {
                             timeOfDay = "점심"
                         ),
                         PhotoEntity(
-                            imagePath = "https://picsum.photos/id/30/400/600",
+                            imagePath = "/storage/emulated/0/Pictures/test_photo_4.jpg",
                             createdAt = System.currentTimeMillis() - (86400000L * 3), // 3일 전
                             title = "전주 한옥마을 탐방",
                             location = "전주역",
@@ -292,7 +292,7 @@ class HomeViewModel : ViewModel() {
                             timeOfDay = "저녁"
                         ),
                         PhotoEntity(
-                            imagePath = "https://picsum.photos/id/40/400/600",
+                            imagePath = "/storage/emulated/0/Pictures/test_photo_5.jpg",
                             createdAt = System.currentTimeMillis() - (86400000L * 1), // 1일 전
                             title = "강릉 커피거리",
                             location = "강릉역",

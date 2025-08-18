@@ -21,6 +21,11 @@ class PhotoRepository(private val photoDao: PhotoDao) {
     suspend fun insertPhoto(photo: PhotoEntity): Long = photoDao.insertPhoto(photo)
     
     /**
+     * 특정 ID의 사진 조회
+     */
+    suspend fun getPhotoById(id: Int): PhotoEntity? = photoDao.getPhotoById(id)
+    
+    /**
      * 사진 정보 업데이트
      */
     suspend fun updatePhoto(photo: PhotoEntity) = photoDao.updatePhoto(photo)

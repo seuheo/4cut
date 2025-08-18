@@ -63,6 +63,62 @@ class ImageComposer(private val context: Context) {
     }
 
     /**
+     * 단일 사진에 프레임을 적용하여 새로운 이미지를 생성
+     * @param photoBitmap 적용할 사진 Bitmap
+     * @param frameBitmap 적용할 프레임 Bitmap
+     * @param isPreview 미리보기용 저해상도 여부 (true: 미리보기, false: 저장용)
+     * @return 프레임이 적용된 Bitmap
+     */
+    suspend fun applyFrameToPhoto(
+        photoBitmap: Bitmap,
+        frameBitmap: Bitmap,
+        isPreview: Boolean = false
+    ): Bitmap = withContext(Dispatchers.Default) {
+        // 해상도 결정 (미리보기용은 저해상도, 저장용은 고해상도)
+        val outputWidth = if (isPreview) OUTPUT_WIDTH / 2 else OUTPUT_WIDTH
+        val outputHeight = if (isPreview) OUTPUT_HEIGHT / 2 else OUTPUT_HEIGHT
+        
+        // 최종 결과물이 될 Bitmap 생성
+        val resultBitmap = Bitmap.createBitmap(outputWidth, outputHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(resultBitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        // 1. 프레임을 배경으로 그리기 (전체 화면에 맞춤)
+        val frameRect = RectF(0f, 0f, outputWidth.toFloat(), outputHeight.toFloat())
+        canvas.drawBitmap(frameBitmap, null, frameRect, paint)
+
+        // 2. 사진을 프레임 안의 중앙에 그리기
+        val photoRect = calculateSinglePhotoPosition(outputWidth, outputHeight)
+        canvas.drawBitmap(photoBitmap, null, photoRect, paint)
+
+        resultBitmap
+    }
+
+    /**
+     * 단일 사진의 배치 위치를 계산 (프레임 중앙에 배치)
+     * @param outputWidth 출력 이미지 너비
+     * @param outputHeight 출력 이미지 높이
+     * @return 사진의 RectF 좌표
+     */
+    private fun calculateSinglePhotoPosition(outputWidth: Int, outputHeight: Int): RectF {
+        // 여백 계산 (프레임 테두리 공간 확보)
+        val marginRatio = 0.1f // 10% 여백
+        val marginX = outputWidth * marginRatio
+        val marginY = outputHeight * marginRatio
+        
+        // 사진 영역 크기 계산
+        val photoWidth = outputWidth - (marginX * 2)
+        val photoHeight = outputHeight - (marginY * 2)
+        
+        return RectF(
+            marginX,
+            marginY,
+            marginX + photoWidth,
+            marginY + photoHeight
+        )
+    }
+
+    /**
      * 4컷 사진의 배치 위치를 비율 기반으로 계산
      * @return 각 사진의 RectF 좌표 목록
      */
