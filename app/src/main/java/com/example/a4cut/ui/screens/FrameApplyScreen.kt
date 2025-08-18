@@ -32,8 +32,10 @@ import com.example.a4cut.ui.viewmodel.FrameApplyViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FrameApplyScreen(
+    photoId: Int,
     viewModel: FrameApplyViewModel,
     onNavigateBack: () -> Unit,
+    onNavigateToSave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -115,6 +117,8 @@ fun FrameApplyScreen(
             // 3. 미리보기 섹션 (선택된 프레임이 있을 때만 표시)
             if (selectedFrame != null) {
                 FramePreviewSection(
+                    photo = photo,
+                    frame = selectedFrame,
                     previewBitmap = previewBitmap,
                     isLoading = isLoading
                 )
@@ -284,6 +288,8 @@ private fun FrameSelectionCard(
  */
 @Composable
 private fun FramePreviewSection(
+    photo: PhotoEntity,
+    frame: Frame,
     previewBitmap: Bitmap?,
     isLoading: Boolean,
     modifier: Modifier = Modifier
