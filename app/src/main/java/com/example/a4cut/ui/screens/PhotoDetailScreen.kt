@@ -32,6 +32,7 @@ fun PhotoDetailScreen(
     viewModel: com.example.a4cut.ui.viewmodel.PhotoDetailViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToEdit: () -> Unit,
+    onNavigateToFrameApply: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -103,6 +104,11 @@ fun PhotoDetailScreen(
                     }
                 },
                 actions = {
+                    // 프레임 적용 버튼
+                    IconButton(onClick = onNavigateToFrameApply) {
+                        Icon(Icons.Default.Add, contentDescription = "프레임 적용")
+                    }
+                    
                     // 즐겨찾기 토글 버튼
                     IconButton(onClick = { viewModel.toggleFavorite() }) {
                         Icon(
