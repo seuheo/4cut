@@ -157,7 +157,8 @@ fun AppNavigation(
                 PhotoDetailScreen(
                     viewModel = photoDetailViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEdit = { navController.navigate("photo_edit/$photoId") }
+                    onNavigateToEdit = { navController.navigate("photo_edit/$photoId") },
+                    onNavigateToFrameApply = { navController.navigate("frame_apply/$photoId") }
                 )
             }
             
@@ -190,6 +191,34 @@ fun AppNavigation(
                 com.example.a4cut.ui.screens.PhotoEditScreen(
                     viewModel = photoDetailViewModel,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // 프레임 적용 화면
+            composable(
+                route = "frame_apply/{photoId}",
+                arguments = listOf(
+                    navArgument("photoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
+                
+                // FrameApplyViewModel 생성 (실제로는 ViewModelFactory를 사용해야 함)
+                val frameApplyViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.FrameApplyViewModel>()
+                
+                // 사진 정보 로드
+                androidx.compose.runtime.LaunchedEffect(photoId) {
+                    frameApplyViewModel.loadPhoto(photoId)
+                }
+                
+                com.example.a4cut.ui.screens.FrameApplyScreen(
+                    photoId = photoId,
+                    viewModel = frameApplyViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSave = { 
+                        // TODO: 저장 기능 구현
+                        navController.popBackStack() 
+                    }
                 )
             }
         }
