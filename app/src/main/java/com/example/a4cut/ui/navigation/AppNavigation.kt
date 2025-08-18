@@ -212,13 +212,8 @@ fun AppNavigation(
                 }
                 
                 com.example.a4cut.ui.screens.FrameApplyScreen(
-                    photoId = photoId,
                     viewModel = frameApplyViewModel,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToSave = { 
-                        // TODO: 저장 기능 구현
-                        navController.popBackStack() 
-                    }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

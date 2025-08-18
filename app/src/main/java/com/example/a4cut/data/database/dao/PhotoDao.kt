@@ -24,6 +24,12 @@ interface PhotoDao {
     suspend fun insertPhoto(photo: PhotoEntity): Long
     
     /**
+     * 특정 ID의 사진 조회
+     */
+    @Query("SELECT * FROM photos WHERE id = :id")
+    suspend fun getPhotoById(id: Int): PhotoEntity?
+    
+    /**
      * 사진 정보 업데이트
      */
     @Update

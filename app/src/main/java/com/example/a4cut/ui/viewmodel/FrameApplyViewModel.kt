@@ -39,23 +39,30 @@ class FrameApplyViewModel(
     fun loadPhoto(photoId: Int) {
         viewModelScope.launch {
             try {
-                // TODO: 실제 PhotoRepository에서 사진 데이터 가져오기
-                // 현재는 더미 데이터 사용
-                val dummyPhoto = PhotoEntity(
-                    id = photoId,
-                    imagePath = "dummy_path",
-                    createdAt = System.currentTimeMillis(),
-                    title = "더미 제목",
-                    location = "더미 위치",
-                    frameType = "ktx_signature"
-                )
+                _uiState.update { it.copy(isLoading = true) }
                 
-                _uiState.update { it.copy(photo = dummyPhoto) }
+                // 실제 PhotoRepository에서 사진 데이터 가져오기
+                val photo = photoRepository.getPhotoById(photoId)
                 
-                // 프레임 목록도 함께 로드
-                loadFrames()
+                if (photo != null) {
+                    _uiState.update { it.copy(photo = photo) }
+                    // 프레임 목록도 함께 로드
+                    loadFrames()
+                } else {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "해당 사진을 찾을 수 없습니다."
+                        )
+                    }
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "사진을 불러오는데 실패했습니다: ${e.message}") }
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "사진을 불러오는데 실패했습니다: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -147,14 +154,57 @@ class FrameApplyViewModel(
 
     /**
      * 이미지 경로에서 Bitmap 로드
-     * TODO: 실제 이미지 로딩 구현 (현재는 더미 데이터 사용)
+     * Coil을 사용한 실제 이미지 로딩 구현
      */
     private suspend fun loadBitmapFromPath(imagePath: String): Bitmap? {
         return try {
-            // TODO: 실제 이미지 로딩 구현
-            // 현재는 더미 Bitmap 생성
-            Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+            // 이미지 경로가 유효한지 확인
+            if (imagePath.isBlank() || imagePath == "dummy_path") {
+                return null
+            }
+
+            // Coil을 사용한 이미지 로딩
+            val request = ImageRequest.Builder(context)
+                .data(imagePath)
+                .build()
+
+            val result = imageLoader.execute(request)
+            
+            when (result) {
+                is coil.request.SuccessResult -> {
+                    val drawable = result.drawable
+                    if (drawable is android.graphics.drawable.BitmapDrawable) {
+                        val bitmap = drawable.bitmap
+                        if (bitmap != null && !bitmap.isRecycled) {
+                            // 메모리 최적화: 필요한 경우 리사이징
+                            val maxSize = 1024 // 최대 1024px로 제한
+                            if (bitmap.width > maxSize || bitmap.height > maxSize) {
+                                val scale = maxSize.toFloat() / maxOf(bitmap.width, bitmap.height)
+                                val newWidth = (bitmap.width * scale).toInt()
+                                val newHeight = (bitmap.height * scale).toInt()
+                                
+                                val resizedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+                                // 원본 비트맵은 Coil이 관리하므로 여기서는 해제하지 않음
+                                return resizedBitmap
+                            }
+                            return bitmap
+                        } else {
+                            null
+                        }
+                    } else {
+                        // BitmapDrawable이 아닌 경우 null 반환
+                        null
+                    }
+                }
+                is coil.request.ErrorResult -> {
+                    // 에러 로깅 (디버그용)
+                    android.util.Log.e("FrameApplyViewModel", "이미지 로딩 실패: ${result.throwable.message}")
+                    null
+                }
+            }
         } catch (e: Exception) {
+            // 예외 로깅 (디버그용)
+            android.util.Log.e("FrameApplyViewModel", "이미지 로딩 중 예외 발생: ${e.message}")
             null
         }
     }
@@ -233,8 +283,8 @@ class FrameApplyViewModel(
                             createdAt = System.currentTimeMillis()
                         )
                         
-                        // TODO: PhotoRepository를 통해 새로운 사진 저장
-                        // photoRepository.createKTXPhoto(newPhoto)
+                        // PhotoRepository를 통해 새로운 사진 저장
+                        photoRepository.insertPhoto(newPhoto)
                         
                         _uiState.update { 
                             it.copy(
