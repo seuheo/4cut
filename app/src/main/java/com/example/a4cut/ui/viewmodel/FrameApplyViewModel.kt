@@ -22,13 +22,13 @@ import kotlinx.coroutines.launch
  * 사진 데이터 로드, 프레임 선택, 미리보기 관리
  */
 class FrameApplyViewModel(
-    private val photoRepository: PhotoRepository,
-    private val frameRepository: FrameRepository,
-    private val context: Context
+    private val photoRepository: PhotoRepository? = null,
+    private val frameRepository: FrameRepository? = null,
+    private val context: Context? = null
 ) : ViewModel() {
 
-    private val imageComposer = ImageComposer(context)
-    private val imageLoader = ImageLoader(context)
+    private val imageComposer = context?.let { ImageComposer(it) }
+    private val imageLoader = context?.let { ImageLoader(it) }
 
     private val _uiState = MutableStateFlow(FrameApplyUiState())
     val uiState: StateFlow<FrameApplyUiState> = _uiState.asStateFlow()
@@ -42,7 +42,7 @@ class FrameApplyViewModel(
                 _uiState.update { it.copy(isLoading = true) }
                 
                 // 실제 PhotoRepository에서 사진 데이터 가져오기
-                val photo = photoRepository.getPhotoById(photoId)
+                val photo = photoRepository?.getPhotoById(photoId)
                 
                 if (photo != null) {
                     _uiState.update { it.copy(photo = photo) }
@@ -73,7 +73,7 @@ class FrameApplyViewModel(
     private fun loadFrames() {
         viewModelScope.launch {
             try {
-                val frames = frameRepository.getFrames()
+                val frames = frameRepository?.getFrames() ?: emptyList()
                 _uiState.update { it.copy(frames = frames) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "프레임 목록을 불러오는데 실패했습니다: ${e.message}") }
@@ -97,7 +97,7 @@ class FrameApplyViewModel(
         val photo = _uiState.value.photo
         val selectedFrame = _uiState.value.selectedFrame
         
-        if (photo != null && selectedFrame != null) {
+        if (photo != null && selectedFrame != null && context != null && imageComposer != null) {
             viewModelScope.launch {
                 try {
                     _uiState.update { it.copy(isLoading = true) }
@@ -139,7 +139,6 @@ class FrameApplyViewModel(
                     // 메모리 정리
                     imageComposer.recycleBitmap(photoBitmap)
                     imageComposer.recycleBitmap(frameBitmap)
-                    
                 } catch (e: Exception) {
                     _uiState.update { 
                         it.copy(
@@ -159,7 +158,7 @@ class FrameApplyViewModel(
     private suspend fun loadBitmapFromPath(imagePath: String): Bitmap? {
         return try {
             // 이미지 경로가 유효한지 확인
-            if (imagePath.isBlank() || imagePath == "dummy_path") {
+            if (imagePath.isBlank() || imagePath == "dummy_path" || context == null || imageLoader == null) {
                 return null
             }
 
@@ -237,7 +236,7 @@ class FrameApplyViewModel(
         val photo = _uiState.value.photo
         val selectedFrame = _uiState.value.selectedFrame
         
-        if (photo != null && selectedFrame != null) {
+        if (photo != null && selectedFrame != null && context != null && imageComposer != null) {
             viewModelScope.launch {
                 try {
                     _uiState.update { it.copy(isLoading = true) }
@@ -284,7 +283,7 @@ class FrameApplyViewModel(
                         )
                         
                         // PhotoRepository를 통해 새로운 사진 저장
-                        photoRepository.insertPhoto(newPhoto)
+                        photoRepository?.insertPhoto(newPhoto)
                         
                         _uiState.update { 
                             it.copy(
