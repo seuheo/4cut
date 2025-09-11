@@ -214,6 +214,9 @@ class FrameViewModel : ViewModel() {
         // 하단 우측
         canvas.drawRoundRect(margin + photoWidth + spacing, margin + photoHeight + spacing, width - margin, height - margin, 12f, 12f, framePaint)
         
+        // 4컷 사진 영역에 귀여운 사람 모습 그리기
+        drawCutePeopleInFrames(canvas, margin, photoWidth, photoHeight, spacing, width, height)
+        
         // 구분선 그리기
         val linePaint = android.graphics.Paint().apply {
             color = 0xFFFFFFFF.toInt()
@@ -279,6 +282,233 @@ class FrameViewModel : ViewModel() {
         }
         
         return bitmap
+    }
+    
+    /**
+     * 4컷 사진 영역에 귀여운 사람 모습 그리기
+     */
+    private fun drawCutePeopleInFrames(
+        canvas: android.graphics.Canvas,
+        margin: Float,
+        photoWidth: Float,
+        photoHeight: Float,
+        spacing: Float,
+        width: Int,
+        height: Int
+    ) {
+        val personPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.FILL
+        }
+        
+        val strokePaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 3f
+            color = 0xFFFFFFFF.toInt()
+        }
+        
+        // 상단 좌측 - 웃는 얼굴
+        drawCuteFace(
+            canvas, 
+            margin + photoWidth/2, 
+            margin + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFFFBBF24.toInt() // 노란색
+        )
+        
+        // 상단 우측 - 윙크하는 얼굴
+        drawWinkingFace(
+            canvas, 
+            margin + photoWidth + spacing + photoWidth/2, 
+            margin + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFFEC4899.toInt() // 핑크색
+        )
+        
+        // 하단 좌측 - 놀란 얼굴
+        drawSurprisedFace(
+            canvas, 
+            margin + photoWidth/2, 
+            margin + photoHeight + spacing + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFF4ECDC4.toInt() // 청록색
+        )
+        
+        // 하단 우측 - 사랑스러운 얼굴
+        drawLovingFace(
+            canvas, 
+            margin + photoWidth + spacing + photoWidth/2, 
+            margin + photoHeight + spacing + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFF8B5CF6.toInt() // 보라색
+        )
+    }
+    
+    /**
+     * 웃는 얼굴 그리기
+     */
+    private fun drawCuteFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 눈
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        
+        // 눈동자
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        
+        // 입 (웃는 모습)
+        strokePaint.color = 0xFF000000.toInt()
+        strokePaint.strokeWidth = 4f
+        canvas.drawArc(
+            centerX - size * 0.3f, centerY - size * 0.1f, 
+            centerX + size * 0.3f, centerY + size * 0.2f,
+            0f, 180f, false, strokePaint
+        )
+    }
+    
+    /**
+     * 윙크하는 얼굴 그리기
+     */
+    private fun drawWinkingFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 왼쪽 눈 (일반)
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        
+        // 오른쪽 눈 (윙크)
+        strokePaint.color = 0xFF000000.toInt()
+        strokePaint.strokeWidth = 4f
+        canvas.drawLine(
+            centerX + size * 0.2f, centerY - size * 0.2f,
+            centerX + size * 0.4f, centerY - size * 0.2f,
+            strokePaint
+        )
+        
+        // 입 (웃는 모습)
+        canvas.drawArc(
+            centerX - size * 0.3f, centerY - size * 0.1f, 
+            centerX + size * 0.3f, centerY + size * 0.2f,
+            0f, 180f, false, strokePaint
+        )
+    }
+    
+    /**
+     * 놀란 얼굴 그리기
+     */
+    private fun drawSurprisedFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 눈 (크게 뜬 모습)
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.15f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.15f, fillPaint)
+        
+        // 눈동자
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.08f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.08f, fillPaint)
+        
+        // 입 (동그란 모습)
+        canvas.drawCircle(centerX, centerY + size * 0.1f, size * 0.1f, fillPaint)
+    }
+    
+    /**
+     * 사랑스러운 얼굴 그리기
+     */
+    private fun drawLovingFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 눈 (하트 모양)
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        
+        // 눈동자
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        
+        // 볼 (빨간 볼)
+        fillPaint.color = 0xFFFF6B6B.toInt()
+        canvas.drawCircle(centerX - size * 0.4f, centerY, size * 0.08f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.4f, centerY, size * 0.08f, fillPaint)
+        
+        // 입 (사랑스러운 웃음)
+        strokePaint.color = 0xFF000000.toInt()
+        strokePaint.strokeWidth = 3f
+        canvas.drawArc(
+            centerX - size * 0.2f, centerY - size * 0.05f, 
+            centerX + size * 0.2f, centerY + size * 0.15f,
+            0f, 180f, false, strokePaint
+        )
     }
     
     /**
@@ -549,27 +779,30 @@ class FrameViewModel : ViewModel() {
                 canvas.drawCircle(x, y, radius, patternPaint)
             }
             
+            // 중앙에 귀여운 사람 모습 그리기
+            drawCutePersonInTestPhoto(canvas, width, height, textColor)
+            
             // 중앙에 테마명 표시
             val textPaint = android.graphics.Paint().apply {
                 color = textColor
-                textSize = 36f
+                textSize = 28f
                 isAntiAlias = true
                 textAlign = android.graphics.Paint.Align.CENTER
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
             }
             
-            canvas.drawText(themeName, width / 2f, height / 2f - 20f, textPaint)
+            canvas.drawText(themeName, width / 2f, height - 80f, textPaint)
             
             // 하단에 "KTX 네컷" 텍스트
             val subtitlePaint = android.graphics.Paint().apply {
                 color = textColor
-                textSize = 24f
+                textSize = 20f
                 isAntiAlias = true
                 textAlign = android.graphics.Paint.Align.CENTER
                 alpha = 180
             }
             
-            canvas.drawText("KTX 네컷", width / 2f, height / 2f + 30f, subtitlePaint)
+            canvas.drawText("KTX 네컷", width / 2f, height - 40f, subtitlePaint)
             
             // 테두리 추가
             val borderPaint = android.graphics.Paint().apply {
@@ -587,6 +820,80 @@ class FrameViewModel : ViewModel() {
             println("더미 사진 생성 실패: ${e.message}")
             null
         }
+    }
+    
+    /**
+     * 테스트 사진에 귀여운 사람 모습 그리기
+     */
+    private fun drawCutePersonInTestPhoto(
+        canvas: android.graphics.Canvas,
+        width: Int,
+        height: Int,
+        textColor: Int
+    ) {
+        val centerX = width / 2f
+        val centerY = height / 2f
+        val size = minOf(width, height) * 0.3f
+        
+        val personPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.FILL
+        }
+        
+        val strokePaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 3f
+            color = textColor
+        }
+        
+        // 랜덤한 표정 선택
+        val expressions = listOf("smile", "wink", "surprised", "loving")
+        val expression = expressions.random()
+        
+        when (expression) {
+            "smile" -> drawCuteFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFFFBBF24.toInt())
+            "wink" -> drawWinkingFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFFEC4899.toInt())
+            "surprised" -> drawSurprisedFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFF4ECDC4.toInt())
+            "loving" -> drawLovingFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFF8B5CF6.toInt())
+        }
+        
+        // 귀여운 포즈 추가 (손 흔들기)
+        val handPaint = android.graphics.Paint().apply {
+            color = 0xFFFFB347.toInt()
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.FILL
+        }
+        
+        // 왼쪽 손
+        canvas.drawCircle(centerX - size * 0.8f, centerY + size * 0.3f, size * 0.15f, handPaint)
+        // 오른쪽 손
+        canvas.drawCircle(centerX + size * 0.8f, centerY + size * 0.3f, size * 0.15f, handPaint)
+        
+        // 손가락 (V자 모양)
+        strokePaint.color = 0xFFFFB347.toInt()
+        strokePaint.strokeWidth = 4f
+        canvas.drawLine(
+            centerX - size * 0.8f, centerY + size * 0.3f,
+            centerX - size * 0.9f, centerY + size * 0.1f,
+            strokePaint
+        )
+        canvas.drawLine(
+            centerX - size * 0.8f, centerY + size * 0.3f,
+            centerX - size * 0.7f, centerY + size * 0.1f,
+            strokePaint
+        )
+        
+        canvas.drawLine(
+            centerX + size * 0.8f, centerY + size * 0.3f,
+            centerX + size * 0.9f, centerY + size * 0.1f,
+            strokePaint
+        )
+        canvas.drawLine(
+            centerX + size * 0.8f, centerY + size * 0.3f,
+            centerX + size * 0.7f, centerY + size * 0.1f,
+            strokePaint
+        )
     }
     
     /**

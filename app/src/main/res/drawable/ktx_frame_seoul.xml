@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1080dp"
+    android:height="1920dp"
+    android:viewportWidth="1080"
+    android:viewportHeight="1920">
+    
+    <!-- 메인 배경 그라데이션 (서울 네온) -->
+    <path
+        android:fillColor="#1E1B4B"
+        android:pathData="M0,0 L1080,0 L1080,1920 L0,1920 Z" />
+    
+    <!-- 상단 그라데이션 오버레이 -->
+    <path
+        android:fillColor="#3B82F6"
+        android:fillAlpha="0.3"
+        android:pathData="M0,0 L1080,0 L1080,200 L0,200 Z" />
+    
+    <!-- 하단 그라데이션 오버레이 -->
+    <path
+        android:fillColor="#3B82F6"
+        android:fillAlpha="0.3"
+        android:pathData="M0,1720 L1080,1720 L1080,1920 L0,1920 Z" />
+    
+    <!-- 상단 장식 바 (서울 네온 블루) -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M0,0 L1080,0 L1080,100 L0,100 Z" />
+    
+    <!-- 하단 장식 바 -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M0,1820 L1080,1820 L1080,1920 L0,1920 Z" />
+    
+    <!-- 좌측 장식 바 -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M0,0 L100,0 L100,1920 L0,1920 Z" />
+    
+    <!-- 우측 장식 바 -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M980,0 L1080,0 L1080,1920 L980,1920 Z" />
+    
+    <!-- 모서리 장식 (현대적 각진 모서리) -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M0,0 L100,0 L100,100 L0,100 Z" />
+    
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M980,0 L1080,0 L1080,100 L980,100 Z" />
+    
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M0,1820 L100,1820 L100,1920 L0,1920 Z" />
+    
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M980,1820 L1080,1820 L1080,1920 L980,1920 Z" />
+    
+    <!-- 중앙 장식 요소 (4컷 사진 영역 표시) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.05"
+        android:pathData="M140,140 L940,140 L940,1780 L140,1780 Z" />
+    
+    <!-- 4컷 사진 영역 구분선 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M540,140 L540,1780 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M140,960 L940,960 Z" />
+    
+    <!-- 서울 타워 일러스트 (상단) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M500,200 L580,200 L580,400 L500,400 Z" />
+    
+    <!-- 서울 타워 상단 -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M520,180 L560,180 L560,200 L520,200 Z" />
+    
+    <!-- 서울 타워 안테나 -->
+    <path
+        android:fillColor="#6B7280"
+        android:pathData="M540,180 L540,150 Z" />
+    
+    <!-- 서울 타워 조명 -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M510,220 L530,220 L530,230 L510,230 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M510,260 L530,260 L530,270 L510,270 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M510,300 L530,300 L530,310 L510,310 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M510,340 L530,340 L530,350 L510,350 Z" />
+    
+    <!-- 서울 도시 스카이라인 (상단) -->
+    <path
+        android:fillColor="#374151"
+        android:pathData="M200,300 L250,280 L300,320 L350,290 L400,310 L450,270 L500,300 L550,280 L600,320 L650,290 L700,310 L750,270 L800,300 L850,280 L900,320 L950,290 L1000,300 L1050,280 L1080,300 L1080,400 L200,400 Z" />
+    
+    <!-- 건물들 조명 -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M220,320 L230,320 L230,330 L220,330 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M270,300 L280,300 L280,310 L270,310 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M320,340 L330,340 L330,350 L320,350 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M370,310 L380,310 L380,320 L370,320 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M420,330 L430,330 L430,340 L420,340 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M470,290 L480,290 L480,300 L470,300 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M520,320 L530,320 L530,330 L520,330 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M570,300 L580,300 L580,310 L570,310 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M620,340 L630,340 L630,350 L620,350 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M670,310 L680,310 L680,320 L670,320 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M720,330 L730,330 L730,340 L720,340 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M770,290 L780,290 L780,300 L770,300 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M820,320 L830,320 L830,330 L820,330 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M870,300 L880,300 L880,310 L870,310 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M920,340 L930,340 L930,350 L920,350 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M970,310 L980,310 L980,320 L970,320 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M1020,330 L1030,330 L1030,340 L1020,340 Z" />
+    
+    <!-- 한강 일러스트 (하단) -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M0,1700 L1080,1700 L1080,1920 L0,1920 Z" />
+    
+    <!-- 한강 다리 -->
+    <path
+        android:fillColor="#6B7280"
+        android:pathData="M0,1750 L1080,1750 L1080,1760 L0,1760 Z" />
+    
+    <!-- 한강 다리 기둥들 -->
+    <path
+        android:fillColor="#374151"
+        android:pathData="M200,1700 L220,1700 L220,1750 L200,1750 Z" />
+    
+    <path
+        android:fillColor="#374151"
+        android:pathData="M400,1700 L420,1700 L420,1750 L400,1750 Z" />
+    
+    <path
+        android:fillColor="#374151"
+        android:pathData="M600,1700 L620,1700 L620,1750 L600,1750 Z" />
+    
+    <path
+        android:fillColor="#374151"
+        android:pathData="M800,1700 L820,1700 L820,1750 L800,1750 Z" />
+    
+    <path
+        android:fillColor="#374151"
+        android:pathData="M1000,1700 L1020,1700 L1020,1750 L1000,1750 Z" />
+    
+    <!-- 서울역 표지판 -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M400,140 L680,140 L680,200 L400,200 Z" />
+    
+    <!-- 서울역 텍스트 "서울역" -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M420,160 L460,160 L460,180 L420,180 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M480,160 L520,160 L520,180 L480,180 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M540,160 L580,160 L580,180 L540,180 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M600,160 L640,160 L640,180 L600,180 Z" />
+    
+    <!-- 하단 텍스트 "서울과 함께한 추억" -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M400,1850 L680,1850 L680,1870 L400,1870 Z" />
+    
+    <!-- 네온 사인 효과 (상단) -->
+    <path
+        android:fillColor="#06B6D4"
+        android:fillAlpha="0.8"
+        android:pathData="M200,50 A10,10 0 0,1 220,50 A10,10 0 0,1 240,50 A10,10 0 0,1 260,50 A10,10 0 0,1 280,50 A10,10 0 0,1 300,50 A10,10 0 0,1 320,50 A10,10 0 0,1 340,50 A10,10 0 0,1 360,50 A10,10 0 0,1 380,50 A10,10 0 0,1 400,50 A10,10 0 0,1 420,50 A10,10 0 0,1 440,50 A10,10 0 0,1 460,50 A10,10 0 0,1 480,50 A10,10 0 0,1 500,50 A10,10 0 0,1 520,50 A10,10 0 0,1 540,50 A10,10 0 0,1 560,50 A10,10 0 0,1 580,50 A10,10 0 0,1 600,50 A10,10 0 0,1 620,50 A10,10 0 0,1 640,50 A10,10 0 0,1 660,50 A10,10 0 0,1 680,50 A10,10 0 0,1 700,50 A10,10 0 0,1 720,50 A10,10 0 0,1 740,50 A10,10 0 0,1 760,50 A10,10 0 0,1 780,50 A10,10 0 0,1 800,50 A10,10 0 0,1 820,50 A10,10 0 0,1 840,50 A10,10 0 0,1 860,50 A10,10 0 0,1 880,50 Z" />
+    
+    <!-- 네온 사인 효과 (하단) -->
+    <path
+        android:fillColor="#06B6D4"
+        android:fillAlpha="0.8"
+        android:pathData="M200,1870 A10,10 0 0,0 220,1870 A10,10 0 0,0 240,1870 A10,10 0 0,0 260,1870 A10,10 0 0,0 280,1870 A10,10 0 0,0 300,1870 A10,10 0 0,0 320,1870 A10,10 0 0,0 340,1870 A10,10 0 0,0 360,1870 A10,10 0 0,0 380,1870 A10,10 0 0,0 400,1870 A10,10 0 0,0 420,1870 A10,10 0 0,0 440,1870 A10,10 0 0,0 460,1870 A10,10 0 0,0 480,1870 A10,10 0 0,0 500,1870 A10,10 0 0,0 520,1870 A10,10 0 0,0 540,1870 A10,10 0 0,0 560,1870 A10,10 0 0,0 580,1870 A10,10 0 0,0 600,1870 A10,10 0 0,0 620,1870 A10,10 0 0,0 640,1870 A10,10 0 0,0 660,1870 A10,10 0 0,0 680,1870 A10,10 0 0,0 700,1870 A10,10 0 0,0 720,1870 A10,10 0 0,0 740,1870 A10,10 0 0,0 760,1870 A10,10 0 0,0 780,1870 A10,10 0 0,0 800,1870 A10,10 0 0,0 820,1870 A10,10 0 0,0 840,1870 A10,10 0 0,0 860,1870 A10,10 0 0,0 880,1870 Z" />
+    
+    <!-- 서울 지하철 일러스트 (좌측) -->
+    <path
+        android:fillColor="#374151"
+        android:pathData="M50,500 L150,500 L150,600 L50,600 Z" />
+    
+    <!-- 지하철 창문 -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M60,520 L80,520 L80,540 L60,540 Z" />
+    
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M90,520 L110,520 L110,540 L90,540 Z" />
+    
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M120,520 L140,520 L140,540 L120,540 Z" />
+    
+    <!-- 지하철 바퀴 -->
+    <path
+        android:fillColor="#6B7280"
+        android:pathData="M70,580 A10,10 0 1,1 70,600 A10,10 0 1,1 70,580 Z" />
+    
+    <path
+        android:fillColor="#6B7280"
+        android:pathData="M130,580 A10,10 0 1,1 130,600 A10,10 0 1,1 130,580 Z" />
+    
+    <!-- 서울역 건물 (우측) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M800,500 L1000,500 L1000,700 L800,700 Z" />
+    
+    <!-- 서울역 지붕 -->
+    <path
+        android:fillColor="#6B7280"
+        android:pathData="M790,500 L1010,500 L900,450 L790,500 Z" />
+    
+    <!-- 서울역 창문들 -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M820,520 L860,520 L860,560 L820,560 Z" />
+    
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M880,520 L920,520 L920,560 L880,560 Z" />
+    
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M940,520 L980,520 L980,560 L940,560 Z" />
+    
+    <!-- 서울역 입구 -->
+    <path
+        android:fillColor="#374151"
+        android:pathData="M880,650 L920,650 L920,700 L880,700 Z" />
+    
+</vector>

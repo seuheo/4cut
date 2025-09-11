@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1080dp"
+    android:height="1920dp"
+    android:viewportWidth="1080"
+    android:viewportHeight="1920">
+    
+    <!-- 메인 배경 그라데이션 (바다 블루) -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M0,0 L1080,0 L1080,1920 L0,1920 Z" />
+    
+    <!-- 상단 그라데이션 오버레이 -->
+    <path
+        android:fillColor="#38BDF8"
+        android:fillAlpha="0.3"
+        android:pathData="M0,0 L1080,0 L1080,200 L0,200 Z" />
+    
+    <!-- 하단 그라데이션 오버레이 -->
+    <path
+        android:fillColor="#38BDF8"
+        android:fillAlpha="0.3"
+        android:pathData="M0,1720 L1080,1720 L1080,1920 L0,1920 Z" />
+    
+    <!-- 상단 장식 바 (부산 오렌지) -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M0,0 L1080,0 L1080,100 L0,100 Z" />
+    
+    <!-- 하단 장식 바 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M0,1820 L1080,1820 L1080,1920 L0,1920 Z" />
+    
+    <!-- 좌측 장식 바 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M0,0 L100,0 L100,1920 L0,1920 Z" />
+    
+    <!-- 우측 장식 바 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M980,0 L1080,0 L1080,1920 L980,1920 Z" />
+    
+    <!-- 모서리 장식 (더 부드러운 둥근 모서리) -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M0,0 A100,100 0 0,1 100,100 L0,100 Z" />
+    
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M980,0 A100,100 0 0,0 1080,100 L980,100 Z" />
+    
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M0,1820 A100,100 0 0,0 100,1920 L0,1920 Z" />
+    
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M980,1820 A100,100 0 0,1 1080,1920 L980,1920 Z" />
+    
+    <!-- 중앙 장식 요소 (4컷 사진 영역 표시) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.05"
+        android:pathData="M140,140 L940,140 L940,1780 L140,1780 Z" />
+    
+    <!-- 4컷 사진 영역 구분선 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M540,140 L540,1780 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M140,960 L940,960 Z" />
+    
+    <!-- 부산 갈매기 일러스트 (상단) -->
+    <!-- 갈매기 1 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M200,200 A30,20 0 0,1 260,200 A30,20 0 0,1 200,200 Z" />
+    
+    <!-- 갈매기 날개 -->
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M180,190 A40,25 0 0,1 220,190 A40,25 0 0,1 180,190 Z" />
+    
+    <!-- 갈매기 부리 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M260,200 L280,200 L270,210 L260,200 Z" />
+    
+    <!-- 갈매기 2 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M400,180 A30,20 0 0,1 460,180 A30,20 0 0,1 400,180 Z" />
+    
+    <!-- 갈매기 날개 -->
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M380,170 A40,25 0 0,1 420,170 A40,25 0 0,1 380,170 Z" />
+    
+    <!-- 갈매기 부리 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M460,180 L480,180 L470,190 L460,180 Z" />
+    
+    <!-- 갈매기 3 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M600,220 A30,20 0 0,1 660,220 A30,20 0 0,1 600,220 Z" />
+    
+    <!-- 갈매기 날개 -->
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M580,210 A40,25 0 0,1 620,210 A40,25 0 0,1 580,210 Z" />
+    
+    <!-- 갈매기 부리 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M660,220 L680,220 L670,230 L660,220 Z" />
+    
+    <!-- 갈매기 4 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M800,190 A30,20 0 0,1 860,190 A30,20 0 0,1 800,190 Z" />
+    
+    <!-- 갈매기 날개 -->
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M780,180 A40,25 0 0,1 820,180 A40,25 0 0,1 780,180 Z" />
+    
+    <!-- 갈매기 부리 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M860,190 L880,190 L870,200 L860,190 Z" />
+    
+    <!-- 바다 파도 (하단) -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:fillAlpha="0.8"
+        android:pathData="M0,1700 A200,100 0 0,1 400,1700 A200,100 0 0,1 800,1700 A200,100 0 0,1 1080,1700 L1080,1920 L0,1920 Z" />
+    
+    <path
+        android:fillColor="#38BDF8"
+        android:fillAlpha="0.6"
+        android:pathData="M0,1750 A150,80 0 0,1 300,1750 A150,80 0 0,1 600,1750 A150,80 0 0,1 900,1750 A150,80 0 0,1 1080,1750 L1080,1920 L0,1920 Z" />
+    
+    <!-- 부산 타워 일러스트 (우측) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M950,300 L1000,300 L1000,500 L950,500 Z" />
+    
+    <!-- 부산 타워 상단 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M960,280 L990,280 L990,300 L960,300 Z" />
+    
+    <!-- 부산 타워 안테나 -->
+    <path
+        android:fillColor="#6B7280"
+        android:pathData="M975,280 L975,250 Z" />
+    
+    <!-- 부산 타워 조명 -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M955,320 L965,320 L965,330 L955,330 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M955,360 L965,360 L965,370 L955,370 Z" />
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M955,400 L965,400 L965,410 L955,410 Z" />
+    
+    <!-- 부산 해운대 일러스트 (좌측) -->
+    <path
+        android:fillColor="#FEF3C7"
+        android:pathData="M50,400 L150,400 L150,500 L50,500 Z" />
+    
+    <!-- 해운대 모래 -->
+    <path
+        android:fillColor="#FDE68A"
+        android:pathData="M50,480 L150,480 L150,500 L50,500 Z" />
+    
+    <!-- 해운대 파도 -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M50,400 A50,30 0 0,1 100,400 A50,30 0 0,1 150,400 L150,420 L50,420 Z" />
+    
+    <!-- 부산역 표지판 -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M400,140 L680,140 L680,200 L400,200 Z" />
+    
+    <!-- 부산역 텍스트 "부산역" -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M420,160 L460,160 L460,180 L420,180 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M480,160 L520,160 L520,180 L480,180 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M540,160 L580,160 L580,180 L540,180 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M600,160 L640,160 L640,180 L600,180 Z" />
+    
+    <!-- 하단 텍스트 "부산과 함께한 추억" -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M400,1850 L680,1850 L680,1870 L400,1870 Z" />
+    
+    <!-- 장식 패턴 (파도 효과) -->
+    <path
+        android:fillColor="#F97316"
+        android:fillAlpha="0.6"
+        android:pathData="M200,50 A20,10 0 0,1 240,50 A20,10 0 0,1 280,50 A20,10 0 0,1 320,50 A20,10 0 0,1 360,50 A20,10 0 0,1 400,50 A20,10 0 0,1 440,50 A20,10 0 0,1 480,50 A20,10 0 0,1 520,50 A20,10 0 0,1 560,50 A20,10 0 0,1 600,50 A20,10 0 0,1 640,50 A20,10 0 0,1 680,50 A20,10 0 0,1 720,50 A20,10 0 0,1 760,50 A20,10 0 0,1 800,50 A20,10 0 0,1 840,50 A20,10 0 0,1 880,50 Z" />
+    
+    <path
+        android:fillColor="#F97316"
+        android:fillAlpha="0.6"
+        android:pathData="M200,1870 A20,10 0 0,0 240,1870 A20,10 0 0,0 280,1870 A20,10 0 0,0 320,1870 A20,10 0 0,0 360,1870 A20,10 0 0,0 400,1870 A20,10 0 0,0 440,1870 A20,10 0 0,0 480,1870 A20,10 0 0,0 520,1870 A20,10 0 0,0 560,1870 A20,10 0 0,0 600,1870 A20,10 0 0,0 640,1870 A20,10 0 0,0 680,1870 A20,10 0 0,0 720,1870 A20,10 0 0,0 760,1870 A20,10 0 0,0 800,1870 A20,10 0 0,0 840,1870 A20,10 0 0,0 880,1870 Z" />
+    
+</vector>
