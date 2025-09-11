@@ -26,7 +26,9 @@ import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
 import com.example.a4cut.ui.screens.HomeScreen
 import com.example.a4cut.ui.screens.PhotoDetailScreen
+import com.example.a4cut.ui.screens.ProfileScreen
 import com.example.a4cut.ui.screens.SearchScreen
+import com.example.a4cut.ui.screens.SettingsScreen
 import com.example.a4cut.R
 import com.example.a4cut.data.database.entity.PhotoEntity
 
@@ -117,16 +119,10 @@ fun AppNavigation(
                 )
             }
             composable(Screen.Settings.route) {
-                EmptyScreen(
-                    title = stringResource(R.string.title_settings),
-                    description = stringResource(R.string.description_settings)
-                )
+                SettingsScreen()
             }
             composable(Screen.Profile.route) {
-                EmptyScreen(
-                    title = stringResource(R.string.title_profile),
-                    description = stringResource(R.string.description_profile)
-                )
+                ProfileScreen()
             }
             
             // 사진 상세 보기 화면
