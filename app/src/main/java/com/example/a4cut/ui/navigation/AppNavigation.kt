@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.a4cut.ui.screens.CalendarScreen
 import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
 import com.example.a4cut.ui.screens.HomeScreen
@@ -109,9 +110,10 @@ fun AppNavigation(
                 )
             }
             composable(Screen.Calendar.route) {
-                EmptyScreen(
-                    title = stringResource(R.string.title_calendar),
-                    description = stringResource(R.string.description_calendar)
+                CalendarScreen(
+                    onNavigateToPhotoDetail = { photoId ->
+                        navController.navigate("photo_detail/$photoId")
+                    }
                 )
             }
             composable(Screen.Settings.route) {
