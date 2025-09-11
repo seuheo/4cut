@@ -35,7 +35,8 @@ fun ImagePreviewDialog(
     onDismiss: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
-    isProcessing: Boolean = false
+    isProcessing: Boolean = false,
+    title: String = "이미지 미리보기"
 ) {
     if (bitmap == null) return
     
@@ -69,7 +70,7 @@ fun ImagePreviewDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "합성 결과 미리보기",
+                        text = title,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
