@@ -48,6 +48,10 @@ class FrameViewModel : ViewModel() {
     private val _photos = MutableStateFlow<List<Bitmap?>>(List(4) { null })
     val photos: StateFlow<List<Bitmap?>> = _photos.asStateFlow()
     
+    // 테스트용 사진 목록
+    private val _testPhotos = MutableStateFlow<List<Bitmap>>(emptyList())
+    val testPhotos: StateFlow<List<Bitmap>> = _testPhotos.asStateFlow()
+    
     // 권한 관련 상태
     private val _hasImagePermission = MutableStateFlow(false)
     val hasImagePermission: StateFlow<Boolean> = _hasImagePermission.asStateFlow()
@@ -66,6 +70,10 @@ class FrameViewModel : ViewModel() {
     private val _composedImage = MutableStateFlow<Bitmap?>(null)
     val composedImage: StateFlow<Bitmap?> = _composedImage.asStateFlow()
     
+    // 인생네컷 예시 이미지 상태
+    private val _life4CutExample = MutableStateFlow<Bitmap?>(null)
+    val life4CutExample: StateFlow<Bitmap?> = _life4CutExample.asStateFlow()
+    
     // 인스타그램 공유 Intent 상태
     private val _instagramShareIntent = MutableStateFlow<android.content.Intent?>(null)
     val instagramShareIntent: StateFlow<android.content.Intent?> = _instagramShareIntent.asStateFlow()
@@ -79,9 +87,435 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
+     * 테스트용 사진들 로드
+     */
+    private fun loadTestPhotos() {
+        viewModelScope.launch {
+            try {
+                println("테스트 사진 로드 시작")
+                val testPhotoIds = listOf(
+                    R.drawable.test_photo_1,
+                    R.drawable.test_photo_2,
+                    R.drawable.test_photo_3,
+                    R.drawable.test_photo_4,
+                    R.drawable.test_photo_5,
+                    R.drawable.test_photo_6,
+                    R.drawable.test_photo_7,
+                    R.drawable.test_photo_8
+                )
+                
+                val bitmaps = testPhotoIds.mapNotNull { drawableId ->
+                    try {
+                        context?.let { ctx ->
+                            BitmapFactory.decodeResource(ctx.resources, drawableId)?.let { bitmap ->
+                                // 512x512 크기로 리사이즈
+                                Bitmap.createScaledBitmap(bitmap, 512, 512, true)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("테스트 사진 로드 실패: $drawableId - ${e.message}")
+                        null
+                    }
+                }
+                
+                println("테스트 사진 로드 완료: ${bitmaps.size}개")
+                _testPhotos.value = bitmaps
+            } catch (e: Exception) {
+                println("테스트 사진 로드 전체 실패: ${e.message}")
+                _errorMessage.value = "테스트 사진 로드 실패: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * 인생네컷 예시 이미지 생성
+     */
+    private fun generateLife4CutExample() {
+        viewModelScope.launch {
+            try {
+                context?.let { ctx ->
+                    // 인생네컷 예시 이미지 생성 (1080x1920)
+                    val exampleBitmap = createLife4CutExampleBitmap(ctx)
+                    _life4CutExample.value = exampleBitmap
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "인생네컷 예시 생성 실패: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * 인생네컷 예시 Bitmap 생성 (세련된 디자인)
+     */
+    private fun createLife4CutExampleBitmap(context: Context): Bitmap {
+        val width = 1080
+        val height = 1920
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        
+        // 배경 그라데이션 (KTX 브랜드 컬러)
+        val backgroundPaint = android.graphics.Paint()
+        val backgroundGradient = android.graphics.LinearGradient(
+            0f, 0f, width.toFloat(), height.toFloat(),
+            intArrayOf(0xFF1E3A8A.toInt(), 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt()),
+            floatArrayOf(0f, 0.5f, 1f),
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        backgroundPaint.shader = backgroundGradient
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
+        
+        // 상단 장식 바
+        val topBarPaint = android.graphics.Paint().apply {
+            color = 0xFFF59E0B.toInt()
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), 100f, topBarPaint)
+        
+        // 하단 장식 바
+        canvas.drawRect(0f, height - 100f, width.toFloat(), height.toFloat(), topBarPaint)
+        
+        // 좌측 장식 바
+        canvas.drawRect(0f, 0f, 100f, height.toFloat(), topBarPaint)
+        
+        // 우측 장식 바
+        canvas.drawRect(width - 100f, 0f, width.toFloat(), height.toFloat(), topBarPaint)
+        
+        // 4컷 영역 그리기 (더 세련된 스타일)
+        val margin = 140f
+        val spacing = 20f
+        val photoWidth = (width - 2 * margin - spacing) / 2
+        val photoHeight = (height - 2 * margin - spacing) / 2
+        
+        val framePaint = android.graphics.Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            strokeWidth = 6f
+            style = android.graphics.Paint.Style.STROKE
+            isAntiAlias = true
+        }
+        
+        val fillPaint = android.graphics.Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            alpha = 20
+            style = android.graphics.Paint.Style.FILL
+            isAntiAlias = true
+        }
+        
+        // 4컷 영역 배경
+        canvas.drawRoundRect(margin, margin, width - margin, height - margin, 20f, 20f, fillPaint)
+        
+        // 4컷 영역 테두리
+        canvas.drawRoundRect(margin, margin, width - margin, height - margin, 20f, 20f, framePaint)
+        
+        // 상단 좌측
+        canvas.drawRoundRect(margin, margin, margin + photoWidth, margin + photoHeight, 12f, 12f, framePaint)
+        // 상단 우측
+        canvas.drawRoundRect(margin + photoWidth + spacing, margin, width - margin, margin + photoHeight, 12f, 12f, framePaint)
+        // 하단 좌측
+        canvas.drawRoundRect(margin, margin + photoHeight + spacing, margin + photoWidth, height - margin, 12f, 12f, framePaint)
+        // 하단 우측
+        canvas.drawRoundRect(margin + photoWidth + spacing, margin + photoHeight + spacing, width - margin, height - margin, 12f, 12f, framePaint)
+        
+        // 4컷 사진 영역에 귀여운 사람 모습 그리기
+        drawCutePeopleInFrames(canvas, margin, photoWidth, photoHeight, spacing, width, height)
+        
+        // 구분선 그리기
+        val linePaint = android.graphics.Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            strokeWidth = 3f
+            alpha = 100
+            isAntiAlias = true
+        }
+        
+        // 가로 구분선
+        canvas.drawLine(margin, height / 2f, width - margin, height / 2f, linePaint)
+        // 세로 구분선
+        canvas.drawLine(width / 2f, margin, width / 2f, height - margin, linePaint)
+        
+        // 상단 KTX 로고 영역
+        val logoPaint = android.graphics.Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            style = android.graphics.Paint.Style.FILL
+            isAntiAlias = true
+        }
+        
+        canvas.drawRoundRect(400f, 140f, 680f, 200f, 20f, 20f, logoPaint)
+        
+        // KTX 로고 텍스트
+        val textPaint = android.graphics.Paint().apply {
+            color = 0xFF1E3A8A.toInt()
+            textSize = 36f
+            isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        
+        canvas.drawText("KTX", width / 2f, 175f, textPaint)
+        
+        // 하단 텍스트
+        val bottomTextPaint = android.graphics.Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            textSize = 32f
+            isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        
+        canvas.drawText("인생네컷 예시", width / 2f, height - 150f, bottomTextPaint)
+        
+        // 장식 패턴 (점선 효과)
+        val dotPaint = android.graphics.Paint().apply {
+            color = 0xFFF59E0B.toInt()
+            alpha = 150
+            style = android.graphics.Paint.Style.FILL
+            isAntiAlias = true
+        }
+        
+        // 상단 장식 점들
+        for (i in 0..7) {
+            val x = 200f + i * 100f
+            canvas.drawCircle(x, 50f, 8f, dotPaint)
+        }
+        
+        // 하단 장식 점들
+        for (i in 0..7) {
+            val x = 200f + i * 100f
+            canvas.drawCircle(x, height - 50f, 8f, dotPaint)
+        }
+        
+        return bitmap
+    }
+    
+    /**
+     * 4컷 사진 영역에 귀여운 사람 모습 그리기
+     */
+    private fun drawCutePeopleInFrames(
+        canvas: android.graphics.Canvas,
+        margin: Float,
+        photoWidth: Float,
+        photoHeight: Float,
+        spacing: Float,
+        width: Int,
+        height: Int
+    ) {
+        val personPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.FILL
+        }
+        
+        val strokePaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 3f
+            color = 0xFFFFFFFF.toInt()
+        }
+        
+        // 상단 좌측 - 웃는 얼굴
+        drawCuteFace(
+            canvas, 
+            margin + photoWidth/2, 
+            margin + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFFFBBF24.toInt() // 노란색
+        )
+        
+        // 상단 우측 - 윙크하는 얼굴
+        drawWinkingFace(
+            canvas, 
+            margin + photoWidth + spacing + photoWidth/2, 
+            margin + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFFEC4899.toInt() // 핑크색
+        )
+        
+        // 하단 좌측 - 놀란 얼굴
+        drawSurprisedFace(
+            canvas, 
+            margin + photoWidth/2, 
+            margin + photoHeight + spacing + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFF4ECDC4.toInt() // 청록색
+        )
+        
+        // 하단 우측 - 사랑스러운 얼굴
+        drawLovingFace(
+            canvas, 
+            margin + photoWidth + spacing + photoWidth/2, 
+            margin + photoHeight + spacing + photoHeight/2, 
+            photoWidth * 0.3f, 
+            personPaint, 
+            strokePaint,
+            0xFF8B5CF6.toInt() // 보라색
+        )
+    }
+    
+    /**
+     * 웃는 얼굴 그리기
+     */
+    private fun drawCuteFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 눈
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        
+        // 눈동자
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        
+        // 입 (웃는 모습)
+        strokePaint.color = 0xFF000000.toInt()
+        strokePaint.strokeWidth = 4f
+        canvas.drawArc(
+            centerX - size * 0.3f, centerY - size * 0.1f, 
+            centerX + size * 0.3f, centerY + size * 0.2f,
+            0f, 180f, false, strokePaint
+        )
+    }
+    
+    /**
+     * 윙크하는 얼굴 그리기
+     */
+    private fun drawWinkingFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 왼쪽 눈 (일반)
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        
+        // 오른쪽 눈 (윙크)
+        strokePaint.color = 0xFF000000.toInt()
+        strokePaint.strokeWidth = 4f
+        canvas.drawLine(
+            centerX + size * 0.2f, centerY - size * 0.2f,
+            centerX + size * 0.4f, centerY - size * 0.2f,
+            strokePaint
+        )
+        
+        // 입 (웃는 모습)
+        canvas.drawArc(
+            centerX - size * 0.3f, centerY - size * 0.1f, 
+            centerX + size * 0.3f, centerY + size * 0.2f,
+            0f, 180f, false, strokePaint
+        )
+    }
+    
+    /**
+     * 놀란 얼굴 그리기
+     */
+    private fun drawSurprisedFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 눈 (크게 뜬 모습)
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.15f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.15f, fillPaint)
+        
+        // 눈동자
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.08f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.08f, fillPaint)
+        
+        // 입 (동그란 모습)
+        canvas.drawCircle(centerX, centerY + size * 0.1f, size * 0.1f, fillPaint)
+    }
+    
+    /**
+     * 사랑스러운 얼굴 그리기
+     */
+    private fun drawLovingFace(
+        canvas: android.graphics.Canvas,
+        centerX: Float,
+        centerY: Float,
+        size: Float,
+        fillPaint: android.graphics.Paint,
+        strokePaint: android.graphics.Paint,
+        color: Int
+    ) {
+        fillPaint.color = color
+        strokePaint.color = 0xFFFFFFFF.toInt()
+        
+        // 얼굴
+        canvas.drawCircle(centerX, centerY, size, fillPaint)
+        canvas.drawCircle(centerX, centerY, size, strokePaint)
+        
+        // 눈 (하트 모양)
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.1f, fillPaint)
+        
+        // 눈동자
+        fillPaint.color = 0xFF000000.toInt()
+        canvas.drawCircle(centerX - size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.3f, centerY - size * 0.2f, size * 0.05f, fillPaint)
+        
+        // 볼 (빨간 볼)
+        fillPaint.color = 0xFFFF6B6B.toInt()
+        canvas.drawCircle(centerX - size * 0.4f, centerY, size * 0.08f, fillPaint)
+        canvas.drawCircle(centerX + size * 0.4f, centerY, size * 0.08f, fillPaint)
+        
+        // 입 (사랑스러운 웃음)
+        strokePaint.color = 0xFF000000.toInt()
+        strokePaint.strokeWidth = 3f
+        canvas.drawArc(
+            centerX - size * 0.2f, centerY - size * 0.05f, 
+            centerX + size * 0.2f, centerY + size * 0.15f,
+            0f, 180f, false, strokePaint
+        )
+    }
+    
+    /**
      * Context 설정 (권한 및 이미지 처리에 필요)
      */
     fun setContext(context: Context) {
+        println("setContext 호출됨")
         this.context = context
         imagePicker = ImagePicker(context)
         permissionHelper = PermissionHelper(context)
@@ -92,6 +526,9 @@ class FrameViewModel : ViewModel() {
         photoRepository = PhotoRepository(database.photoDao())
         
         checkImagePermission()
+        loadTestPhotos() // 테스트용 사진들 로드
+        generateLife4CutExample() // 인생네컷 예시 생성
+        println("setContext 완료")
     }
     
     /**
@@ -133,12 +570,15 @@ class FrameViewModel : ViewModel() {
      * 사진 선택 (Bitmap 기반)
      */
     fun selectPhoto(index: Int, bitmap: Bitmap?) {
+        println("selectPhoto 호출됨: index=$index, bitmap=${bitmap != null}")
         if (index in 0..3) {
             val currentPhotos = _photos.value.toMutableList()
             currentPhotos[index] = bitmap
             _photos.value = currentPhotos
+            println("사진 선택 완료: 새로운 그리드 상태=${_photos.value.map { it != null }}")
             clearError()
         } else {
+            println("잘못된 사진 인덱스: $index")
             _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
         }
     }
@@ -186,6 +626,19 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
+     * 테스트용 사진 선택
+     */
+    fun selectTestPhoto(gridIndex: Int, testPhotoIndex: Int) {
+        if (gridIndex in 0..3 && testPhotoIndex in 0 until _testPhotos.value.size) {
+            val testPhoto = _testPhotos.value[testPhotoIndex]
+            selectPhoto(gridIndex, testPhoto)
+            clearError()
+        } else {
+            _errorMessage.value = "잘못된 사진 인덱스입니다"
+        }
+    }
+    
+    /**
      * 이미지 선택기 열기
      */
     fun openImagePicker() {
@@ -196,6 +649,251 @@ class FrameViewModel : ViewModel() {
         
         // 이미지 선택 결과를 처리할 준비
         _imagePickerResult.value = emptyList()
+    }
+    
+    /**
+     * 랜덤 테스트 사진 선택 (빈 그리드 위치에)
+     */
+    fun selectRandomTestPhoto() {
+        println("selectRandomTestPhoto 호출됨")
+        // 빈 그리드 위치 찾기
+        val emptyIndex = _photos.value.indexOfFirst { it == null }
+        println("빈 그리드 위치: $emptyIndex, 테스트 사진 개수: ${_testPhotos.value.size}")
+        println("현재 그리드 상태: ${_photos.value.map { it != null }}")
+        
+        if (emptyIndex != -1) {
+            val randomPhoto = if (_testPhotos.value.isNotEmpty()) {
+                val randomIndex = (0 until _testPhotos.value.size).random()
+                _testPhotos.value[randomIndex]
+            } else {
+                // 테스트 사진이 없으면 더미 사진 생성
+                createDummyPhoto()
+            }
+            
+            if (randomPhoto != null) {
+                println("랜덤 사진 선택: 위치 $emptyIndex")
+                println("선택된 사진 크기: ${randomPhoto.width}x${randomPhoto.height}")
+                selectPhoto(emptyIndex, randomPhoto)
+                clearError()
+            } else {
+                println("사진 생성 실패")
+                _errorMessage.value = "사진 생성에 실패했습니다"
+            }
+        } else {
+            println("모든 그리드가 채워져 있음")
+            _errorMessage.value = "모든 그리드가 채워져 있습니다"
+        }
+    }
+    
+    /**
+     * 더미 사진 생성 (세련된 디자인)
+     */
+    private fun createDummyPhoto(): Bitmap? {
+        return try {
+            val width = 512
+            val height = 512
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            
+            // 테마별 색상 조합
+            val themes = listOf(
+                // KTX 블루 테마
+                Triple(
+                    intArrayOf(0xFF1E3A8A.toInt(), 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt()),
+                    "KTX",
+                    0xFFFFFFFF.toInt()
+                ),
+                // 선셋 테마
+                Triple(
+                    intArrayOf(0xFFFF6B6B.toInt(), 0xFFFF8E53.toInt(), 0xFFFFB347.toInt()),
+                    "SUNSET",
+                    0xFFFFFFFF.toInt()
+                ),
+                // 오션 테마
+                Triple(
+                    intArrayOf(0xFF4ECDC4.toInt(), 0xFF45B7D1.toInt(), 0xFF87CEEB.toInt()),
+                    "OCEAN",
+                    0xFFFFFFFF.toInt()
+                ),
+                // 포레스트 테마
+                Triple(
+                    intArrayOf(0xFF96CEB4.toInt(), 0xFF85C1A3.toInt(), 0xFF74B896.toInt()),
+                    "FOREST",
+                    0xFFFFFFFF.toInt()
+                ),
+                // 퍼플 테마
+                Triple(
+                    intArrayOf(0xFF8B5CF6.toInt(), 0xFFA78BFA.toInt(), 0xFFC4B5FD.toInt()),
+                    "PURPLE",
+                    0xFFFFFFFF.toInt()
+                ),
+                // 골드 테마
+                Triple(
+                    intArrayOf(0xFFF59E0B.toInt(), 0xFFFBBF24.toInt(), 0xFFFCD34D.toInt()),
+                    "GOLD",
+                    0xFFFFFFFF.toInt()
+                ),
+                // 로즈 테마
+                Triple(
+                    intArrayOf(0xFFEC4899.toInt(), 0xFFF472B6.toInt(), 0xFFF9A8D4.toInt()),
+                    "ROSE",
+                    0xFFFFFFFF.toInt()
+                ),
+                // 그레이 테마
+                Triple(
+                    intArrayOf(0xFF6B7280.toInt(), 0xFF9CA3AF.toInt(), 0xFFD1D5DB.toInt()),
+                    "GRAY",
+                    0xFFFFFFFF.toInt()
+                )
+            )
+            
+            val selectedTheme = themes.random()
+            val colors = selectedTheme.first
+            val themeName = selectedTheme.second
+            val textColor = selectedTheme.third
+            
+            // 그라데이션 배경
+            val gradient = android.graphics.LinearGradient(
+                0f, 0f, width.toFloat(), height.toFloat(),
+                colors,
+                floatArrayOf(0f, 0.5f, 1f),
+                android.graphics.Shader.TileMode.CLAMP
+            )
+            
+            val backgroundPaint = android.graphics.Paint().apply {
+                shader = gradient
+            }
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
+            
+            // 패턴 추가 (원형)
+            val patternPaint = android.graphics.Paint().apply {
+                color = textColor
+                alpha = 30
+                isAntiAlias = true
+            }
+            
+            for (i in 0..20) {
+                val x = (0..width).random().toFloat()
+                val y = (0..height).random().toFloat()
+                val radius = (10..50).random().toFloat()
+                canvas.drawCircle(x, y, radius, patternPaint)
+            }
+            
+            // 중앙에 귀여운 사람 모습 그리기
+            drawCutePersonInTestPhoto(canvas, width, height, textColor)
+            
+            // 중앙에 테마명 표시
+            val textPaint = android.graphics.Paint().apply {
+                color = textColor
+                textSize = 28f
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+            
+            canvas.drawText(themeName, width / 2f, height - 80f, textPaint)
+            
+            // 하단에 "KTX 네컷" 텍스트
+            val subtitlePaint = android.graphics.Paint().apply {
+                color = textColor
+                textSize = 20f
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+                alpha = 180
+            }
+            
+            canvas.drawText("KTX 네컷", width / 2f, height - 40f, subtitlePaint)
+            
+            // 테두리 추가
+            val borderPaint = android.graphics.Paint().apply {
+                color = textColor
+                strokeWidth = 4f
+                style = android.graphics.Paint.Style.STROKE
+                isAntiAlias = true
+                alpha = 100
+            }
+            
+            canvas.drawRoundRect(8f, 8f, width - 8f, height - 8f, 16f, 16f, borderPaint)
+            
+            bitmap
+        } catch (e: Exception) {
+            println("더미 사진 생성 실패: ${e.message}")
+            null
+        }
+    }
+    
+    /**
+     * 테스트 사진에 귀여운 사람 모습 그리기
+     */
+    private fun drawCutePersonInTestPhoto(
+        canvas: android.graphics.Canvas,
+        width: Int,
+        height: Int,
+        textColor: Int
+    ) {
+        val centerX = width / 2f
+        val centerY = height / 2f
+        val size = minOf(width, height) * 0.3f
+        
+        val personPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.FILL
+        }
+        
+        val strokePaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 3f
+            color = textColor
+        }
+        
+        // 랜덤한 표정 선택
+        val expressions = listOf("smile", "wink", "surprised", "loving")
+        val expression = expressions.random()
+        
+        when (expression) {
+            "smile" -> drawCuteFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFFFBBF24.toInt())
+            "wink" -> drawWinkingFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFFEC4899.toInt())
+            "surprised" -> drawSurprisedFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFF4ECDC4.toInt())
+            "loving" -> drawLovingFace(canvas, centerX, centerY, size, personPaint, strokePaint, 0xFF8B5CF6.toInt())
+        }
+        
+        // 귀여운 포즈 추가 (손 흔들기)
+        val handPaint = android.graphics.Paint().apply {
+            color = 0xFFFFB347.toInt()
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.FILL
+        }
+        
+        // 왼쪽 손
+        canvas.drawCircle(centerX - size * 0.8f, centerY + size * 0.3f, size * 0.15f, handPaint)
+        // 오른쪽 손
+        canvas.drawCircle(centerX + size * 0.8f, centerY + size * 0.3f, size * 0.15f, handPaint)
+        
+        // 손가락 (V자 모양)
+        strokePaint.color = 0xFFFFB347.toInt()
+        strokePaint.strokeWidth = 4f
+        canvas.drawLine(
+            centerX - size * 0.8f, centerY + size * 0.3f,
+            centerX - size * 0.9f, centerY + size * 0.1f,
+            strokePaint
+        )
+        canvas.drawLine(
+            centerX - size * 0.8f, centerY + size * 0.3f,
+            centerX - size * 0.7f, centerY + size * 0.1f,
+            strokePaint
+        )
+        
+        canvas.drawLine(
+            centerX + size * 0.8f, centerY + size * 0.3f,
+            centerX + size * 0.9f, centerY + size * 0.1f,
+            strokePaint
+        )
+        canvas.drawLine(
+            centerX + size * 0.8f, centerY + size * 0.3f,
+            centerX + size * 0.7f, centerY + size * 0.1f,
+            strokePaint
+        )
     }
     
     /**

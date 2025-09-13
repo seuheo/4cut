@@ -21,11 +21,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.a4cut.ui.screens.CalendarScreen
 import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
 import com.example.a4cut.ui.screens.HomeScreen
 import com.example.a4cut.ui.screens.PhotoDetailScreen
+import com.example.a4cut.ui.screens.ProfileScreen
 import com.example.a4cut.ui.screens.SearchScreen
+import com.example.a4cut.ui.screens.SettingsScreen
 import com.example.a4cut.R
 import com.example.a4cut.data.database.entity.PhotoEntity
 
@@ -109,22 +112,17 @@ fun AppNavigation(
                 )
             }
             composable(Screen.Calendar.route) {
-                EmptyScreen(
-                    title = stringResource(R.string.title_calendar),
-                    description = stringResource(R.string.description_calendar)
+                CalendarScreen(
+                    onNavigateToPhotoDetail = { photoId ->
+                        navController.navigate("photo_detail/$photoId")
+                    }
                 )
             }
             composable(Screen.Settings.route) {
-                EmptyScreen(
-                    title = stringResource(R.string.title_settings),
-                    description = stringResource(R.string.description_settings)
-                )
+                SettingsScreen()
             }
             composable(Screen.Profile.route) {
-                EmptyScreen(
-                    title = stringResource(R.string.title_profile),
-                    description = stringResource(R.string.description_profile)
-                )
+                ProfileScreen()
             }
             
             // 사진 상세 보기 화면
@@ -202,9 +200,22 @@ fun AppNavigation(
                 )
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
+                val context = LocalContext.current
                 
-                // FrameApplyViewModel 생성 (실제로는 ViewModelFactory를 사용해야 함)
-                val frameApplyViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.FrameApplyViewModel>()
+                // 데이터베이스 및 Repository 초기화
+                val database = com.example.a4cut.data.database.AppDatabase.getDatabase(context)
+                val photoRepository = com.example.a4cut.data.repository.PhotoRepository(database.photoDao())
+                val frameRepository = com.example.a4cut.data.repository.FrameRepository()
+                
+                // FrameApplyViewModel 생성
+                val frameApplyViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.FrameApplyViewModel>(
+                    factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            return com.example.a4cut.ui.viewmodel.FrameApplyViewModel(photoRepository, frameRepository, context) as T
+                        }
+                    }
+                )
                 
                 // 사진 정보 로드
                 androidx.compose.runtime.LaunchedEffect(photoId) {
@@ -212,13 +223,8 @@ fun AppNavigation(
                 }
                 
                 com.example.a4cut.ui.screens.FrameApplyScreen(
-                    photoId = photoId,
                     viewModel = frameApplyViewModel,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToSave = { 
-                        // TODO: 저장 기능 구현
-                        navController.popBackStack() 
-                    }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

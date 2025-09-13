@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,18 +60,28 @@ fun FrameScreen(
     modifier: Modifier = Modifier,
     frameViewModel: FrameViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    
     // FrameViewModel에서 상태 수집
     val frames by frameViewModel.frames.collectAsState()
     val selectedFrame by frameViewModel.selectedFrame.collectAsState()
     val photos by frameViewModel.photos.collectAsState()
+    val testPhotos by frameViewModel.testPhotos.collectAsState()
     val isLoading by frameViewModel.isLoading.collectAsState()
     val isProcessing by frameViewModel.isProcessing.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val successMessage by frameViewModel.successMessage.collectAsState()
     val composedImage by frameViewModel.composedImage.collectAsState()
+    val life4CutExample by frameViewModel.life4CutExample.collectAsState()
     
     // 미리보기 다이얼로그 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
+    var showLife4CutExample by remember { mutableStateOf(false) }
+    
+    // Context 설정
+    LaunchedEffect(Unit) {
+        frameViewModel.setContext(context)
+    }
     
     // 이미지 합성 완료 시 자동으로 미리보기 표시
     LaunchedEffect(composedImage) {
@@ -139,6 +150,14 @@ fun FrameScreen(
                 frameViewModel.togglePhotoSelection(index)
             },
             onAddPhotoClick = { frameViewModel.openImagePicker() },
+            testPhotos = testPhotos,
+            onTestPhotoClick = { gridIndex, testPhotoIndex ->
+                frameViewModel.selectTestPhoto(gridIndex, testPhotoIndex)
+            },
+            onRandomPhotoClick = { 
+                println("랜덤 사진 버튼 클릭됨")
+                frameViewModel.selectRandomTestPhoto()
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -185,24 +204,80 @@ fun FrameScreen(
         }
         
         // 액션 버튼들
-        Button(
-            onClick = { 
-                frameViewModel.startImageComposition()
-            },
-            enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp)
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (isProcessing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
+            // 이미지 합성 버튼
+            Button(
+                onClick = { 
+                    frameViewModel.startImageComposition()
+                },
+                enabled = selectedFrame != null && photos.any { it != null } && !isProcessing,
+                modifier = Modifier.weight(1f)
+            ) {
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("합성 중...")
+                } else {
+                    Text("이미지 합성")
+                }
+            }
+            
+            // 인생네컷 예시 버튼
+            if (life4CutExample != null && photos.count { it != null } == 4) {
+                Button(
+                    onClick = { 
+                        showLife4CutExample = true
+                    },
+                    enabled = !isProcessing,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary
+                    )
+                ) {
+                    Text("인생네컷 예시")
+                }
+            }
+        }
+        
+        // 디버깅용 버튼들
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { 
+                    println("직접 사진 추가 테스트")
+                    frameViewModel.selectRandomTestPhoto()
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("합성 중...")
-            } else {
-                Text("이미지 합성")
+            ) {
+                Text("직접 테스트")
+            }
+            
+            Button(
+                onClick = { 
+                    println("그리드 상태: ${photos.map { it != null }}")
+                    println("테스트 사진 개수: ${testPhotos.size}")
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("상태 확인")
             }
         }
         
@@ -238,6 +313,23 @@ fun FrameScreen(
                 isProcessing = isProcessing
             )
         }
+    }
+    
+    // 인생네컷 예시 다이얼로그
+    if (showLife4CutExample && life4CutExample != null) {
+        ImagePreviewDialog(
+            bitmap = life4CutExample,
+            onDismiss = { showLife4CutExample = false },
+            onSave = { 
+                // 인생네컷 예시는 저장하지 않음
+                showLife4CutExample = false
+            },
+            onShare = { 
+                // 인생네컷 예시는 공유하지 않음
+                showLife4CutExample = false
+            },
+            title = "인생네컷 예시"
+        )
     }
 }
 

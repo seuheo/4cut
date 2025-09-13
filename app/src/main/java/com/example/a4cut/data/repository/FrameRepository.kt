@@ -1,5 +1,6 @@
 package com.example.a4cut.data.repository
 
+import com.example.a4cut.R
 import com.example.a4cut.data.model.Frame
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,31 +31,44 @@ class FrameRepository {
                 date = "25.07.18",
                 station = "서울역",
                 title = "기본 프레임",
-                isPremium = false
+                isPremium = false,
+                drawableId = R.drawable.ktx_frame_signature
             ),
             Frame(
                 id = 2,
-                name = "KTX 프리미엄",
+                name = "부산 갈매기",
                 date = "23.05.05",
                 station = "부산역",
-                title = "프리미엄 프레임",
-                isPremium = true
+                title = "부산과 함께한 추억",
+                isPremium = true,
+                drawableId = R.drawable.ktx_frame_busan
             ),
             Frame(
                 id = 3,
-                name = "KTX 특별",
+                name = "전주 한옥",
                 date = "16.03.01",
                 station = "전주역",
-                title = "특별 프레임",
-                isPremium = false
+                title = "전주와 함께한 추억",
+                isPremium = false,
+                drawableId = R.drawable.ktx_frame_jeonju
             ),
             Frame(
                 id = 4,
-                name = "KTX 클래식",
+                name = "서울 네온",
                 date = "12.08.20",
-                station = "대구역",
-                title = "클래식 프레임",
-                isPremium = false
+                station = "서울역",
+                title = "서울과 함께한 추억",
+                isPremium = true,
+                drawableId = R.drawable.ktx_frame_seoul
+            ),
+            Frame(
+                id = 5,
+                name = "경주 역사",
+                date = "10.04.15",
+                station = "경주역",
+                title = "경주와 함께한 추억",
+                isPremium = false,
+                drawableId = R.drawable.ktx_frame_gyeongju
             )
         )
         

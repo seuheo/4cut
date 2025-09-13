@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import com.example.a4cut.data.model.Frame
 import kotlin.math.abs
 
@@ -195,64 +197,18 @@ private fun FrameCard(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 프레임 미리보기 (1행 4열) - KTX 티켓 모티브
+            // 프레임 미리보기 - 실제 프레임 이미지 표시
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                            )
-                        ),
-                        RoundedCornerShape(12.dp)
-                    )
-                    .padding(8.dp)
+                    .clip(RoundedCornerShape(12.dp))
             ) {
-                // KTX 티켓 테두리 효과
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            color = Color.Transparent,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(2.dp)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                )
-                            ),
-                            RoundedCornerShape(6.dp)
-                        )
+                Image(
+                    painter = painterResource(id = frame.drawableId),
+                    contentDescription = frame.name,
+                    modifier = Modifier.fillMaxSize()
                 )
-                
-                // 4컷 사진 그리드
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    repeat(4) { _ ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxSize()
-                                .background(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                        )
-                                    ),
-                                    RoundedCornerShape(6.dp)
-                                )
-                        )
-                    }
-                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
