@@ -41,4 +41,10 @@ sealed class Screen(
         title = R.string.nav_profile,
         icon = R.drawable.ic_profile
     )
+    
+    object Onboarding : Screen(
+        route = "onboarding",
+        title = R.string.nav_onboarding,
+        icon = R.drawable.ic_home
+    )
 }

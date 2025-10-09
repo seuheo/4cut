@@ -14,6 +14,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.ui.viewmodel.HomeViewModel
+import android.content.Intent
+import android.net.Uri
+import android.content.pm.PackageManager
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 /**
  * 설정 화면
@@ -73,24 +78,63 @@ fun SettingsScreen(
                 title = "앱 정보",
                 icon = Icons.Default.Info
             ) {
+                // 앱 버전 정보 (실제 버전 가져오기)
+                val appVersion = try {
+                    val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                    "${packageInfo.versionName} (${packageInfo.versionCode})"
+                } catch (e: PackageManager.NameNotFoundException) {
+                    "1.0.0 (MVP)"
+                }
+                
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "앱 버전",
-                    subtitle = "1.0.0 (MVP)",
+                    subtitle = appVersion,
                     onClick = { }
                 )
+                
                 SettingsItem(
                     icon = Icons.Default.Person,
                     title = "개발자",
                     subtitle = "KTX 네컷 팀",
                     onClick = { }
                 )
+                
+                SettingsItem(
+                    icon = Icons.Default.Email,
+                    title = "피드백 보내기",
+                    subtitle = "개발자에게 의견 전달",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:feedback@ktx4cut.com")
+                            putExtra(Intent.EXTRA_SUBJECT, "KTX 네컷 앱 피드백")
+                            putExtra(Intent.EXTRA_TEXT, "앱에 대한 의견이나 버그 신고를 남겨주세요.")
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // 이메일 앱이 없는 경우 처리
+                        }
+                    }
+                )
+                
+                var showLicenseDialog by remember { mutableStateOf(false) }
+                
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "오픈소스 라이선스",
                     subtitle = "MIT License",
-                    onClick = { }
+                    onClick = {
+                        showLicenseDialog = true
+                    }
                 )
+                
+                // 라이선스 다이얼로그
+                if (showLicenseDialog) {
+                    LicenseDialog(
+                        onDismiss = { showLicenseDialog = false }
+                    )
+                }
             }
             
             // 테마 설정 섹션
@@ -339,6 +383,64 @@ private fun SettingsSwitchItem(
                 onCheckedChange = onCheckedChange,
                 enabled = enabled
             )
+        }
+    }
+}
+
+/**
+ * 라이선스 정보 다이얼로그
+ */
+@Composable
+private fun LicenseDialog(
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "오픈소스 라이선스",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Text(
+                    text = "KTX 네컷 앱은 다음 오픈소스 라이브러리들을 사용합니다:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "• Jetpack Compose - Apache License 2.0\n" +
+                            "• Room Database - Apache License 2.0\n" +
+                            "• Coil - Apache License 2.0\n" +
+                            "• Kotlin Coroutines - Apache License 2.0\n" +
+                            "• Navigation Compose - Apache License 2.0",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Text(
+                    text = "이 앱은 MIT License 하에 배포됩니다.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("확인")
+                }
+            }
         }
     }
 }

@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -229,6 +231,10 @@ fun CalendarScreen(
                             )
                         }
                     }
+                } else {
+                    // 해당 날짜에 사진이 없을 때 빈 상태 표시
+                    Spacer(modifier = Modifier.height(16.dp))
+                    EmptyCalendarDate()
                 }
             }
             
@@ -237,6 +243,50 @@ fun CalendarScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 ErrorMessageSection(message = message)
             }
+        }
+    }
+}
+
+/**
+ * 달력 날짜에 사진이 없을 때 표시하는 빈 상태
+ */
+@Composable
+private fun EmptyCalendarDate() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Text(
+                text = "이 날에는 기록된 사진이 없네요",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            
+            Text(
+                text = "다른 날짜를 선택해보세요",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

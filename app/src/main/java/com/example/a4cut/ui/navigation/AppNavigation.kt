@@ -48,6 +48,7 @@ import androidx.navigation.navArgument
 import com.example.a4cut.ui.screens.CalendarScreen
 import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
+import com.example.a4cut.ui.screens.OnboardingScreen
 import com.example.a4cut.ui.screens.HomeScreen
 import com.example.a4cut.ui.screens.PhotoDetailScreen
 import com.example.a4cut.ui.screens.PhotoSelectionScreen
@@ -172,7 +173,7 @@ fun AppNavigation(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = Screen.Onboarding.route,
             modifier = Modifier.padding(innerPadding),
             enterTransition = {
                 slideInHorizontally(
@@ -207,6 +208,25 @@ fun AppNavigation(
                 )
             }
         ) {
+            // 온보딩 화면
+            composable(
+                route = Screen.Onboarding.route,
+                enterTransition = {
+                    fadeIn(animationSpec = tween(500))
+                },
+                exitTransition = {
+                    fadeOut(animationSpec = tween(300))
+                }
+            ) {
+                OnboardingScreen(
+                    onComplete = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            
             composable(
                 route = Screen.Home.route,
                 enterTransition = {
