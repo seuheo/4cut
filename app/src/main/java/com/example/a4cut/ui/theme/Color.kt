@@ -2,22 +2,43 @@ package com.example.a4cut.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Toss-style Color Palette 정의
-// KTX 브랜드 컬러를 핵심 액센트로 사용합니다.
-val KTXBlue = Color(0xFF1E3A8A)
+// Instagram-style Color Palette 정의
+// 인스타그램의 미니멀하고 깔끔한 색상 시스템을 적용합니다.
 
-// 배경 및 표면 색상 (Neutral Colors)
-val BackgroundLight = Color(0xFFF7F8FA) // 밝은 회색 배경으로 편안함을 줍니다.
-val SurfaceLight = Color(0xFFFFFFFF) // 카드는 순수한 흰색으로 선명함을 더합니다.
+// Primary Colors - KTX 브랜드 아이덴티티 유지
+val KTXBlue = Color(0xFF1E3A8A) // KTX 시그니처 블루 (포인트 컬러로 사용)
+val InstagramBlue = Color(0xFF0095F6) // 인스타그램 블루 (액센트 컬러)
 
-// 텍스트 색상
-val TextPrimary = Color(0xFF191919) // 가장 중요한 텍스트
-val TextSecondary = Color(0xFF6B7280) // 보조적인 텍스트
-val TextTertiary = Color(0xFF9CA3AF) // 더 흐린 텍스트
+// Background Colors - 인스타그램 스타일
+val BackgroundLight = Color(0xFFFFFFFF) // 순수한 흰색 배경
+val BackgroundSecondary = Color(0xFFFAFAFA) // 보조 배경 (그리드 구분선 등)
+val BackgroundDark = Color(0xFF000000) // 다크 모드 배경
 
-// 다크 모드 색상 (선택적)
-val BackgroundDark = Color(0xFF121212)
-val SurfaceDark = Color(0xFF1E1E1E)
+// Surface Colors
+val SurfaceLight = Color(0xFFFFFFFF) // 카드 및 컴포넌트 배경
+val SurfaceDark = Color(0xFF1A1A1A) // 다크 모드 카드 배경
+val SurfaceElevated = Color(0xFFFFFFFF) // 상단 바, 모달 등
+
+// Text Colors - 인스타그램 스타일
+val TextPrimary = Color(0xFF262626) // 가장 중요한 텍스트 (인스타그램 스타일)
+val TextSecondary = Color(0xFF8E8E8E) // 보조적인 텍스트
+val TextTertiary = Color(0xFFC7C7CC) // 더 흐린 텍스트
+val TextLink = Color(0xFF0095F6) // 링크 텍스트
+
+// Border & Divider Colors
+val BorderLight = Color(0xFFDBDBDB) // 경계선 색상
+val BorderDark = Color(0xFF383838) // 다크 모드 경계선
+val DividerLight = Color(0xFFEFEFEF) // 구분선 색상
+
+// Interactive Colors
+val LikeRed = Color(0xFFED4956) // 좋아요 빨간색
+val StoryGradientStart = Color(0xFF833AB4) // 스토리 그라데이션 시작
+val StoryGradientEnd = Color(0xFFE1306C) // 스토리 그라데이션 끝
+
+// Status Colors
+val SuccessGreen = Color(0xFF00C851) // 성공 상태
+val WarningOrange = Color(0xFFFF8800) // 경고 상태
+val ErrorRed = Color(0xFFFF4444) // 에러 상태
 
 // 기존 Material Design 호환성을 위한 색상들 (점진적 마이그레이션용)
 val Purple80 = Color(0xFFD0BCFF)

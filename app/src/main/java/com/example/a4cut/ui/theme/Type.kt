@@ -13,57 +13,69 @@ import androidx.compose.ui.unit.sp
 //     Font(R.font.pretendard_bold, FontWeight.Bold),
 // )
 
-// 토스 스타일의 명확한 타이포그래피 계층 구조를 정의합니다.
-val TossTypography = Typography(
-    // 예: "나의 포토로그"와 같은 화면 타이틀
+// Instagram-style Typography 정의
+// 인스타그램의 깔끔하고 읽기 쉬운 타이포그래피 시스템을 적용합니다.
+val InstagramTypography = Typography(
+    // 화면 타이틀 (예: "KTX 네컷")
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default, // TODO: Custom Font로 교체
+        fontFamily = FontFamily.Default, // TODO: Instagram Proxima Nova 폰트로 교체
         fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 0.sp
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
+        letterSpacing = -0.5.sp
     ),
-    // 예: "KTX와 함께한 N개의 추억"
+    // 섹션 제목 (예: "최근 4컷 사진")
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 22.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
         lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        letterSpacing = -0.3.sp
     ),
-    // 예: 카드 내 제목
+    // 카드 제목 (예: "부산역 프레임")
     titleMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
-        fontSize = 18.sp,
+        fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
+        letterSpacing = 0.sp
     ),
-    // 예: 일반적인 본문 텍스트
+    // 본문 텍스트 (예: 설명, 메시지)
     bodyLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.sp
     ),
-    // 예: 버튼 텍스트
+    // 버튼 텍스트
     labelLarge = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.sp
     ),
-    // 예: 작은 보조 텍스트
+    // 작은 보조 텍스트 (예: 시간, 카운트)
     bodySmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
+        letterSpacing = 0.sp
+    ),
+    // 매우 작은 텍스트 (예: 캡션, 태그)
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 10.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.sp
     )
 )
+
+// 기존 Toss 스타일과의 호환성을 위한 별칭
+val TossTypography = InstagramTypography
 
 // 기존 호환성을 위한 Typography (점진적 마이그레이션용)
 val Typography = TossTypography

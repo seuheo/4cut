@@ -51,13 +51,14 @@ import com.example.a4cut.ui.screens.SettingsScreen
 import com.example.a4cut.R
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.viewmodel.FrameViewModel
+import com.example.a4cut.ui.theme.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
- * 토스 스타일 네비게이션 바 아이템
+ * 인스타그램 스타일 네비게이션 바 아이템
  */
 @Composable
-private fun TossNavigationItem(
+private fun InstagramNavigationItem(
     screen: Screen,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -65,45 +66,24 @@ private fun TossNavigationItem(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                else Color.Transparent
-            )
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .size(48.dp)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(id = screen.icon),
-                contentDescription = stringResource(screen.title),
-                modifier = Modifier.size(20.dp),
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            if (isSelected) {
-                Text(
-                    text = stringResource(screen.title),
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 12.sp
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
-            }
-        }
+        Icon(
+            painter = painterResource(id = screen.icon),
+            contentDescription = stringResource(screen.title),
+            modifier = Modifier.size(24.dp),
+            tint = if (isSelected) TextPrimary else TextSecondary
+        )
     }
 }
 
 /**
- * 토스 스타일 네비게이션 바
+ * 인스타그램 스타일 하단 네비게이션 바
  */
 @Composable
-private fun TossBottomNavigation(
+private fun InstagramBottomNavigation(
     currentDestination: androidx.navigation.NavDestination?,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -111,8 +91,8 @@ private fun TossBottomNavigation(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(SurfaceLight)
+            .padding(horizontal = 0.dp, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -128,7 +108,7 @@ private fun TossBottomNavigation(
             ).forEach { screen ->
                 val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                 
-                TossNavigationItem(
+                InstagramNavigationItem(
                     screen = screen,
                     isSelected = isSelected,
                     onClick = { onNavigate(screen.route) }
@@ -155,7 +135,7 @@ fun AppNavigation(
     Scaffold(
         modifier = modifier,
         bottomBar = {
-            TossBottomNavigation(
+            InstagramBottomNavigation(
                 currentDestination = currentDestination,
                 onNavigate = { route ->
                     navController.navigate(route) {

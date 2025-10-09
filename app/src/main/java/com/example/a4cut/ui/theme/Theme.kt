@@ -10,33 +10,58 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Toss 스타일 Light Color Scheme
+// Instagram 스타일 Light Color Scheme
 private val LightColorScheme = lightColorScheme(
-    primary = KTXBlue,
-    onPrimary = SurfaceLight,
+    primary = InstagramBlue,
+    onPrimary = Color.White,
+    secondary = KTXBlue, // KTX 브랜드 아이덴티티 유지
+    onSecondary = Color.White,
     background = BackgroundLight,
-    surface = SurfaceLight,
     onBackground = TextPrimary,
+    surface = SurfaceLight,
     onSurface = TextPrimary,
-    secondaryContainer = KTXBlue.copy(alpha = 0.1f),
-    onSecondaryContainer = KTXBlue,
+    surfaceVariant = BackgroundSecondary,
+    onSurfaceVariant = TextSecondary,
+    outline = BorderLight,
+    outlineVariant = DividerLight,
+    error = ErrorRed,
+    onError = Color.White,
+    errorContainer = ErrorRed.copy(alpha = 0.1f),
+    onErrorContainer = ErrorRed,
+    tertiary = LikeRed,
+    onTertiary = Color.White,
+    tertiaryContainer = LikeRed.copy(alpha = 0.1f),
+    onTertiaryContainer = LikeRed,
 )
 
-// Toss 스타일 Dark Color Scheme (선택적)
+// Instagram 스타일 Dark Color Scheme
 private val DarkColorScheme = darkColorScheme(
-    primary = KTXBlue,
-    onPrimary = SurfaceDark,
+    primary = InstagramBlue,
+    onPrimary = Color.Black,
+    secondary = KTXBlue,
+    onSecondary = Color.White,
     background = BackgroundDark,
+    onBackground = Color.White,
     surface = SurfaceDark,
-    onBackground = SurfaceLight,
-    onSurface = SurfaceLight,
-    secondaryContainer = KTXBlue.copy(alpha = 0.2f),
-    onSecondaryContainer = KTXBlue,
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF2A2A2A),
+    onSurfaceVariant = Color(0xFFB0B0B0),
+    outline = BorderDark,
+    outlineVariant = Color(0xFF404040),
+    error = ErrorRed,
+    onError = Color.White,
+    errorContainer = ErrorRed.copy(alpha = 0.2f),
+    onErrorContainer = ErrorRed,
+    tertiary = LikeRed,
+    onTertiary = Color.White,
+    tertiaryContainer = LikeRed.copy(alpha = 0.2f),
+    onTertiaryContainer = LikeRed,
 )
 
 @Composable
@@ -66,7 +91,7 @@ fun A4CutTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = TossTypography,
+        typography = InstagramTypography,
         content = content
     )
 }

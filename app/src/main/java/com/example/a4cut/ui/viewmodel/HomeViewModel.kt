@@ -46,8 +46,7 @@ class HomeViewModel : ViewModel() {
     private val _favoritePhotoCount = MutableStateFlow(0)
     val favoritePhotoCount: StateFlow<Int> = _favoritePhotoCount.asStateFlow()
     
-    // ❌ latestPhoto 제거
-    /*
+    // 최신 사진 (스토리용)
     val latestPhoto: StateFlow<PhotoEntity?> = photoLogs.map { photos ->
         photos.maxByOrNull { it.createdAt }
     }.stateIn(
@@ -55,7 +54,15 @@ class HomeViewModel : ViewModel() {
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
     )
-    */
+    
+    // 모든 사진 (피드용)
+    val allPhotos: StateFlow<List<PhotoEntity>> = photoLogs.map { photos ->
+        photos.sortedByDescending { it.createdAt }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
     
     // ✅ 추가: 가장 최근 사진 최대 5개를 리스트로 제공 (캐러셀용)
     val latestPhotos: StateFlow<List<PhotoEntity>> = photoLogs.map { photos ->

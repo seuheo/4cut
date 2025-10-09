@@ -1,44 +1,48 @@
 package com.example.a4cut.ui.screens
 
 import android.graphics.Bitmap
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.data.model.Frame
-import com.example.a4cut.ui.components.TossPrimaryButton
-import com.example.a4cut.ui.components.TossSecondaryButton
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
- * 2단계: 프레임 선택 전용 화면
- * 사용자가 원하는 프레임을 선택하는 두 번째 단계
+ * 인스타그램 스타일 프레임 선택 화면
+ * 시각적이고 직관적인 프레임 선택 경험을 제공합니다.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FrameSelectionScreen(
     modifier: Modifier = Modifier,
@@ -48,102 +52,103 @@ fun FrameSelectionScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     
-    // FrameViewModel에서 상태 수집
+    // ViewModel 상태 수집
+    val photos by frameViewModel.photos.collectAsState()
     val frames by frameViewModel.frames.collectAsState()
     val selectedFrame by frameViewModel.selectedFrame.collectAsState()
-    val photos by frameViewModel.photos.collectAsState()
     val isLoading by frameViewModel.isLoading.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
-    val successMessage by frameViewModel.successMessage.collectAsState()
     
     // 디버그 로그
     LaunchedEffect(photos) {
         println("FrameSelectionScreen: 사진 상태 업데이트 - ${photos.map { it != null }}")
     }
-    
-    // Context 설정
-    LaunchedEffect(Unit) {
-        frameViewModel.setContext(context)
-    }
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundLight)
-            .padding(20.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // 헤더 섹션
-        HeaderSection(
-            successMessage = successMessage,
-            errorMessage = errorMessage,
-            photoCount = photos.count { it != null }
+        // 인스타그램 스타일 상단 바
+        TopAppBar(
+            title = {
+                Text(
+                    text = "프레임 선택",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "뒤로가기",
+                        tint = TextPrimary
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = SurfaceLight,
+                titleContentColor = TextPrimary
+            )
         )
-        
-        // 선택된 사진 미리보기
-        SelectedPhotosPreviewSection(photos = photos)
-        
-        // 디버그 정보 표시
-        Text(
-            text = "디버그: 사진 개수 = ${photos.count { it != null }}/4, 선택된 프레임 = ${selectedFrame?.name ?: "없음"}",
-            style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        
-        // 프레임 선택 섹션
-        FrameSelectionSection(
-            frames = frames,
-            selectedFrame = selectedFrame,
-            isLoading = isLoading,
-            onFrameSelect = { frame ->
-                println("FrameSelectionScreen: 프레임 클릭됨 - ${frame.name}")
-                frameViewModel.selectFrame(frame)
-            }
-        )
-        
-        // 액션 버튼들
-        ActionButtonsSection(
-            selectedFrame = selectedFrame,
-            onNext = onNext,
-            onBack = onBack
-        )
-    }
-}
 
-/**
- * 헤더 섹션
- */
-@Composable
-private fun HeaderSection(
-    successMessage: String?,
-    errorMessage: String?,
-    photoCount: Int
-) {
-    Column {
-        Text(
-            text = "프레임 선택",
-            style = MaterialTheme.typography.headlineLarge,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "선택된 사진 ${photoCount}장에 적용할 프레임을 선택해주세요",
-            style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        // 성공 메시지
-        successMessage?.let { success ->
-            SuccessMessageCard(message = success)
-        }
-        
-        // 에러 메시지
-        errorMessage?.let { error ->
-            ErrorMessageCard(message = error)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // 선택된 사진 미리보기 섹션
+            item {
+                SelectedPhotosPreview(
+                    photos = photos,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // 프레임 선택 섹션
+            item {
+                FrameSelectionSection(
+                    frames = frames,
+                    selectedFrame = selectedFrame,
+                    onFrameSelect = { frame ->
+                        println("FrameSelectionScreen: 프레임 클릭됨 - ${frame.name}")
+                        frameViewModel.selectFrame(frame)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // 선택된 프레임 정보
+            if (selectedFrame != null) {
+                item {
+                    SelectedFrameInfo(
+                        frame = selectedFrame,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // 다음 단계 버튼
+            item {
+                NextStepButton(
+                    isEnabled = selectedFrame != null,
+                    isLoading = isLoading,
+                    onNext = onNext,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // 에러 메시지
+            if (errorMessage != null) {
+                item {
+                    ErrorMessage(
+                        message = errorMessage,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }
@@ -152,61 +157,72 @@ private fun HeaderSection(
  * 선택된 사진 미리보기 섹션
  */
 @Composable
-private fun SelectedPhotosPreviewSection(photos: List<Bitmap?>) {
-    Column {
+private fun SelectedPhotosPreview(
+    photos: List<Bitmap?>,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+    ) {
         Text(
             text = "선택된 사진",
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             color = TextPrimary,
             modifier = Modifier.padding(bottom = 12.dp)
         )
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height(120.dp)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(4) { index ->
-                val photo = photos.getOrNull(index)
-                if (photo != null) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
-                    ) {
-                        Image(
-                            bitmap = photo.asImageBitmap(),
-                            contentDescription = "사진 ${index + 1}",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                } else {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = TextTertiary.copy(alpha = 0.1f))
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "빈칸",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextTertiary
-                            )
-                        }
-                    }
-                }
+            photos.forEachIndexed { index, bitmap ->
+                PhotoPreviewItem(
+                    bitmap = bitmap,
+                    index = index,
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                )
             }
+        }
+    }
+}
+
+/**
+ * 개별 사진 미리보기 아이템
+ */
+@Composable
+private fun PhotoPreviewItem(
+    bitmap: Bitmap?,
+    index: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(BackgroundSecondary)
+            .border(
+                width = 2.dp,
+                color = if (bitmap != null) InstagramBlue else BorderLight,
+                shape = RoundedCornerShape(12.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "사진 ${index + 1}",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = "${index + 1}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = TextTertiary
+            )
         }
     }
 }
@@ -218,171 +234,121 @@ private fun SelectedPhotosPreviewSection(photos: List<Bitmap?>) {
 private fun FrameSelectionSection(
     frames: List<Frame>,
     selectedFrame: Frame?,
-    isLoading: Boolean,
-    onFrameSelect: (Frame) -> Unit
+    onFrameSelect: (Frame) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(
+        modifier = modifier
+    ) {
         Text(
             text = "프레임 선택",
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             color = TextPrimary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "마음에 드는 프레임을 선택하세요. 각 프레임은 다른 역의 특색을 담고 있습니다.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "↓ 아래로 스크롤하여 더 많은 프레임을 확인하세요",
-            style = MaterialTheme.typography.bodySmall,
-            color = KTXBlue,
             modifier = Modifier.padding(bottom = 12.dp)
         )
-        
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = KTXBlue)
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.height(200.dp)
-            ) {
-                items(frames.size) { index ->
-                    val frame = frames[index]
-                    FrameCard(
-                        frame = frame,
-                        isSelected = selectedFrame?.id == frame.id,
-                        onClick = { onFrameSelect(frame) },
-                        modifier = Modifier.height(120.dp)
-                    )
-                }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.height(400.dp)
+        ) {
+            items(frames) { frame ->
+                FrameSelectionItem(
+                    frame = frame,
+                    isSelected = selectedFrame?.id == frame.id,
+                    onClick = { onFrameSelect(frame) },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 }
 
 /**
- * 프레임 카드
+ * 개별 프레임 선택 아이템
  */
 @Composable
-private fun FrameCard(
+private fun FrameSelectionItem(
     frame: Frame,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isPressed by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-    
-    Card(
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(100),
+        label = "frame_scale"
+    )
+
+    Box(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = rememberRipple(bounded = true, radius = 200.dp)
-            ) { 
-                isPressed = true
-                onClick()
-                coroutineScope.launch {
-                    delay(100)
-                    isPressed = false
-                }
-            },
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isSelected -> KTXBlue.copy(alpha = 0.2f)
-                isPressed -> KTXBlue.copy(alpha = 0.1f)
-                else -> SurfaceLight
-            }
-        ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = when {
-                isSelected -> 8.dp
-                isPressed -> 6.dp
-                else -> 2.dp
-            }
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp)
-        ) {
-            // 프레임 미리보기 이미지
-            Image(
-                painter = painterResource(id = frame.drawableId),
-                contentDescription = frame.name,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                color = if (isSelected) InstagramBlue.copy(alpha = 0.1f) else SurfaceLight
             )
-            
-            // 선택 상태 표시
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            KTXBlue.copy(alpha = 0.2f),
-                            RoundedCornerShape(12.dp)
-                        )
-                )
-            }
-            
-            // 프레임 정보
-            Column(
-                modifier = Modifier.align(Alignment.BottomStart)
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) InstagramBlue else BorderLight,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() }
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 프레임 이미지
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BackgroundSecondary),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = frame.name,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isSelected) KTXBlue else TextPrimary,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = frame.station,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isSelected) KTXBlue else TextSecondary
-                )
-                Text(
-                    text = frame.title,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) KTXBlue else TextTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                Image(
+                    painter = painterResource(id = frame.drawableId),
+                    contentDescription = frame.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
                 )
             }
-            
-            // Premium 배지
-            if (frame.isPremium) {
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 프레임 이름
+            Text(
+                text = frame.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) InstagramBlue else TextPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            // 선택 표시
+            if (isSelected) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
+                        .size(24.dp)
                         .background(
-                            KTXBlue,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                            color = InstagramBlue,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "PREMIUM",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "선택됨",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
                     )
                 }
             }
@@ -391,90 +357,117 @@ private fun FrameCard(
 }
 
 /**
- * 액션 버튼 섹션
+ * 선택된 프레임 정보
  */
 @Composable
-private fun ActionButtonsSection(
-    selectedFrame: Frame?,
-    onNext: () -> Unit,
-    onBack: () -> Unit
+private fun SelectedFrameInfo(
+    frame: Frame,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // 뒤로가기 버튼
-        TossSecondaryButton(
-            text = "뒤로가기",
-            onClick = onBack,
-            modifier = Modifier.weight(1f)
-        )
-        
-        // 다음 단계 버튼
-        TossPrimaryButton(
-            text = "다음 단계",
-            onClick = onNext,
-            enabled = selectedFrame != null,
-            modifier = Modifier.weight(1f)
-        )
-    }
-    
-    // 상태 안내
-    Text(
-        text = if (selectedFrame == null) "프레임을 선택해주세요" else "선택된 프레임: ${selectedFrame.name}",
-        style = MaterialTheme.typography.bodyMedium,
-        color = if (selectedFrame != null) KTXBlue else TextSecondary,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth()
-    )
-    
-    // 버튼 상태 디버그
-    Text(
-        text = "버튼 상태: ${if (selectedFrame != null) "활성화됨" else "비활성화됨"}",
-        style = MaterialTheme.typography.bodySmall,
-        color = if (selectedFrame != null) KTXBlue else TextSecondary,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-/**
- * 성공 메시지 카드
- */
-@Composable
-private fun SuccessMessageCard(message: String) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = KTXBlue.copy(alpha = 0.1f)
+            containerColor = InstagramBlue.copy(alpha = 0.1f)
         ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = KTXBlue,
-            modifier = Modifier.padding(16.dp)
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = InstagramBlue.copy(alpha = 0.3f)
         )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = InstagramBlue
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "선택된 프레임",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+                Text(
+                    text = frame.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = InstagramBlue
+                )
+            }
+        }
     }
 }
 
 /**
- * 에러 메시지 카드
+ * 다음 단계 버튼
  */
 @Composable
-private fun ErrorMessageCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
+private fun NextStepButton(
+    isEnabled: Boolean,
+    isLoading: Boolean,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onNext,
+        enabled = isEnabled && !isLoading,
+        modifier = modifier.height(48.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isEnabled) InstagramBlue else TextTertiary,
+            contentColor = Color.White
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = Color.White,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Text(
+                text = "다음 단계",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+/**
+ * 에러 메시지
+ */
+@Composable
+private fun ErrorMessage(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = ErrorRed.copy(alpha = 0.1f)
+        ),
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = ErrorRed.copy(alpha = 0.3f)
+        )
+    ) {
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer,
+            style = MaterialTheme.typography.bodyLarge,
+            color = ErrorRed,
             modifier = Modifier.padding(16.dp)
         )
     }
