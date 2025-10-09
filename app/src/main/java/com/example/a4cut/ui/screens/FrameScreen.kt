@@ -172,6 +172,10 @@ fun FrameScreen(
             onShowExample = { 
                 println("FrameScreen: 예시 보기 버튼 클릭됨")
                 showLife4CutExample = true 
+            },
+            onGenerateNewExample = {
+                println("FrameScreen: 새로운 예시 생성 버튼 클릭됨")
+                frameViewModel.generateRandomLife4CutExample()
             }
         )
     }
@@ -350,7 +354,8 @@ private fun ActionButtonsSection(
     life4CutExample: Bitmap?,
     onCompose: () -> Unit,
     onPreview: () -> Unit,
-    onShowExample: () -> Unit
+    onShowExample: () -> Unit,
+    onGenerateNewExample: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -385,7 +390,7 @@ private fun ActionButtonsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // 인생네컷 예시 버튼
-            if (life4CutExample != null && photos.count { it != null } == 4) {
+            if (life4CutExample != null) {
                 TossSecondaryButton(
                     text = "예시 보기",
                     onClick = onShowExample,
@@ -403,6 +408,16 @@ private fun ActionButtonsSection(
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+        
+        // 새로운 예시 생성 버튼
+        if (life4CutExample != null) {
+            TossTextButton(
+                text = "🔄 새로운 예시 보기",
+                onClick = onGenerateNewExample,
+                enabled = !isProcessing,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

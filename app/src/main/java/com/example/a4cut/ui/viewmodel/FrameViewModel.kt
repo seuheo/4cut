@@ -52,6 +52,10 @@ class FrameViewModel : ViewModel() {
     private val _testPhotos = MutableStateFlow<List<Bitmap>>(emptyList())
     val testPhotos: StateFlow<List<Bitmap>> = _testPhotos.asStateFlow()
     
+    // 고품질 예시 사진 목록
+    private val _examplePhotos = MutableStateFlow<List<Bitmap>>(emptyList())
+    val examplePhotos: StateFlow<List<Bitmap>> = _examplePhotos.asStateFlow()
+    
     // 권한 관련 상태
     private val _hasImagePermission = MutableStateFlow(false)
     val hasImagePermission: StateFlow<Boolean> = _hasImagePermission.asStateFlow()
@@ -128,7 +132,48 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 인생네컷 예시 이미지 생성
+     * 고품질 예시 사진들 로드
+     */
+    private fun loadExamplePhotos() {
+        viewModelScope.launch {
+            try {
+                println("고품질 예시 사진 로드 시작")
+                val examplePhotoIds = listOf(
+                    R.drawable.example_photo_train_window,
+                    R.drawable.example_photo_station_platform,
+                    R.drawable.example_photo_travel_destination,
+                    R.drawable.example_photo_friends_together,
+                    R.drawable.example_photo_sunset_view,
+                    R.drawable.example_photo_city_skyline,
+                    R.drawable.example_photo_food_memory,
+                    R.drawable.example_photo_adventure_moment
+                )
+                
+                val bitmaps = examplePhotoIds.mapNotNull { drawableId ->
+                    try {
+                        context?.let { ctx ->
+                            BitmapFactory.decodeResource(ctx.resources, drawableId)?.let { bitmap ->
+                                // 512x512 크기로 리사이즈
+                                Bitmap.createScaledBitmap(bitmap, 512, 512, true)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("예시 사진 로드 실패: $drawableId - ${e.message}")
+                        null
+                    }
+                }
+                
+                println("고품질 예시 사진 로드 완료: ${bitmaps.size}개")
+                _examplePhotos.value = bitmaps
+            } catch (e: Exception) {
+                println("고품질 예시 사진 로드 전체 실패: ${e.message}")
+                _errorMessage.value = "예시 사진 로드 실패: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * 인생네컷 예시 이미지 생성 (기본)
      */
     private fun generateLife4CutExample() {
         viewModelScope.launch {
@@ -140,6 +185,43 @@ class FrameViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "인생네컷 예시 생성 실패: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * 동적 인생네컷 예시 생성 (랜덤 조합)
+     */
+    fun generateRandomLife4CutExample() {
+        viewModelScope.launch {
+            try {
+                context?.let { ctx ->
+                    val examplePhotos = _examplePhotos.value
+                    val frames = _frames.value
+                    
+                    if (examplePhotos.isNotEmpty() && frames.isNotEmpty()) {
+                        // 랜덤하게 4장의 예시 사진 선택
+                        val selectedPhotos = examplePhotos.shuffled().take(4)
+                        
+                        // 랜덤하게 프레임 선택
+                        val selectedFrame = frames.random()
+                        
+                        // 동적 예시 이미지 생성
+                        val exampleBitmap = createDynamicLife4CutExample(
+                            ctx, 
+                            selectedPhotos, 
+                            selectedFrame
+                        )
+                        _life4CutExample.value = exampleBitmap
+                        
+                        println("동적 인생네컷 예시 생성 완료: 프레임=${selectedFrame.name}")
+                    } else {
+                        // 기본 예시 생성
+                        generateLife4CutExample()
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "동적 예시 생성 실패: ${e.message}"
             }
         }
     }
@@ -280,6 +362,100 @@ class FrameViewModel : ViewModel() {
             val x = 200f + i * 100f
             canvas.drawCircle(x, height - 50f, 8f, dotPaint)
         }
+        
+        return bitmap
+    }
+    
+    /**
+     * 동적 인생네컷 예시 Bitmap 생성 (실제 사진과 프레임 조합)
+     */
+    private fun createDynamicLife4CutExample(
+        context: Context,
+        selectedPhotos: List<Bitmap>,
+        selectedFrame: Frame
+    ): Bitmap {
+        val width = 1080
+        val height = 1920
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        
+        // 선택된 프레임을 배경으로 사용
+        try {
+            val frameDrawable = context.getDrawable(selectedFrame.drawableId)
+            frameDrawable?.let { drawable ->
+                drawable.setBounds(0, 0, width, height)
+                drawable.draw(canvas)
+            }
+        } catch (e: Exception) {
+            println("프레임 로드 실패, 기본 배경 사용: ${e.message}")
+            // 기본 배경 그라데이션
+            val backgroundPaint = android.graphics.Paint()
+            val backgroundGradient = android.graphics.LinearGradient(
+                0f, 0f, width.toFloat(), height.toFloat(),
+                intArrayOf(0xFF1E3A8A.toInt(), 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt()),
+                floatArrayOf(0f, 0.5f, 1f),
+                android.graphics.Shader.TileMode.CLAMP
+            )
+            backgroundPaint.shader = backgroundGradient
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
+        }
+        
+        // 4컷 사진 영역에 실제 예시 사진들 배치
+        val margin = 140f
+        val spacing = 20f
+        val photoWidth = (width - 2 * margin - spacing) / 2
+        val photoHeight = (height - 2 * margin - spacing) / 2
+        
+        // 4개 위치에 사진 배치
+        val positions = listOf(
+            android.graphics.RectF(margin, margin, margin + photoWidth, margin + photoHeight), // 상단 좌측
+            android.graphics.RectF(margin + photoWidth + spacing, margin, width - margin, margin + photoHeight), // 상단 우측
+            android.graphics.RectF(margin, margin + photoHeight + spacing, margin + photoWidth, height - margin), // 하단 좌측
+            android.graphics.RectF(margin + photoWidth + spacing, margin + photoHeight + spacing, width - margin, height - margin) // 하단 우측
+        )
+        
+        selectedPhotos.forEachIndexed { index, photo ->
+            if (index < 4) {
+                val destRect = positions[index]
+                canvas.drawBitmap(photo, null, destRect, null)
+                
+                // 사진 테두리 추가
+                val borderPaint = android.graphics.Paint().apply {
+                    color = 0xFFFFFFFF.toInt()
+                    strokeWidth = 4f
+                    style = android.graphics.Paint.Style.STROKE
+                    isAntiAlias = true
+                }
+                canvas.drawRect(destRect, borderPaint)
+            }
+        }
+        
+        // 프레임 정보 텍스트 추가
+        val textPaint = android.graphics.Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            textSize = 48f
+            isAntiAlias = true
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        
+        val frameInfoText = "${selectedFrame.name} 프레임"
+        val textBounds = android.graphics.Rect()
+        textPaint.getTextBounds(frameInfoText, 0, frameInfoText.length, textBounds)
+        val textX = (width - textBounds.width()) / 2f
+        val textY = height - 80f
+        
+        // 텍스트 배경
+        val textBgPaint = android.graphics.Paint().apply {
+            color = 0x80000000.toInt() // 반투명 검은색
+        }
+        val textBgRect = android.graphics.RectF(
+            textX - 20f, textY - textBounds.height() - 20f,
+            textX + textBounds.width() + 20f, textY + 20f
+        )
+        canvas.drawRoundRect(textBgRect, 20f, 20f, textBgPaint)
+        
+        // 텍스트 그리기
+        canvas.drawText(frameInfoText, textX, textY, textPaint)
         
         return bitmap
     }
@@ -527,6 +703,7 @@ class FrameViewModel : ViewModel() {
         
         checkImagePermission()
         loadTestPhotos() // 테스트용 사진들 로드
+        loadExamplePhotos() // 고품질 예시 사진들 로드
         generateLife4CutExample() // 인생네컷 예시 생성
         println("setContext 완료")
     }
