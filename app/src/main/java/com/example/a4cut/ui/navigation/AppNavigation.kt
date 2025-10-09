@@ -1,8 +1,15 @@
 package com.example.a4cut.ui.navigation
 
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.Transition
+import androidx.compose.animation.core.TransitionState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -162,25 +169,33 @@ fun AppNavigation(
             enterTransition = {
                 slideInHorizontally(
                     initialOffsetX = { it },
-                    animationSpec = tween(300)
+                    animationSpec = tween(400, easing = FastOutSlowInEasing)
+                ) + fadeIn(
+                    animationSpec = tween(400, easing = FastOutSlowInEasing)
                 )
             },
             exitTransition = {
                 slideOutHorizontally(
                     targetOffsetX = { -it },
-                    animationSpec = tween(300)
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeOut(
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
                 )
             },
             popEnterTransition = {
                 slideInHorizontally(
                     initialOffsetX = { -it },
-                    animationSpec = tween(300)
+                    animationSpec = tween(400, easing = FastOutSlowInEasing)
+                ) + fadeIn(
+                    animationSpec = tween(400, easing = FastOutSlowInEasing)
                 )
             },
             popExitTransition = {
                 slideOutHorizontally(
                     targetOffsetX = { it },
-                    animationSpec = tween(300)
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeOut(
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
                 )
             }
         ) {
@@ -376,22 +391,26 @@ fun AppNavigation(
                 ProfileScreen()
             }
             
-            // 사진 상세 보기 화면
+            // 사진 상세 보기 화면 - 확대 전환 효과
             composable(
                 route = "photo_detail/{photoId}",
                 arguments = listOf(
                     navArgument("photoId") { type = NavType.IntType }
                 ),
                 enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = tween(300)
+                    scaleIn(
+                        initialScale = 0.8f,
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    ) + fadeIn(
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
                     )
                 },
                 exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it },
-                        animationSpec = tween(300)
+                    scaleOut(
+                        targetScale = 0.8f,
+                        animationSpec = tween(300, easing = FastOutSlowInEasing)
+                    ) + fadeOut(
+                        animationSpec = tween(300, easing = FastOutSlowInEasing)
                     )
                 }
             ) { backStackEntry ->

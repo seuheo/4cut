@@ -1,6 +1,8 @@
 package com.example.a4cut.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -233,6 +235,18 @@ fun InstagramStoryCircle(
     isViewed: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "story_scale"
+    )
+    
     val storyColors = if (isViewed) {
         listOf(BorderLight, BorderLight)
     } else {
@@ -242,6 +256,7 @@ fun InstagramStoryCircle(
     Box(
         modifier = modifier
             .size(64.dp)
+            .scale(scale)
             .background(
                 brush = androidx.compose.ui.graphics.Brush.linearGradient(storyColors),
                 shape = CircleShape
@@ -252,7 +267,10 @@ fun InstagramStoryCircle(
                 shape = CircleShape
             )
             .padding(2.dp)
-            .clickable { onClick() },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() },
         contentAlignment = Alignment.Center
     ) {
         content()

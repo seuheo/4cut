@@ -3,6 +3,8 @@ package com.example.a4cut.ui.screens
 import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -327,14 +330,22 @@ private fun PostActions(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 좋아요 버튼
+        // 좋아요 버튼 - 강화된 애니메이션
         val interactionSource = remember { MutableInteractionSource() }
         val isPressed by interactionSource.collectIsPressedAsState()
+        
+        // 스케일 애니메이션 (스프링 효과)
         val scale by animateFloatAsState(
-            targetValue = if (isPressed) 0.8f else 1f,
-            animationSpec = tween(100),
+            targetValue = if (isPressed) 0.7f else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
             label = "like_scale"
         )
+        
+        // 색상 (간단한 조건부 색상)
+        val heartColor = if (isLiked) LikeRed else TextSecondary
 
         IconButton(
             onClick = onLikeToggle,
@@ -345,7 +356,7 @@ private fun PostActions(
                 imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (isLiked) "좋아요 취소" else "좋아요",
                 modifier = Modifier.size(24.dp),
-                tint = if (isLiked) LikeRed else TextSecondary
+                tint = heartColor
             )
         }
 
@@ -411,12 +422,33 @@ private fun PostInfo(
 }
 
 /**
- * 처리 중 상태
+ * 처리 중 상태 - 개선된 로딩 애니메이션
  */
 @Composable
 private fun ProcessingState(
     modifier: Modifier = Modifier
 ) {
+    var animationPhase by remember { mutableStateOf(0) }
+    
+    LaunchedEffect(Unit) {
+        while (true) {
+            animationPhase = (animationPhase + 1) % 3
+            kotlinx.coroutines.delay(800)
+        }
+    }
+    
+    val loadingTexts = listOf(
+        "사진을 만들고 있어요",
+        "프레임을 적용하고 있어요",
+        "거의 완성되었어요"
+    )
+    
+    val loadingSubTexts = listOf(
+        "잠시만 기다려주세요...",
+        "KTX 프레임을 준비하고 있어요",
+        "마지막 단계입니다"
+    )
+    
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
@@ -430,16 +462,40 @@ private fun ProcessingState(
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                color = InstagramBlue,
-                strokeWidth = 4.dp
-            )
+            // 개선된 로딩 인디케이터
+            Box(
+                modifier = Modifier.size(64.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    color = InstagramBlue,
+                    strokeWidth = 4.dp
+                )
+                
+                // 중앙에 KTX 로고
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            color = KTXBlue,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "KTX",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "사진을 만들고 있어요",
+                text = loadingTexts[animationPhase],
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = TextPrimary
@@ -448,7 +504,7 @@ private fun ProcessingState(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "잠시만 기다려주세요...",
+                text = loadingSubTexts[animationPhase],
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
