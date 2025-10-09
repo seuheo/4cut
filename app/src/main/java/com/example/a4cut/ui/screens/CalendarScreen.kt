@@ -43,6 +43,7 @@ fun CalendarScreen(
     
     // ViewModel의 상태들을 수집
     val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
+    val allPhotos by homeViewModel.allPhotos.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
     
     Scaffold(
@@ -91,8 +92,24 @@ fun CalendarScreen(
                     selectedDate = calendar
                     // 특정 날짜를 클릭했을 때의 동작
                     println("Selected date: ${calendar.time}")
-                    // 향후 해당 날짜의 사진 목록으로 이동하는 기능을 위한 매개변수 사용
-                    onNavigateToPhotoDetail("photo_list_${calendar.timeInMillis}")
+                    
+                    // 해당 날짜의 첫 번째 사진 ID 찾기
+                    val photosOnDate = allPhotos.filter { photo ->
+                        val photoDate = java.util.Calendar.getInstance().apply {
+                            timeInMillis = photo.createdAt
+                        }
+                        photoDate.get(java.util.Calendar.YEAR) == calendar.get(java.util.Calendar.YEAR) &&
+                        photoDate.get(java.util.Calendar.MONTH) == calendar.get(java.util.Calendar.MONTH) &&
+                        photoDate.get(java.util.Calendar.DAY_OF_MONTH) == calendar.get(java.util.Calendar.DAY_OF_MONTH)
+                    }
+                    
+                    if (photosOnDate.isNotEmpty()) {
+                        // 해당 날짜의 첫 번째 사진으로 이동
+                        onNavigateToPhotoDetail(photosOnDate.first().id.toString())
+                    } else {
+                        // 해당 날짜에 사진이 없으면 기본 사진으로 이동 (또는 아무 동작 안 함)
+                        onNavigateToPhotoDetail("1")
+                    }
                 },
                 isSpecialDay = { calendar ->
                     // 사진이 있는 날짜를 특별한 날로 표시

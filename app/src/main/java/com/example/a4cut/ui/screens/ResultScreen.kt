@@ -49,7 +49,8 @@ fun ResultScreen(
     modifier: Modifier = Modifier,
     frameViewModel: FrameViewModel,
     onBack: () -> Unit,
-    onRestart: () -> Unit
+    onRestart: () -> Unit,
+    onRestartWithPhotos: () -> Unit = onRestart // 기존 사진 유지하고 프레임만 변경
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     
@@ -188,7 +189,7 @@ fun ResultScreen(
             onKeepPhotos = {
                 // 기존 사진 유지하고 프레임 선택 화면으로
                 showRestartDialog = false
-                onRestart()
+                onRestartWithPhotos()
             },
             onNewPhotos = {
                 // 완전히 새로 시작 (사진 선택 화면으로)

@@ -25,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -135,6 +136,12 @@ fun AppNavigation(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val context = LocalContext.current
+    
+    // 데이터베이스 및 Repository를 네비게이션 그래프 레벨에서 싱글톤으로 관리
+    val database = remember { com.example.a4cut.data.database.AppDatabase.getDatabase(context) }
+    val photoRepository = remember { com.example.a4cut.data.repository.PhotoRepository(database.photoDao()) }
+    val frameRepository = remember { com.example.a4cut.data.repository.FrameRepository() }
     
     // ViewModel을 네비게이션 그래프 레벨에서 공유
     val frameViewModel: FrameViewModel = viewModel()
@@ -306,6 +313,10 @@ fun AppNavigation(
                                 inclusive = true
                             }
                         }
+                    },
+                    onRestartWithPhotos = {
+                        // 기존 사진 유지하고 프레임 선택 화면으로
+                        navController.navigate("frame_selection")
                     }
                 )
             }
@@ -326,8 +337,6 @@ fun AppNavigation(
                     )
                 }
             ) {
-                val context = LocalContext.current
-                
                 SearchScreen(
                     onNavigateBack = {
                         navController.popBackStack()
@@ -418,13 +427,8 @@ fun AppNavigation(
                 }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
-                val context = LocalContext.current
                 
-                // 데이터베이스 및 Repository 초기화
-                val database = com.example.a4cut.data.database.AppDatabase.getDatabase(context)
-                val photoRepository = com.example.a4cut.data.repository.PhotoRepository(database.photoDao())
-                
-                // PhotoDetailViewModel 생성
+                // 공유된 Repository를 사용하여 PhotoDetailViewModel 생성
                 val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>(
                     factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                         @Suppress("UNCHECKED_CAST")
@@ -467,13 +471,8 @@ fun AppNavigation(
                 }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
-                val context = LocalContext.current
                 
-                // 데이터베이스 및 Repository 초기화
-                val database = com.example.a4cut.data.database.AppDatabase.getDatabase(context)
-                val photoRepository = com.example.a4cut.data.repository.PhotoRepository(database.photoDao())
-                
-                // PhotoDetailViewModel 생성
+                // 공유된 Repository를 사용하여 PhotoDetailViewModel 생성
                 val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>(
                     factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                         @Suppress("UNCHECKED_CAST")
@@ -514,14 +513,8 @@ fun AppNavigation(
                 }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
-                val context = LocalContext.current
                 
-                // 데이터베이스 및 Repository 초기화
-                val database = com.example.a4cut.data.database.AppDatabase.getDatabase(context)
-                val photoRepository = com.example.a4cut.data.repository.PhotoRepository(database.photoDao())
-                val frameRepository = com.example.a4cut.data.repository.FrameRepository()
-                
-                // FrameApplyViewModel 생성
+                // 공유된 Repository를 사용하여 FrameApplyViewModel 생성
                 val frameApplyViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.FrameApplyViewModel>(
                     factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                         @Suppress("UNCHECKED_CAST")
