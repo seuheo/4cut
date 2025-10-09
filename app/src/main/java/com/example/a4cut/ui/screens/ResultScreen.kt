@@ -65,6 +65,8 @@ fun ResultScreen(
     // 로컬 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
     var isLiked by remember { mutableStateOf(false) }
+    var showSaveSnackbar by remember { mutableStateOf(false) }
+    var showShareSnackbar by remember { mutableStateOf(false) }
     
     // 디버그 로그
     LaunchedEffect(selectedFrame, photos) {
@@ -154,8 +156,14 @@ fun ResultScreen(
                 ActionButtons(
                     isSaved = false, // 임시로 false
                     isShared = false, // 임시로 false
-                    onSave = { frameViewModel.saveImage() },
-                    onShare = { /* TODO: 공유 기능 */ },
+                    onSave = { 
+                        frameViewModel.saveImage()
+                        showSaveSnackbar = true
+                    },
+                    onShare = { 
+                        /* TODO: 공유 기능 */
+                        showShareSnackbar = true
+                    },
                     onRestart = onRestart,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -171,6 +179,92 @@ fun ResultScreen(
             onShare = { /* TODO: 공유 */ },
             onDismiss = { showPreviewDialog = false }
         )
+    }
+    
+    // 저장 완료 Snackbar
+    if (showSaveSnackbar) {
+        LaunchedEffect(showSaveSnackbar) {
+            kotlinx.coroutines.delay(2000) // 2초 후 자동 사라짐
+            showSaveSnackbar = false
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = SuccessGreen
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "갤러리에 저장되었어요! 📸",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+    
+    // 공유 완료 Snackbar
+    if (showShareSnackbar) {
+        LaunchedEffect(showShareSnackbar) {
+            kotlinx.coroutines.delay(2000) // 2초 후 자동 사라짐
+            showShareSnackbar = false
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = InstagramBlue
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "공유가 완료되었어요! 🎉",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
     }
 }
 

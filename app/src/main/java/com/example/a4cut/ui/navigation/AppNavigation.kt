@@ -150,13 +150,14 @@ fun AppNavigation(
                         // avoid building up a large stack of destinations
                         // on the back stack as users select items
                         popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+                            // 홈 버튼 클릭 시 항상 초기 화면으로 이동하도록 saveState 제거
+                            // saveState = true // 제거됨
                         }
                         // Avoid multiple copies of the same destination when
                         // reselecting the same item
                         launchSingleTop = true
-                        // Restore state when reselecting a previously selected item
-                        restoreState = true
+                        // 홈 버튼 클릭 시 항상 초기 화면으로 이동하도록 restoreState 제거
+                        // restoreState = true // 제거됨
                     }
                 }
             )

@@ -114,6 +114,7 @@ fun HomeScreen(
                 FeedSection(
                     photos = allPhotos,
                     onPhotoClick = onNavigateToPhotoDetail,
+                    onNavigateToFrame = onNavigateToFrame,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
@@ -238,6 +239,7 @@ private fun StorySection(
 private fun FeedSection(
     photos: List<PhotoEntity>,
     onPhotoClick: (String) -> Unit,
+    onNavigateToFrame: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -268,7 +270,7 @@ private fun FeedSection(
         if (photos.isEmpty()) {
             // 빈 상태
             EmptyFeedState(
-                onAddPhoto = { /* TODO: 사진 추가 */ },
+                onAddPhoto = onNavigateToFrame,
                 modifier = Modifier.padding(32.dp)
             )
         } else {

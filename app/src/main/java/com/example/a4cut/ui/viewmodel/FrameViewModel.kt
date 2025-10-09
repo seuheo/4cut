@@ -5,6 +5,9 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
@@ -742,6 +745,8 @@ class FrameViewModel : ViewModel() {
         println("프레임 선택됨: ${frame.name} (ID: ${frame.id}, DrawableID: ${frame.drawableId})")
         _selectedFrame.value = frame
         clearError()
+        // 햅틱 피드백 추가
+        triggerHapticFeedback()
     }
     
     /**
@@ -1244,6 +1249,32 @@ class FrameViewModel : ViewModel() {
      */
     private fun clearError() {
         _errorMessage.value = null
+    }
+    
+    /**
+     * 햅틱 피드백 트리거
+     */
+    private fun triggerHapticFeedback() {
+        context?.let { ctx ->
+            try {
+                val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val vibratorManager = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+                
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(50)
+                }
+            } catch (e: Exception) {
+                println("햅틱 피드백 실패: ${e.message}")
+            }
+        }
     }
     
     /**
