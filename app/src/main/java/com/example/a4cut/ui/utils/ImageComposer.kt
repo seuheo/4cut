@@ -217,9 +217,41 @@ class ImageComposer(private val context: Context) {
     }
 
     /**
-     * 벡터 드로어블을 고품질 Bitmap으로 변환
+     * Drawable 리소스를 고품질 Bitmap으로 변환 (Vector Drawable + PNG 모두 지원)
      * @param context Context
-     * @param drawableId 벡터 드로어블 리소스 ID
+     * @param drawableId Drawable 리소스 ID
+     * @param width 원하는 너비
+     * @param height 원하는 높이
+     * @return 고품질 Bitmap
+     */
+    fun loadDrawableAsBitmap(
+        context: Context,
+        drawableId: Int,
+        width: Int,
+        height: Int
+    ): Bitmap {
+        println("ImageComposer: Drawable 로딩 시작 - ID: $drawableId, 크기: ${width}x${height}")
+        val drawable = context.getDrawable(drawableId)
+        if (drawable == null) {
+            println("ImageComposer: Drawable이 null입니다 - ID: $drawableId")
+        } else {
+            println("ImageComposer: Drawable 로딩 성공 - ${drawable.javaClass.simpleName}")
+        }
+        
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        drawable?.setBounds(0, 0, width, height)
+        drawable?.draw(canvas)
+        
+        println("ImageComposer: Bitmap 생성 완료 - ${bitmap.width}x${bitmap.height}")
+        return bitmap
+    }
+    
+    /**
+     * Vector Drawable을 고품질 Bitmap으로 변환 (하위 호환성)
+     * @param context Context
+     * @param drawableId Vector Drawable 리소스 ID
      * @param width 원하는 너비
      * @param height 원하는 높이
      * @return 고품질 Bitmap
@@ -230,14 +262,7 @@ class ImageComposer(private val context: Context) {
         width: Int,
         height: Int
     ): Bitmap {
-        val drawable = context.getDrawable(drawableId)
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        
-        drawable?.setBounds(0, 0, width, height)
-        drawable?.draw(canvas)
-        
-        return bitmap
+        return loadDrawableAsBitmap(context, drawableId, width, height)
     }
 
     /**

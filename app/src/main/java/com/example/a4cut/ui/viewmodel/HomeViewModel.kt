@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Calendar
 
 /**
  * 새로운 홈 화면의 ViewModel
@@ -67,10 +68,15 @@ class HomeViewModel : ViewModel() {
     
     // ✅ 추가: 사진이 존재하는 모든 날짜 목록을 가져옵니다. (달력 표시용)
     val datesWithPhotos: StateFlow<List<LocalDate>> = photoLogs.map { photos ->
-        photos.map { 
-            java.time.Instant.ofEpochMilli(it.createdAt)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate() 
+        photos.map { photo ->
+            // Calendar를 사용하여 API 호환성 확보
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = photo.createdAt
+            LocalDate.of(
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.DAY_OF_MONTH)
+            )
         }.distinct().sorted()
     }.stateIn(
         scope = viewModelScope,
@@ -90,6 +96,7 @@ class HomeViewModel : ViewModel() {
         } catch (e: Exception) {
             _errorMessage.value = "데이터베이스 초기화 실패: ${e.message}"
             e.printStackTrace()
+            // 초기화 실패 시에도 기본 상태 유지
         }
     }
     

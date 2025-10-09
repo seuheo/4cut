@@ -33,6 +33,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -76,6 +77,9 @@ dependencies {
     
     // DataStore (설정 및 데이터 영구 저장)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // Core Library Desugaring (Java 8+ API 지원)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     
     // Accompanist Pager 제거 - LazyRow로 대체
     

@@ -69,6 +69,60 @@ class FrameRepository {
                 title = "경주와 함께한 추억",
                 isPremium = false,
                 drawableId = R.drawable.ktx_frame_gyeongju
+            ),
+            Frame(
+                id = 6,
+                name = "바다 도시",
+                date = "25.01.13",
+                station = "해안역",
+                title = "바다와 도시의 만남",
+                isPremium = true,
+                drawableId = R.drawable.ktx_frame_coastal
+            ),
+            Frame(
+                id = 7,
+                name = "서울역 클래식",
+                date = "25.01.13",
+                station = "서울역",
+                title = "서울역의 과거와 현재",
+                isPremium = false,
+                drawableId = R.drawable.ktx_frame_seoul
+            ),
+            Frame(
+                id = 8,
+                name = "전통 기차역",
+                date = "25.01.13",
+                station = "처음역",
+                title = "전통과 현대의 조화",
+                isPremium = true,
+                drawableId = R.drawable.ktx_frame_traditional
+            ),
+            Frame(
+                id = 9,
+                name = "서울역 PNG",
+                date = "25.01.13",
+                station = "서울역",
+                title = "서울역 프레임 (PNG)",
+                isPremium = false,
+                drawableId = R.drawable.seoul_station
+            ),
+            Frame(
+                id = 10,
+                name = "부산역 PNG",
+                date = "25.01.13",
+                station = "부산역",
+                title = "부산역 프레임 (PNG)",
+                isPremium = true,
+                drawableId = R.drawable.busan_station
+            ),
+            Frame(
+                id = 11,
+                name = "전주역 PNG",
+                date = "25.01.13",
+                station = "전주역",
+                title = "전주역 프레임 (PNG)",
+                isPremium = false,
+                drawableId = R.drawable.jeonju_station
             )
         )
         

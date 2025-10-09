@@ -1,17 +1,33 @@
 package com.example.a4cut.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -26,11 +42,101 @@ import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
 import com.example.a4cut.ui.screens.HomeScreen
 import com.example.a4cut.ui.screens.PhotoDetailScreen
+import com.example.a4cut.ui.screens.PhotoSelectionScreen
+import com.example.a4cut.ui.screens.FrameSelectionScreen
+import com.example.a4cut.ui.screens.ResultScreen
 import com.example.a4cut.ui.screens.ProfileScreen
 import com.example.a4cut.ui.screens.SearchScreen
 import com.example.a4cut.ui.screens.SettingsScreen
 import com.example.a4cut.R
 import com.example.a4cut.data.database.entity.PhotoEntity
+import com.example.a4cut.ui.viewmodel.FrameViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+/**
+ * 토스 스타일 네비게이션 바 아이템
+ */
+@Composable
+private fun TossNavigationItem(
+    screen: Screen,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                else Color.Transparent
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = screen.icon),
+                contentDescription = stringResource(screen.title),
+                modifier = Modifier.size(20.dp),
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            if (isSelected) {
+                Text(
+                    text = stringResource(screen.title),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 토스 스타일 네비게이션 바
+ */
+@Composable
+private fun TossBottomNavigation(
+    currentDestination: androidx.navigation.NavDestination?,
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            listOf(
+                Screen.Home,
+                Screen.Frame,
+                Screen.Calendar,
+                Screen.Settings,
+                Screen.Profile
+            ).forEach { screen ->
+                val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                
+                TossNavigationItem(
+                    screen = screen,
+                    isSelected = isSelected,
+                    onClick = { onNavigate(screen.route) }
+                )
+            }
+        }
+    }
+}
 
 /**
  * 앱의 메인 네비게이션 구조
@@ -42,65 +148,188 @@ fun AppNavigation(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    
+    // ViewModel을 네비게이션 그래프 레벨에서 공유
+    val frameViewModel: FrameViewModel = viewModel()
 
     Scaffold(
         modifier = modifier,
         bottomBar = {
-            NavigationBar {
-                listOf(
-                    Screen.Home,
-                    Screen.Frame,
-                    Screen.Calendar,
-                    Screen.Settings,
-                    Screen.Profile
-                ).forEach { screen ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                painter = painterResource(id = screen.icon),
-                                contentDescription = stringResource(screen.title)
-                            )
-                        },
-                        label = { Text(stringResource(screen.title)) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                // Pop up to the start destination of the graph to
-                                // avoid building up a large stack of destinations
-                                // on the back stack as users select items
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                // Avoid multiple copies of the same destination when
-                                // reselecting the same item
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
-                            }
+            TossBottomNavigation(
+                currentDestination = currentDestination,
+                onNavigate = { route ->
+                    navController.navigate(route) {
+                        // Pop up to the start destination of the graph to
+                        // avoid building up a large stack of destinations
+                        // on the back stack as users select items
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
                         }
-                    )
+                        // Avoid multiple copies of the same destination when
+                        // reselecting the same item
+                        launchSingleTop = true
+                        // Restore state when reselecting a previously selected item
+                        restoreState = true
+                    }
                 }
-            }
+            )
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(300)
+                )
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { -it },
+                    animationSpec = tween(300)
+                )
+            },
+            popEnterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { -it },
+                    animationSpec = tween(300)
+                )
+            },
+            popExitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(300)
+                )
+            }
         ) {
-            composable(Screen.Home.route) {
+            composable(
+                route = Screen.Home.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
                 HomeScreen(
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
+                    },
+                    onNavigateToFrame = {
+                        navController.navigate(Screen.Frame.route)
+                    },
+                    onNavigateToSearch = {
+                        navController.navigate("search")
                     }
                 )
             }
-            composable(Screen.Frame.route) {
-                FrameScreen()
+            // 1단계: 사진 선택 화면
+            composable(
+                route = Screen.Frame.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
+                PhotoSelectionScreen(
+                    frameViewModel = frameViewModel,
+                    onNext = {
+                        navController.navigate("frame_selection")
+                    }
+                )
+            }
+            
+            // 2단계: 프레임 선택 화면
+            composable(
+                route = "frame_selection",
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
+                FrameSelectionScreen(
+                    frameViewModel = frameViewModel,
+                    onNext = {
+                        navController.navigate("result")
+                    },
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            
+            // 3단계: 결과 확인 및 저장/공유 화면
+            composable(
+                route = "result",
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
+                ResultScreen(
+                    frameViewModel = frameViewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onRestart = {
+                        // 첫 번째 단계로 돌아가기
+                        navController.navigate(Screen.Frame.route) {
+                            popUpTo(Screen.Frame.route) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
             }
             
             // 검색 화면
-            composable("search") {
+            composable(
+                route = "search",
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
                 SearchScreen(
                     onNavigateBack = {
                         navController.popBackStack()
@@ -111,17 +340,59 @@ fun AppNavigation(
                     }
                 )
             }
-            composable(Screen.Calendar.route) {
+            composable(
+                route = Screen.Calendar.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
                 CalendarScreen(
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
                     }
                 )
             }
-            composable(Screen.Settings.route) {
+            composable(
+                route = Screen.Settings.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
                 SettingsScreen()
             }
-            composable(Screen.Profile.route) {
+            composable(
+                route = Screen.Profile.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
                 ProfileScreen()
             }
             
@@ -130,7 +401,19 @@ fun AppNavigation(
                 route = "photo_detail/{photoId}",
                 arguments = listOf(
                     navArgument("photoId") { type = NavType.IntType }
-                )
+                ),
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
                 // TODO: PhotoDetailViewModel을 통해 photoId로 사진 정보를 가져와야 함
@@ -165,7 +448,19 @@ fun AppNavigation(
                 route = "photo_edit/{photoId}",
                 arguments = listOf(
                     navArgument("photoId") { type = NavType.IntType }
-                )
+                ),
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
                 
@@ -197,7 +492,19 @@ fun AppNavigation(
                 route = "frame_apply/{photoId}",
                 arguments = listOf(
                     navArgument("photoId") { type = NavType.IntType }
-                )
+                ),
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
                 val context = LocalContext.current

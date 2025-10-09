@@ -562,6 +562,7 @@ class FrameViewModel : ViewModel() {
      * 프레임 선택
      */
     fun selectFrame(frame: Frame) {
+        println("프레임 선택됨: ${frame.name} (ID: ${frame.id}, DrawableID: ${frame.drawableId})")
         _selectedFrame.value = frame
         clearError()
     }
@@ -1097,23 +1098,50 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * KTX 시그니처 프레임 리소스를 고품질 Bitmap으로 로드
+     * 선택된 프레임을 고품질 Bitmap으로 로드
      */
-    private fun loadKtxFrameBitmap(): Bitmap {
+    private fun loadSelectedFrameBitmap(): Bitmap {
         return try {
             context?.let { ctx ->
-                // ImageComposer의 고품질 벡터 드로어블 로딩 함수 사용
-                imageComposer?.loadVectorDrawableAsBitmap(
-                    context = ctx,
-                    drawableId = R.drawable.ktx_frame_signature,
-                    width = ImageComposer.OUTPUT_WIDTH,
-                    height = ImageComposer.OUTPUT_HEIGHT
-                ) ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
-            } ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+                val selectedFrame = _selectedFrame.value
+                if (selectedFrame != null) {
+                    println("선택된 프레임 로딩: ${selectedFrame.name} (DrawableID: ${selectedFrame.drawableId})")
+                    // 선택된 프레임 사용 (Vector Drawable + PNG 모두 지원)
+                    imageComposer?.loadDrawableAsBitmap(
+                        context = ctx,
+                        drawableId = selectedFrame.drawableId,
+                        width = ImageComposer.OUTPUT_WIDTH,
+                        height = ImageComposer.OUTPUT_HEIGHT
+                    ) ?: run {
+                        println("프레임 로딩 실패, 기본 프레임 사용")
+                        createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+                    }
+                } else {
+                    println("선택된 프레임 없음, 기본 프레임 사용")
+                    // 기본 프레임 사용
+                    imageComposer?.loadDrawableAsBitmap(
+                        context = ctx,
+                        drawableId = R.drawable.ktx_frame_signature,
+                        width = ImageComposer.OUTPUT_WIDTH,
+                        height = ImageComposer.OUTPUT_HEIGHT
+                    ) ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+                }
+            } ?: run {
+                println("Context 없음, 기본 프레임 생성")
+                createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+            }
         } catch (e: Exception) {
+            println("프레임 로딩 오류: ${e.message}")
             // 리소스 로드 실패 시 기본 프레임 생성
             createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
         }
+    }
+    
+    /**
+     * KTX 시그니처 프레임 리소스를 고품질 Bitmap으로 로드 (하위 호환성)
+     */
+    private fun loadKtxFrameBitmap(): Bitmap {
+        return loadSelectedFrameBitmap()
     }
     
     /**

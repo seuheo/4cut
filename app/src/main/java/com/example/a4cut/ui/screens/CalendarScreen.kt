@@ -99,12 +99,16 @@ fun CalendarScreen(
                     val calendarDate = Calendar.getInstance().apply {
                         timeInMillis = calendar.timeInMillis
                     }
-                    val localDate = java.time.LocalDate.of(
-                        calendarDate.get(Calendar.YEAR),
-                        calendarDate.get(Calendar.MONTH) + 1,
-                        calendarDate.get(Calendar.DAY_OF_MONTH)
-                    )
-                    datesWithPhotos.contains(localDate)
+                    val year = calendarDate.get(Calendar.YEAR)
+                    val month = calendarDate.get(Calendar.MONTH) + 1
+                    val day = calendarDate.get(Calendar.DAY_OF_MONTH)
+                    
+                    // LocalDate 대신 Calendar를 사용하여 API 호환성 확보
+                    datesWithPhotos.any { localDate ->
+                        localDate.year == year && 
+                        localDate.monthValue == month && 
+                        localDate.dayOfMonth == day
+                    }
                 }
             )
             
@@ -136,13 +140,14 @@ fun CalendarScreen(
                         )
                         
                         // 해당 날짜에 사진이 있는지 확인
-                        val hasPhotos = datesWithPhotos.contains(
-                            java.time.LocalDate.of(
-                                selected.get(Calendar.YEAR),
-                                selected.get(Calendar.MONTH) + 1,
-                                selected.get(Calendar.DAY_OF_MONTH)
-                            )
-                        )
+                        val year = selected.get(Calendar.YEAR)
+                        val month = selected.get(Calendar.MONTH) + 1
+                        val day = selected.get(Calendar.DAY_OF_MONTH)
+                        val hasPhotos = datesWithPhotos.any { localDate ->
+                            localDate.year == year && 
+                            localDate.monthValue == month && 
+                            localDate.dayOfMonth == day
+                        }
                         
                         if (hasPhotos) {
                             Spacer(modifier = Modifier.height(8.dp))
