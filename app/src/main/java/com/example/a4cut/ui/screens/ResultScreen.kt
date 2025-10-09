@@ -1,38 +1,46 @@
 package com.example.a4cut.ui.screens
 
 import android.graphics.Bitmap
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a4cut.data.model.Frame
 import com.example.a4cut.ui.components.ImagePreviewDialog
-import com.example.a4cut.ui.components.TossPrimaryButton
-import com.example.a4cut.ui.components.TossSecondaryButton
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
 
 /**
- * 3단계: 결과 확인 및 저장/공유 화면
- * 최종 4컷 사진을 확인하고 저장/공유하는 마지막 단계
+ * 인스타그램 스타일 결과 화면
+ * 완성된 4컷 사진을 인스타그램 포스트처럼 보여주고 공유할 수 있습니다.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultScreen(
     modifier: Modifier = Modifier,
@@ -48,17 +56,14 @@ fun ResultScreen(
     val composedImage by frameViewModel.composedImage.collectAsState()
     val isProcessing by frameViewModel.isProcessing.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
-    val successMessage by frameViewModel.successMessage.collectAsState()
+    // val isSaved by frameViewModel.isSaved.collectAsState()
+    // val isShared by frameViewModel.isShared.collectAsState()
     
-    // 미리보기 다이얼로그 상태
+    // 로컬 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
+    var isLiked by remember { mutableStateOf(false) }
     
-    // Context 설정
-    LaunchedEffect(Unit) {
-        frameViewModel.setContext(context)
-    }
-    
-    // 자동으로 이미지 합성 시작
+    // 디버그 로그
     LaunchedEffect(selectedFrame, photos) {
         println("ResultScreen: selectedFrame = $selectedFrame, photos = ${photos.map { it != null }}, composedImage = ${composedImage != null}")
         if (selectedFrame != null && photos.any { it != null } && composedImage == null) {
@@ -66,398 +71,546 @@ fun ResultScreen(
             frameViewModel.startImageComposition()
         }
     }
-    
-    // 이미지 합성 완료 시 자동으로 미리보기 표시
-    LaunchedEffect(composedImage) {
-        if (composedImage != null && !isProcessing) {
-            showPreviewDialog = true
-        }
-    }
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundLight)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // 헤더 섹션
-        HeaderSection(
-            successMessage = successMessage,
-            errorMessage = errorMessage,
-            selectedFrame = selectedFrame
-        )
-        
-        // 결과 이미지 섹션
-        ResultImageSection(
-            composedImage = composedImage,
-            isProcessing = isProcessing,
-            onPreviewClick = { showPreviewDialog = true }
-        )
-        
-        // 선택된 사진과 프레임 정보
-        SelectionInfoSection(
-            photos = photos,
-            selectedFrame = selectedFrame
-        )
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        // 액션 버튼들
-        ActionButtonsSection(
-            composedImage = composedImage,
-            isProcessing = isProcessing,
-            onSave = { 
-                frameViewModel.saveImage()
+        // 인스타그램 스타일 상단 바
+        TopAppBar(
+            title = {
+                Text(
+                    text = "완성된 사진",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
             },
-            onShare = { 
-                frameViewModel.shareToInstagram()
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "뒤로가기",
+                        tint = TextPrimary
+                    )
+                }
             },
-            onPreview = { 
-                showPreviewDialog = true 
+            actions = {
+                IconButton(onClick = onRestart) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "다시 만들기",
+                        tint = TextPrimary
+                    )
+                }
             },
-            onBack = onBack,
-            onRestart = onRestart
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = SurfaceLight,
+                titleContentColor = TextPrimary
+            )
         )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 인스타그램 스타일 포스트 카드
+            when {
+                composedImage != null -> {
+                    InstagramPostCard(
+                        image = composedImage!!,
+                        frame = selectedFrame,
+                        isLiked = isLiked,
+                        onLikeToggle = { isLiked = !isLiked },
+                        onImageClick = { showPreviewDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                isProcessing -> {
+                    // 로딩 상태
+                    ProcessingState(
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                else -> {
+                    // 에러 상태
+                    ErrorState(
+                        message = errorMessage ?: "이미지 생성 중 오류가 발생했습니다.",
+                        onRetry = { frameViewModel.startImageComposition() },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // 액션 버튼들
+            if (composedImage != null) {
+                ActionButtons(
+                    isSaved = false, // 임시로 false
+                    isShared = false, // 임시로 false
+                    onSave = { frameViewModel.saveImage() },
+                    onShare = { /* TODO: 공유 기능 */ },
+                    onRestart = onRestart,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
-    
+
     // 이미지 미리보기 다이얼로그
     if (showPreviewDialog && composedImage != null) {
         ImagePreviewDialog(
             bitmap = composedImage,
-            onDismiss = { showPreviewDialog = false },
-            onSave = { 
-                frameViewModel.saveImage()
-                showPreviewDialog = false
-            },
-            onShare = { 
-                frameViewModel.shareToInstagram()
-                showPreviewDialog = false
-            },
-            isProcessing = isProcessing
+            onSave = { /* TODO: 저장 */ },
+            onShare = { /* TODO: 공유 */ },
+            onDismiss = { showPreviewDialog = false }
         )
     }
 }
 
 /**
- * 헤더 섹션
+ * 인스타그램 스타일 포스트 카드
  */
 @Composable
-private fun HeaderSection(
-    successMessage: String?,
-    errorMessage: String?,
-    selectedFrame: Frame?
+private fun InstagramPostCard(
+    image: Bitmap,
+    frame: Frame?,
+    isLiked: Boolean,
+    onLikeToggle: () -> Unit,
+    onImageClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column {
-        Text(
-            text = "결과 확인",
-            style = MaterialTheme.typography.headlineLarge,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 8.dp)
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = SurfaceLight
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
         )
-        
-        Text(
-            text = "선택한 프레임과 사진으로 만든 4컷 사진을 확인해보세요",
-            style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        // 성공 메시지
-        successMessage?.let { success ->
-            SuccessMessageCard(message = success)
-        }
-        
-        // 에러 메시지
-        errorMessage?.let { error ->
-            ErrorMessageCard(message = error)
-        }
-    }
-}
+    ) {
+        Column {
+            // 포스트 헤더
+            PostHeader(
+                frame = frame,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
 
-/**
- * 결과 이미지 섹션
- */
-@Composable
-private fun ResultImageSection(
-    composedImage: Bitmap?,
-    isProcessing: Boolean,
-    onPreviewClick: () -> Unit
-) {
-    Column {
-        Text(
-            text = "최종 결과",
-            style = MaterialTheme.typography.titleLarge,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceLight),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isProcessing) {
-                    // 처리 중 상태
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            color = KTXBlue,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Text(
-                            text = "이미지 합성 중...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = TextSecondary
-                        )
-                    }
-                } else if (composedImage != null) {
-                    // 합성된 이미지 표시
-                    Image(
-                        bitmap = composedImage.asImageBitmap(),
-                        contentDescription = "합성된 4컷 이미지",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(16.dp)),
-                        contentScale = ContentScale.Fit
-                    )
-                } else {
-                    // 이미지 없음
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "이미지를 생성하는 중입니다...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = TextSecondary
-                        )
-                    }
-                }
-            }
-        }
-        
-        // 미리보기 버튼
-        if (composedImage != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-            TossSecondaryButton(
-                text = "크게 보기",
-                onClick = onPreviewClick,
+            // 포스트 이미지
+            PostImage(
+                image = image,
+                onClick = onImageClick,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // 포스트 액션들
+            PostActions(
+                isLiked = isLiked,
+                onLikeToggle = onLikeToggle,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            // 포스트 정보
+            PostInfo(
+                frame = frame,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
         }
     }
 }
 
 /**
- * 선택된 사진과 프레임 정보 섹션
+ * 포스트 헤더
  */
 @Composable
-private fun SelectionInfoSection(
-    photos: List<Bitmap?>,
-    selectedFrame: Frame?
+private fun PostHeader(
+    frame: Frame?,
+    modifier: Modifier = Modifier
 ) {
-    Column {
-        Text(
-            text = "선택 정보",
-            style = MaterialTheme.typography.titleLarge,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = SurfaceLight),
-            shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 프로필 이미지 (KTX 로고)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    color = KTXBlue,
+                    shape = RoundedCornerShape(20.dp)
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Text(
+                text = "KTX",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "KTX 네컷",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+            Text(
+                text = frame?.name ?: "프레임",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary
+            )
+        }
+    }
+}
+
+/**
+ * 포스트 이미지
+ */
+@Composable
+private fun PostImage(
+    image: Bitmap,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = tween(100),
+        label = "image_scale"
+    )
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() }
+    ) {
+        Image(
+            bitmap = image.asImageBitmap(),
+            contentDescription = "완성된 4컷 사진",
+            modifier = Modifier.fillMaxWidth(),
+            contentScale = ContentScale.Fit
+        )
+    }
+}
+
+/**
+ * 포스트 액션들
+ */
+@Composable
+private fun PostActions(
+    isLiked: Boolean,
+    onLikeToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // 좋아요 버튼
+        val interactionSource = remember { MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (isPressed) 0.8f else 1f,
+            animationSpec = tween(100),
+            label = "like_scale"
+        )
+
+        IconButton(
+            onClick = onLikeToggle,
+            modifier = Modifier.scale(scale),
+            interactionSource = interactionSource
+        ) {
+            Icon(
+                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (isLiked) "좋아요 취소" else "좋아요",
+                modifier = Modifier.size(24.dp),
+                tint = if (isLiked) LikeRed else TextSecondary
+            )
+        }
+
+        // 공유 버튼
+        IconButton(onClick = { /* TODO: 공유 기능 */ }) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = "공유",
+                modifier = Modifier.size(24.dp),
+                tint = TextSecondary
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // 저장 버튼
+        IconButton(onClick = { /* TODO: 저장 기능 */ }) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = "저장",
+                modifier = Modifier.size(24.dp),
+                tint = TextSecondary
+            )
+        }
+    }
+}
+
+/**
+ * 포스트 정보
+ */
+@Composable
+private fun PostInfo(
+    frame: Frame?,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+    ) {
+        Text(
+            text = "KTX와 함께한 특별한 순간 ✨",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "#KTX #네컷 #여행 #추억",
+            style = MaterialTheme.typography.bodySmall,
+            color = InstagramBlue
+        )
+
+        if (frame != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "프레임: ${frame.name}",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary
+            )
+        }
+    }
+}
+
+/**
+ * 처리 중 상태
+ */
+@Composable
+private fun ProcessingState(
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = SurfaceLight
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                color = InstagramBlue,
+                strokeWidth = 4.dp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "사진을 만들고 있어요",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "잠시만 기다려주세요...",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * 에러 상태
+ */
+@Composable
+private fun ErrorState(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = ErrorRed.copy(alpha = 0.1f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = ErrorRed.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "오류가 발생했습니다",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = ErrorRed
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ErrorRed,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                // 선택된 사진 개수
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "선택된 사진",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
-                    )
-                    Text(
-                        text = "${photos.count { it != null }}장",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                // 선택된 프레임
-                selectedFrame?.let { frame ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "선택된 프레임",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                        Text(
-                            text = frame.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "역",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                        Text(
-                            text = frame.station,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
+                Text(
+                    text = "다시 시도",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
 }
 
 /**
- * 액션 버튼 섹션
+ * 액션 버튼들
  */
 @Composable
-private fun ActionButtonsSection(
-    composedImage: Bitmap?,
-    isProcessing: Boolean,
+private fun ActionButtons(
+    isSaved: Boolean,
+    isShared: Boolean,
     onSave: () -> Unit,
     onShare: () -> Unit,
-    onPreview: () -> Unit,
-    onBack: () -> Unit,
-    onRestart: () -> Unit
+    onRestart: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 메인 액션 버튼들
+        // 저장 및 공유 버튼
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 갤러리에 저장
-            TossPrimaryButton(
-                text = "갤러리에 저장",
+            Button(
                 onClick = onSave,
-                enabled = composedImage != null && !isProcessing,
-                modifier = Modifier.weight(1f)
-            )
-            
-            // 인스타그램 공유
-            TossSecondaryButton(
-                text = "인스타그램 공유",
+                enabled = !isSaved,
+                modifier = Modifier.weight(1f).height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSaved) SuccessGreen else InstagramBlue,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isSaved) "저장됨" else "저장하기",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Button(
                 onClick = onShare,
-                enabled = composedImage != null && !isProcessing,
-                modifier = Modifier.weight(1f)
-            )
+                enabled = !isShared,
+                modifier = Modifier.weight(1f).height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isShared) SuccessGreen else KTXBlue,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isShared) "공유됨" else "공유하기",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
-        
-        // 보조 액션 버튼들
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+
+        // 다시 만들기 버튼
+        OutlinedButton(
+            onClick = onRestart,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = TextPrimary
+            ),
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = BorderLight
+            ),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            // 뒤로가기
-            TossSecondaryButton(
-                text = "뒤로가기",
-                onClick = onBack,
-                enabled = !isProcessing,
-                modifier = Modifier.weight(1f)
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
             )
-            
-            // 다시 만들기
-            TossSecondaryButton(
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
                 text = "다시 만들기",
-                onClick = onRestart,
-                enabled = !isProcessing,
-                modifier = Modifier.weight(1f)
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
             )
         }
-        
-        // 상태 안내
-        val statusText = when {
-            isProcessing -> "이미지 합성 중..."
-            composedImage == null -> "이미지를 생성하는 중입니다..."
-            else -> "저장하거나 공유해보세요!"
-        }
-        
-        Text(
-            text = statusText,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (composedImage != null) KTXBlue else TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
-
-/**
- * 성공 메시지 카드
- */
-@Composable
-private fun SuccessMessageCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = KTXBlue.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = KTXBlue,
-            modifier = Modifier.padding(16.dp)
-        )
-    }
-}
-
-/**
- * 에러 메시지 카드
- */
-@Composable
-private fun ErrorMessageCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(16.dp)
-        )
-    }
-}
-

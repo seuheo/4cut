@@ -10,12 +10,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -121,10 +123,10 @@ fun FrameSelectionScreen(
             }
 
             // 선택된 프레임 정보
-            if (selectedFrame != null) {
+            selectedFrame?.let { frame ->
                 item {
                     SelectedFrameInfo(
-                        frame = selectedFrame,
+                        frame = frame,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -141,10 +143,10 @@ fun FrameSelectionScreen(
             }
 
             // 에러 메시지
-            if (errorMessage != null) {
+            errorMessage?.let { message ->
                 item {
                     ErrorMessage(
-                        message = errorMessage,
+                        message = message,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
