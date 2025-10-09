@@ -29,7 +29,14 @@ fun PhotoEditScreen(
     onNavigateBack: () -> Unit
 ) {
     val editData by viewModel.editData.collectAsState()
-
+    val uiState by viewModel.uiState.collectAsState()
+    
+    // 저장 완료 후 자동으로 이전 화면으로 돌아가기
+    LaunchedEffect(uiState.message) {
+        if (uiState.message == "저장되었습니다") {
+            onNavigateBack()
+        }
+    }
     
     // 로컬 편집 상태
     var localTitle by remember { mutableStateOf(editData.title) }
