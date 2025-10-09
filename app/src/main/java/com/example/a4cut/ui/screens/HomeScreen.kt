@@ -61,8 +61,9 @@ fun HomeScreen(
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val isTestMode by homeViewModel.isTestMode.collectAsState()
     
-    // 테스트 모드 토글
+    // Context 설정 및 테스트 모드 토글
     LaunchedEffect(Unit) {
+        homeViewModel.setContext(context)
         homeViewModel.toggleTestMode()
     }
 
@@ -274,11 +275,12 @@ private fun FeedSection(
                 modifier = Modifier.padding(32.dp)
             )
         } else {
-            // 격자형 피드 레이아웃
+            // 격자형 피드 레이아웃 - 높이 제한으로 무한 스크롤 문제 해결
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(max = 600.dp) // 최대 높이 제한
                     .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),

@@ -300,7 +300,7 @@ fun AppNavigation(
                         navController.popBackStack()
                     },
                     onRestart = {
-                        // 첫 번째 단계로 돌아가기
+                        // 첫 번째 단계로 돌아가기 (사진 선택 화면)
                         navController.navigate(Screen.Frame.route) {
                             popUpTo(Screen.Frame.route) {
                                 inclusive = true
@@ -326,6 +326,8 @@ fun AppNavigation(
                     )
                 }
             ) {
+                val context = LocalContext.current
+                
                 SearchScreen(
                     onNavigateBack = {
                         navController.popBackStack()
@@ -416,23 +418,25 @@ fun AppNavigation(
                 }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
-                // TODO: PhotoDetailViewModel을 통해 photoId로 사진 정보를 가져와야 함
-                // 임시로 더미 데이터 사용
-                val dummyPhoto = PhotoEntity(
-                    id = photoId,
-                    imagePath = "dummy_path",
-                    createdAt = System.currentTimeMillis(),
-                    title = "더미 제목",
-                    location = "더미 위치",
-                    frameType = "ktx_signature"
+                val context = LocalContext.current
+                
+                // 데이터베이스 및 Repository 초기화
+                val database = com.example.a4cut.data.database.AppDatabase.getDatabase(context)
+                val photoRepository = com.example.a4cut.data.repository.PhotoRepository(database.photoDao())
+                
+                // PhotoDetailViewModel 생성
+                val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>(
+                    factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            return com.example.a4cut.ui.viewmodel.PhotoDetailViewModel(photoRepository) as T
+                        }
+                    }
                 )
                 
-                // PhotoDetailViewModel 생성 (실제로는 ViewModelFactory를 사용해야 함)
-                val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>()
-                
-                // 사진 정보 설정
+                // 사진 정보 로드
                 androidx.compose.runtime.LaunchedEffect(photoId) {
-                    photoDetailViewModel.setPhoto(dummyPhoto)
+                    photoDetailViewModel.loadPhoto(photoId)
                 }
                 
                 PhotoDetailScreen(
@@ -463,22 +467,25 @@ fun AppNavigation(
                 }
             ) { backStackEntry ->
                 val photoId = backStackEntry.arguments?.getInt("photoId") ?: 0
+                val context = LocalContext.current
                 
-                // PhotoDetailViewModel 생성 (실제로는 ViewModelFactory를 사용해야 함)
-                val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>()
+                // 데이터베이스 및 Repository 초기화
+                val database = com.example.a4cut.data.database.AppDatabase.getDatabase(context)
+                val photoRepository = com.example.a4cut.data.repository.PhotoRepository(database.photoDao())
                 
-                // 사진 정보 설정
+                // PhotoDetailViewModel 생성
+                val photoDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel<com.example.a4cut.ui.viewmodel.PhotoDetailViewModel>(
+                    factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            return com.example.a4cut.ui.viewmodel.PhotoDetailViewModel(photoRepository) as T
+                        }
+                    }
+                )
+                
+                // 사진 정보 로드
                 androidx.compose.runtime.LaunchedEffect(photoId) {
-                    // TODO: 실제 데이터베이스에서 photoId로 사진 정보를 가져와야 함
-                    val dummyPhoto = PhotoEntity(
-                        id = photoId,
-                        imagePath = "dummy_path",
-                        createdAt = System.currentTimeMillis(),
-                        title = "더미 제목",
-                        location = "더미 위치",
-                        frameType = "ktx_signature"
-                    )
-                    photoDetailViewModel.setPhoto(dummyPhoto)
+                    photoDetailViewModel.loadPhoto(photoId)
                 }
                 
                 com.example.a4cut.ui.screens.PhotoEditScreen(

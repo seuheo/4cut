@@ -67,6 +67,7 @@ fun ResultScreen(
     var isLiked by remember { mutableStateOf(false) }
     var showSaveSnackbar by remember { mutableStateOf(false) }
     var showShareSnackbar by remember { mutableStateOf(false) }
+    var showRestartDialog by remember { mutableStateOf(false) }
     
     // 디버그 로그
     LaunchedEffect(selectedFrame, photos) {
@@ -102,7 +103,7 @@ fun ResultScreen(
                 }
             },
             actions = {
-                IconButton(onClick = onRestart) {
+                IconButton(onClick = { showRestartDialog = true }) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "다시 만들기",
@@ -164,7 +165,7 @@ fun ResultScreen(
                         /* TODO: 공유 기능 */
                         showShareSnackbar = true
                     },
-                    onRestart = onRestart,
+                    onRestart = { showRestartDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -178,6 +179,23 @@ fun ResultScreen(
             onSave = { /* TODO: 저장 */ },
             onShare = { /* TODO: 공유 */ },
             onDismiss = { showPreviewDialog = false }
+        )
+    }
+    
+    // 다시 만들기 선택 다이얼로그
+    if (showRestartDialog) {
+        RestartDialog(
+            onKeepPhotos = {
+                // 기존 사진 유지하고 프레임 선택 화면으로
+                showRestartDialog = false
+                onRestart()
+            },
+            onNewPhotos = {
+                // 완전히 새로 시작 (사진 선택 화면으로)
+                showRestartDialog = false
+                onRestart()
+            },
+            onDismiss = { showRestartDialog = false }
         )
     }
     
@@ -763,4 +781,66 @@ private fun ActionButtons(
             )
         }
     }
+}
+
+/**
+ * 다시 만들기 선택 다이얼로그
+ */
+@Composable
+private fun RestartDialog(
+    onKeepPhotos: () -> Unit,
+    onNewPhotos: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "다시 만들기",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = "어떻게 다시 만들고 싶으신가요?",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onKeepPhotos,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = InstagramBlue,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "사진 유지",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onNewPhotos,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = TextPrimary
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = BorderLight
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "새로운 사진",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    )
 }
