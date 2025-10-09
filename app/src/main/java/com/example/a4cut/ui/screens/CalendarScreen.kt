@@ -1,14 +1,22 @@
 package com.example.a4cut.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.components.CalendarView
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.util.Calendar
@@ -178,12 +186,82 @@ fun CalendarScreen(
                 }
             }
             
+            // 선택된 날짜의 사진 목록 표시
+            selectedDate?.let { selected ->
+                val year = selected.get(Calendar.YEAR)
+                val month = selected.get(Calendar.MONTH) + 1
+                val day = selected.get(Calendar.DAY_OF_MONTH)
+                
+                val photosOnSelectedDate = allPhotos.filter { photo ->
+                    val photoDate = java.util.Calendar.getInstance().apply {
+                        timeInMillis = photo.createdAt
+                    }
+                    photoDate.get(java.util.Calendar.YEAR) == year &&
+                    photoDate.get(java.util.Calendar.MONTH) + 1 == month &&
+                    photoDate.get(java.util.Calendar.DAY_OF_MONTH) == day
+                }
+                
+                if (photosOnSelectedDate.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "이 날에 찍은 사진들 (${photosOnSelectedDate.size}장)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // 사진 목록을 그리드로 표시
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp)
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        items(photosOnSelectedDate) { photo ->
+                            PhotoGridItem(
+                                photo = photo,
+                                onClick = { onNavigateToPhotoDetail(photo.id.toString()) }
+                            )
+                        }
+                    }
+                }
+            }
+            
             // 에러 메시지 표시
             errorMessage?.let { message ->
                 Spacer(modifier = Modifier.height(16.dp))
                 ErrorMessageSection(message = message)
             }
         }
+    }
+}
+
+/**
+ * 사진 그리드 아이템
+ */
+@Composable
+private fun PhotoGridItem(
+    photo: PhotoEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(8.dp)),
+        onClick = onClick
+    ) {
+        AsyncImage(
+            model = photo.imagePath,
+            contentDescription = photo.title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
     }
 }
 
