@@ -42,7 +42,8 @@ import kotlinx.coroutines.launch
 fun PhotoSelectionScreen(
     modifier: Modifier = Modifier,
     frameViewModel: FrameViewModel,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    openGallery: (() -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     
@@ -50,6 +51,11 @@ fun PhotoSelectionScreen(
     val photos by frameViewModel.photos.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val successMessage by frameViewModel.successMessage.collectAsState()
+    
+    // 디버그 로그
+    LaunchedEffect(photos) {
+        println("PhotoSelectionScreen: 사진 상태 업데이트 - ${photos.map { it != null }}")
+    }
     
     // Context 설정
     LaunchedEffect(Unit) {
@@ -76,6 +82,15 @@ fun PhotoSelectionScreen(
                 frameViewModel.togglePhotoSelection(index)
             }
         )
+        
+        // 갤러리에서 사진 선택 버튼
+        if (openGallery != null) {
+            TossPrimaryButton(
+                text = "갤러리에서 사진 선택하기",
+                onClick = openGallery,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         
         // 테스트용 사진 선택 버튼들 (에뮬레이터용)
         TestPhotoButtonsSection(

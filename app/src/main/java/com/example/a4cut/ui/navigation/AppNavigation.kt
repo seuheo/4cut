@@ -133,7 +133,9 @@ private fun InstagramBottomNavigation(
 @Composable
 fun AppNavigation(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    frameViewModel: FrameViewModel? = null,
+    openGallery: (() -> Unit)? = null
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -144,8 +146,8 @@ fun AppNavigation(
     val photoRepository = remember { com.example.a4cut.data.repository.PhotoRepository(database.photoDao()) }
     val frameRepository = remember { com.example.a4cut.data.repository.FrameRepository() }
     
-    // ViewModel을 네비게이션 그래프 레벨에서 공유
-    val frameViewModel: FrameViewModel = viewModel()
+    // ViewModel을 네비게이션 그래프 레벨에서 공유 (전달받은 것이 있으면 사용, 없으면 새로 생성)
+    val sharedFrameViewModel: FrameViewModel = frameViewModel ?: viewModel()
 
     Scaffold(
         modifier = modifier,
@@ -271,10 +273,11 @@ fun AppNavigation(
                 }
             ) {
                 PhotoSelectionScreen(
-                    frameViewModel = frameViewModel,
+                    frameViewModel = sharedFrameViewModel,
                     onNext = {
                         navController.navigate("frame_selection")
-                    }
+                    },
+                    openGallery = openGallery
                 )
             }
             
@@ -295,7 +298,7 @@ fun AppNavigation(
                 }
             ) {
                 FrameSelectionScreen(
-                    frameViewModel = frameViewModel,
+                    frameViewModel = sharedFrameViewModel,
                     onNext = {
                         navController.navigate("result")
                     },
@@ -322,7 +325,7 @@ fun AppNavigation(
                 }
             ) {
                 ResultScreen(
-                    frameViewModel = frameViewModel,
+                    frameViewModel = sharedFrameViewModel,
                     onBack = {
                         navController.popBackStack()
                     },

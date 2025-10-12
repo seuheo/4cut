@@ -51,6 +51,10 @@ class FrameViewModel : ViewModel() {
     private val _photos = MutableStateFlow<List<Bitmap?>>(List(4) { null })
     val photos: StateFlow<List<Bitmap?>> = _photos.asStateFlow()
     
+    // 선택된 이미지 URI를 저장할 StateFlow 추가
+    private val _selectedImageUris = MutableStateFlow<List<Uri>>(emptyList())
+    val selectedImageUris: StateFlow<List<Uri>> = _selectedImageUris.asStateFlow()
+    
     // 테스트용 사진 목록
     private val _testPhotos = MutableStateFlow<List<Bitmap>>(emptyList())
     val testPhotos: StateFlow<List<Bitmap>> = _testPhotos.asStateFlow()
@@ -1392,6 +1396,62 @@ class FrameViewModel : ViewModel() {
             setDataAndType(imageUri, "image/jpeg")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             putExtra("interactive_asset_uri", imageUri)
+        }
+    }
+    
+    /**
+     * ActivityResultLauncher에서 호출할 함수
+     * 갤러리에서 선택된 이미지 URI들을 처리하여 Bitmap으로 변환
+     */
+    fun onImagesSelected(uris: List<Uri>) {
+        println("onImagesSelected 호출됨: ${uris.size}개의 URI")
+        if (uris.isEmpty()) {
+            println("선택된 URI가 없습니다")
+            return
+        }
+        
+        // 최대 4개의 이미지만 선택하여 상태 업데이트
+        _selectedImageUris.value = uris.take(4)
+        println("선택된 URI 저장 완료: ${_selectedImageUris.value.size}개")
+        
+        // 선택된 URI들을 Bitmap으로 변환하여 그리드에 배치
+        viewModelScope.launch {
+            try {
+                val imagePicker = imagePicker
+                if (imagePicker == null) {
+                    println("ImagePicker가 null입니다. Context를 다시 설정해주세요.")
+                    _errorMessage.value = "이미지 처리기가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
+                    return@launch
+                }
+                
+                println("ImagePicker로 이미지 처리 시작")
+                val processedImages = imagePicker.processImagesForGrid(uris, 512)
+                println("이미지 처리 완료: ${processedImages.size}개의 Bitmap 생성")
+                
+                // 변환된 Bitmap들을 그리드에 배치
+                val currentPhotos = _photos.value.toMutableList()
+                processedImages.forEachIndexed { index, bitmap ->
+                    if (index < 4) {
+                        // 기존 Bitmap 메모리 해제
+                        currentPhotos[index]?.let { oldBitmap ->
+                            if (!oldBitmap.isRecycled) {
+                                oldBitmap.recycle()
+                            }
+                        }
+                        currentPhotos[index] = bitmap
+                        println("그리드 위치 ${index}에 이미지 배치 완료")
+                    }
+                }
+                _photos.value = currentPhotos
+                println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
+                
+                _successMessage.value = "갤러리에서 ${uris.size}장의 사진을 선택했습니다"
+                clearError()
+            } catch (e: Exception) {
+                println("이미지 처리 중 오류 발생: ${e.message}")
+                e.printStackTrace()
+                _errorMessage.value = "이미지 처리 중 오류가 발생했습니다: ${e.message}"
+            }
         }
     }
     
