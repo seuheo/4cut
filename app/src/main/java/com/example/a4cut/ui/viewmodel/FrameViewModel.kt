@@ -146,19 +146,6 @@ class FrameViewModel : ViewModel() {
                 
                 println("테스트 사진 로드 완료: ${bitmaps.size}개")
                 _testPhotos.value = bitmaps
-                
-                // 아이유 사진들을 자동으로 선택된 사진으로 설정
-                if (bitmaps.size >= 4) {
-                    val selectedPhotos = bitmaps.take(4)
-                    _photos.value = selectedPhotos
-                    
-                    // PhotoState도 업데이트
-                    selectedPhotos.forEachIndexed { index, bitmap ->
-                        updatePhotoStateFromBitmap(index, bitmap)
-                    }
-                    
-                    println("아이유 사진 4장이 자동으로 선택되었습니다")
-                }
             } catch (e: Exception) {
                 println("테스트 사진 로드 전체 실패: ${e.message}")
                 _errorMessage.value = "테스트 사진 로드 실패: ${e.message}"
@@ -849,36 +836,6 @@ class FrameViewModel : ViewModel() {
         }
     }
     
-    /**
-     * 아이유 사진 선택
-     */
-    fun selectIuPhoto(gridIndex: Int, iuPhotoIndex: Int) {
-        viewModelScope.launch {
-            try {
-                val iuPhotoIds = listOf(
-                    R.drawable.iu1,
-                    R.drawable.iu2,
-                    R.drawable.iu3,
-                    R.drawable.iu4
-                )
-                
-                if (gridIndex in 0..3 && iuPhotoIndex in 0..3) {
-                    context?.let { ctx ->
-                        val drawableId = iuPhotoIds[iuPhotoIndex]
-                        val bitmap = BitmapFactory.decodeResource(ctx.resources, drawableId)
-                        bitmap?.let { 
-                            val scaledBitmap = Bitmap.createScaledBitmap(it, 512, 512, true)
-                            selectPhoto(gridIndex, scaledBitmap)
-                            println("아이유 사진 ${iuPhotoIndex + 1}이 그리드 ${gridIndex + 1}에 선택되었습니다")
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "아이유 사진 선택 실패: ${e.message}"
-                println("아이유 사진 선택 실패: ${e.message}")
-            }
-        }
-    }
     
     /**
      * Phase 1: 사진 선택 토글 (미리보기에서 사용)

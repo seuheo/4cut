@@ -130,16 +130,6 @@ fun PhotoSelectionScreen(
                 }
             }
             
-            // 아이유 사진 선택 섹션
-            item {
-                IuPhotoSelectionSection(
-                    onSelectIu1 = { frameViewModel.selectIuPhoto(0, 0) },
-                    onSelectIu2 = { frameViewModel.selectIuPhoto(1, 1) },
-                    onSelectIu3 = { frameViewModel.selectIuPhoto(2, 2) },
-                    onSelectIu4 = { frameViewModel.selectIuPhoto(3, 3) }
-                )
-            }
-            
             // 테스트용 사진 선택 버튼들 (에뮬레이터용)
             item {
                 TestPhotoButtonsSection(
@@ -564,94 +554,4 @@ fun IosStyleButton(
     }
 }
 
-/**
- * 아이유 사진 선택 섹션
- */
-@Composable
-private fun IuPhotoSelectionSection(
-    onSelectIu1: () -> Unit,
-    onSelectIu2: () -> Unit,
-    onSelectIu3: () -> Unit,
-    onSelectIu4: () -> Unit
-) {
-    Column {
-        Text(
-            text = "아이유 사진 선택",
-            style = MaterialTheme.typography.titleMedium,
-            color = IosColors.label,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "아이유 사진 4장을 선택하여 인생네컷을 만들어보세요.",
-            style = MaterialTheme.typography.bodySmall,
-            color = IosColors.secondaryLabel,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height(200.dp)
-        ) {
-            item {
-                IuPhotoButton(
-                    text = "아이유 1",
-                    onClick = onSelectIu1,
-                    color = IosColors.SystemRed
-                )
-            }
-            item {
-                IuPhotoButton(
-                    text = "아이유 2",
-                    onClick = onSelectIu2,
-                    color = IosColors.SystemOrange
-                )
-            }
-            item {
-                IuPhotoButton(
-                    text = "아이유 3",
-                    onClick = onSelectIu3,
-                    color = IosColors.SystemBlue
-                )
-            }
-            item {
-                IuPhotoButton(
-                    text = "아이유 4",
-                    onClick = onSelectIu4,
-                    color = IosColors.SystemGreen
-                )
-            }
-        }
-    }
-}
-
-/**
- * 아이유 사진 선택 버튼
- */
-@Composable
-private fun IuPhotoButton(
-    text: String,
-    onClick: () -> Unit,
-    color: Color
-) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = color
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
 
