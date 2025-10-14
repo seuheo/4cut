@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +57,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +74,7 @@ import com.example.a4cut.ui.components.TossSecondaryButton
 import com.example.a4cut.ui.components.TossTextButton
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
+import com.example.a4cut.ui.viewmodel.PhotoState
 
 /**
  * Phase 1: 통합 프레임 적용 화면 - 예시 이미지와 동일한 레이아웃
@@ -119,10 +123,13 @@ fun FrameScreen(
         Spacer(modifier = Modifier.height(32.dp))
         
         PhotoPreviewSection(
-            photos = photos,
+            photoStates = frameViewModel.photoStates,
             selectedFrame = selectedFrame,
             onPhotoClick = { index -> 
                 frameViewModel.togglePhotoSelection(index)
+            },
+            onTransform = { index, scale, offsetX, offsetY ->
+                frameViewModel.updatePhotoState(index, scale, offsetX, offsetY)
             }
         )
         
@@ -191,14 +198,15 @@ fun FrameScreen(
 }
 
 /**
- * Phase 1: 상단 미리보기 섹션 - 예시 이미지와 동일한 레이아웃
+ * Phase 2: 상단 미리보기 섹션 - 제스처 기반 사진 편집 기능 추가
  * 선택된 사진 4장을 2x2 그리드로 표시하고 프레임을 오버레이
  */
 @Composable
 private fun PhotoPreviewSection(
-    photos: List<Bitmap?>,
+    photoStates: List<PhotoState>,
     selectedFrame: Frame?,
-    onPhotoClick: (Int) -> Unit
+    onPhotoClick: (Int) -> Unit,
+    onTransform: (Int, Float, Float, Float) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -208,8 +216,8 @@ private fun PhotoPreviewSection(
             .padding(8.dp),
         contentAlignment = Alignment.Center
     ) {
-        // 사진 4장을 2x2 그리드로 배치
-        if (photos.any { it != null }) {
+        // 사진 4장을 2x2 그리드로 배치 (제스처 편집 가능)
+        if (photoStates.any { it.bitmap != null }) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -219,16 +227,18 @@ private fun PhotoPreviewSection(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    PhotoPreviewItem(
-                        photo = photos.getOrNull(0),
+                    EditablePhotoItem(
+                        photoState = photoStates.getOrNull(0) ?: PhotoState(null),
                         index = 0,
                         onPhotoClick = onPhotoClick,
+                        onTransform = onTransform,
                         modifier = Modifier.weight(1f)
                     )
-                    PhotoPreviewItem(
-                        photo = photos.getOrNull(1),
+                    EditablePhotoItem(
+                        photoState = photoStates.getOrNull(1) ?: PhotoState(null),
                         index = 1,
                         onPhotoClick = onPhotoClick,
+                        onTransform = onTransform,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -238,16 +248,18 @@ private fun PhotoPreviewSection(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    PhotoPreviewItem(
-                        photo = photos.getOrNull(2),
+                    EditablePhotoItem(
+                        photoState = photoStates.getOrNull(2) ?: PhotoState(null),
                         index = 2,
                         onPhotoClick = onPhotoClick,
+                        onTransform = onTransform,
                         modifier = Modifier.weight(1f)
                     )
-                    PhotoPreviewItem(
-                        photo = photos.getOrNull(3),
+                    EditablePhotoItem(
+                        photoState = photoStates.getOrNull(3) ?: PhotoState(null),
                         index = 3,
                         onPhotoClick = onPhotoClick,
+                        onTransform = onTransform,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -275,29 +287,41 @@ private fun PhotoPreviewSection(
 }
 
 /**
- * 개별 사진 미리보기 아이템
+ * Phase 2: 제스처 편집 가능한 개별 사진 아이템
  */
 @Composable
-private fun PhotoPreviewItem(
-    photo: Bitmap?,
+private fun EditablePhotoItem(
+    photoState: PhotoState,
     index: Int,
     onPhotoClick: (Int) -> Unit,
+    onTransform: (Int, Float, Float, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxHeight()
             .background(Color.LightGray, RoundedCornerShape(4.dp))
-            .clickable { onPhotoClick(index) },
+            .clickable { onPhotoClick(index) }
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    onTransform(index, zoom, pan.x, pan.y)
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
-        if (photo != null) {
+        if (photoState.bitmap != null) {
             Image(
-                bitmap = photo.asImageBitmap(),
+                bitmap = photoState.bitmap.asImageBitmap(),
                 contentDescription = "Photo ${index + 1}",
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(4.dp)),
+                    .clip(RoundedCornerShape(4.dp))
+                    .graphicsLayer(
+                        scaleX = photoState.scale,
+                        scaleY = photoState.scale,
+                        translationX = photoState.offsetX,
+                        translationY = photoState.offsetY
+                    ),
                 contentScale = ContentScale.Crop
             )
         } else {

@@ -25,11 +25,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+
+/**
+ * Phase 2: 각 사진의 편집 상태(URI, 크기, 위치)를 관리하는 데이터 클래스
+ */
+data class PhotoState(
+    val bitmap: Bitmap?,
+    var scale: Float = 1f,
+    var offsetX: Float = 0f,
+    var offsetY: Float = 0f
+)
 
 /**
  * 프레임 화면의 ViewModel
  * 사진 선택, 프레임 적용, 이미지 합성 등 핵심 로직을 담당
- * Phase 3: Bitmap 기반 이미지 처리 및 권한 관리 기능 추가
+ * Phase 2: 제스처 기반 사진 편집 기능 추가
  */
 class FrameViewModel : ViewModel() {
     
@@ -50,6 +62,10 @@ class FrameViewModel : ViewModel() {
     // 사진 관련 상태 (Bitmap 기반)
     private val _photos = MutableStateFlow<List<Bitmap?>>(List(4) { null })
     val photos: StateFlow<List<Bitmap?>> = _photos.asStateFlow()
+    
+    // Phase 2: PhotoState 리스트로 사진 편집 상태 관리
+    private val _photoStates = mutableStateListOf<PhotoState>()
+    val photoStates: SnapshotStateList<PhotoState> = _photoStates
     
     // 선택된 이미지 URI를 저장할 StateFlow 추가
     private val _selectedImageUris = MutableStateFlow<List<Uri>>(emptyList())
@@ -762,6 +778,10 @@ class FrameViewModel : ViewModel() {
             val currentPhotos = _photos.value.toMutableList()
             currentPhotos[index] = bitmap
             _photos.value = currentPhotos
+            
+            // Phase 2: PhotoState도 함께 업데이트
+            updatePhotoStateFromBitmap(index, bitmap)
+            
             println("사진 선택 완료: 새로운 그리드 상태=${_photos.value.map { it != null }}")
             clearError()
         } else {
@@ -816,6 +836,8 @@ class FrameViewModel : ViewModel() {
                     currentPhoto.recycle()
                 }
                 currentPhotos[index] = null
+                // PhotoState도 업데이트
+                updatePhotoStateFromBitmap(index, null)
             } else {
                 // 사진이 없으면 랜덤 테스트 사진 추가
                 selectRandomTestPhoto()
@@ -825,6 +847,54 @@ class FrameViewModel : ViewModel() {
             clearError()
         } else {
             _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
+        }
+    }
+    
+    /**
+     * Phase 2: PhotoState를 Bitmap으로부터 초기화/업데이트
+     */
+    private fun updatePhotoStateFromBitmap(index: Int, bitmap: Bitmap?) {
+        if (index in 0..3) {
+            // PhotoState 리스트가 비어있으면 4개로 초기화
+            while (_photoStates.size < 4) {
+                _photoStates.add(PhotoState(null))
+            }
+            
+            // 해당 인덱스의 PhotoState 업데이트
+            _photoStates[index] = PhotoState(
+                bitmap = bitmap,
+                scale = 1f,
+                offsetX = 0f,
+                offsetY = 0f
+            )
+        }
+    }
+    
+    /**
+     * Phase 2: 특정 사진의 편집 상태(크기, 위치)를 업데이트하는 함수
+     */
+    fun updatePhotoState(index: Int, scale: Float, offsetX: Float, offsetY: Float) {
+        if (index in _photoStates.indices) {
+            val currentState = _photoStates[index]
+            _photoStates[index] = currentState.copy(
+                scale = (currentState.scale * scale).coerceIn(0.5f, 3f), // 확대/축소 범위 제한
+                offsetX = (currentState.offsetX + offsetX).coerceIn(-200f, 200f), // 이동 범위 제한
+                offsetY = (currentState.offsetY + offsetY).coerceIn(-200f, 200f)
+            )
+        }
+    }
+    
+    /**
+     * Phase 2: 사진 편집 상태 초기화
+     */
+    fun resetPhotoState(index: Int) {
+        if (index in _photoStates.indices) {
+            val currentState = _photoStates[index]
+            _photoStates[index] = currentState.copy(
+                scale = 1f,
+                offsetX = 0f,
+                offsetY = 0f
+            )
         }
     }
     
