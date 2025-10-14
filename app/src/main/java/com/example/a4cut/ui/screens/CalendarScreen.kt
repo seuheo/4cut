@@ -1,5 +1,6 @@
 package com.example.a4cut.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -20,12 +21,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.components.CalendarView
+import com.example.a4cut.ui.theme.IosColors
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.util.Calendar
 
 /**
- * 달력 전용 화면
- * 홈 화면의 달력을 그대로 옮겨서 실제 날짜와 동일하게 표시
+ * iOS 미니멀 스타일 달력 화면
+ * 20대 사용자들이 선호하는 세련되고 깔끔한 디자인
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,10 +63,14 @@ fun CalendarScreen(
             CenterAlignedTopAppBar(
                 title = { 
                     Text(
-                        "달력", 
-                        fontWeight = FontWeight.Bold
+                        "캘린더", 
+                        fontWeight = FontWeight.SemiBold,
+                        color = IosColors.label
                     ) 
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = IosColors.secondarySystemBackground
+                )
             )
         }
     ) { paddingValues ->
@@ -72,8 +78,7 @@ fun CalendarScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(IosColors.secondarySystemBackground)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -144,10 +149,12 @@ fun CalendarScreen(
             // 선택된 날짜 정보 표시
             selectedDate?.let { selected ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = IosColors.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -156,14 +163,14 @@ fun CalendarScreen(
                         Text(
                             text = "선택된 날짜",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = IosColors.secondaryLabel
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "${selected.get(Calendar.YEAR)}년 ${selected.get(Calendar.MONTH) + 1}월 ${selected.get(Calendar.DATE)}일",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            fontWeight = FontWeight.SemiBold,
+                            color = IosColors.label
                         )
                         
                         // 해당 날짜에 사진이 있는지 확인
