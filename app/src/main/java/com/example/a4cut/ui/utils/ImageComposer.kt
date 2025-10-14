@@ -48,12 +48,16 @@ class ImageComposer(private val context: Context) {
         val canvas = Canvas(resultBitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-        // ✨ 중요: 프레임 위에 세로로 더 긴 4개의 사각형 안에 사진 배치
+        // ✨ 중요: 1080x1920 캔버스 비율에 맞춰 재계산된 최종 좌표입니다.
         val photoRects = listOf(
-            RectF(100f, 150f, 500f, 650f),    // 1번째 칸 (세로로 더 긴 사각형)
-            RectF(520f, 150f, 920f, 650f),    // 2번째 칸 (세로로 더 긴 사각형)
-            RectF(100f, 670f, 500f, 1170f),   // 3번째 칸 (세로로 더 긴 사각형)
-            RectF(520f, 670f, 920f, 1170f)    // 4번째 칸 (세로로 더 긴 사각형)
+            // 1번째 칸 (맨 위)
+            RectF(110f, 290f, 970f, 625f),
+            // 2번째 칸
+            RectF(110f, 655f, 970f, 990f),
+            // 3번째 칸
+            RectF(110f, 1020f, 970f, 1355f),
+            // 4번째 칸 (맨 아래)
+            RectF(110f, 1385f, 970f, 1720f)
         )
 
         photos.take(4).forEachIndexed { index, photo ->
