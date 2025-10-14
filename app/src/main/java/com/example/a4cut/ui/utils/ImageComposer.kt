@@ -44,72 +44,32 @@ class ImageComposer(private val context: Context) {
         frameBitmap: Bitmap,
         photos: List<Bitmap?>
     ): Bitmap = withContext(Dispatchers.Default) {
-        println("=== composeLife4CutFrame 시작 ===")
-        println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
-        println("전달받은 사진 개수: ${photos.size}")
-        println("사진 null 체크: ${photos.map { it != null }}")
-        
-        // 프레임을 배경으로 하는 결과 Bitmap 생성
         val resultBitmap = frameBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(resultBitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        
-        // 🚨 인생네컷 프레임의 각 사진 칸의 정확한 픽셀 좌표
-        // 프레임의 회색 사각형 영역에 정확히 맞춰서 사진을 덮어서 그리기
-        // 실제 프레임 이미지의 회색 영역에 맞게 좌표 재조정
+
+        // ✨ 중요: 프레임 위에 세로로 더 긴 4개의 사각형 안에 사진 배치
         val photoRects = listOf(
-            // 첫 번째 칸 (왼쪽 위) - 프레임의 첫 번째 회색 사각형
-            RectF(50f, 120f, 450f, 520f),
-            // 두 번째 칸 (오른쪽 위) - 프레임의 두 번째 회색 사각형
-            RectF(470f, 120f, 870f, 520f),
-            // 세 번째 칸 (왼쪽 아래) - 프레임의 세 번째 회색 사각형
-            RectF(50f, 540f, 450f, 940f),
-            // 네 번째 칸 (오른쪽 아래) - 프레임의 네 번째 회색 사각형
-            RectF(470f, 540f, 870f, 940f)
+            RectF(100f, 150f, 500f, 650f),    // 1번째 칸 (세로로 더 긴 사각형)
+            RectF(520f, 150f, 920f, 650f),    // 2번째 칸 (세로로 더 긴 사각형)
+            RectF(100f, 670f, 500f, 1170f),   // 3번째 칸 (세로로 더 긴 사각형)
+            RectF(520f, 670f, 920f, 1170f)    // 4번째 칸 (세로로 더 긴 사각형)
         )
-        
-        println("인생네컷 프레임 사진 영역 좌표:")
-        photoRects.forEachIndexed { index, rect ->
-            println("사진[$index]: (${rect.left.toInt()}, ${rect.top.toInt()}) - (${rect.right.toInt()}, ${rect.bottom.toInt()})")
-            println("  크기: ${rect.width().toInt()}x${rect.height().toInt()}")
-        }
-        
-        // 1단계: 4장의 사진을 각 영역에 먼저 배치
-        println("=== 사진 배치 시작 ===")
+
         photos.take(4).forEachIndexed { index, photo ->
-            println("사진[$index] 처리 시작: ${if (photo != null) "있음" else "null"}")
             photo?.let { bitmap ->
                 val rect = photoRects[index]
-                println("사진[$index] 처리 중: 원본 크기 ${bitmap.width}x${bitmap.height}")
-                println("사진[$index] 배치할 영역: (${rect.left.toInt()}, ${rect.top.toInt()}) - (${rect.right.toInt()}, ${rect.bottom.toInt()})")
-                
-                // 사진을 영역 크기에 맞춰 스케일링
+                // 각 칸의 크기에 맞게 사진 크기를 조절합니다.
                 val scaledPhoto = Bitmap.createScaledBitmap(
                     bitmap,
                     rect.width().toInt(),
                     rect.height().toInt(),
                     true
                 )
-                println("사진[$index] 스케일링 완료: ${scaledPhoto.width}x${scaledPhoto.height}")
-                
-                // 캔버스에 사진 그리기
-                canvas.drawBitmap(
-                    scaledPhoto,
-                    rect.left,
-                    rect.top,
-                    paint
-                )
-                println("사진[$index] 캔버스에 그리기 완료: 위치 (${rect.left.toInt()}, ${rect.top.toInt()})")
-            } ?: run {
-                println("사진[$index]가 null이므로 건너뜀")
+                // 정확한 위치에 사진을 그립니다.
+                canvas.drawBitmap(scaledPhoto, rect.left, rect.top, paint)
             }
         }
-        println("=== 사진 배치 완료 ===")
-        
-        // 프레임은 이미 배경으로 설정되어 있으므로 추가로 그릴 필요 없음
-        println("사진 배치 완료")
-        
-        println("=== composeLife4CutFrame 완료 ===")
         resultBitmap
     }
 

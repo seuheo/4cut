@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -130,20 +131,38 @@ fun PhotoSelectionScreen(
                 }
             }
             
-            // 테스트용 사진 선택 버튼들 (에뮬레이터용)
+            // 모든 사진 삭제 버튼
             item {
-                TestPhotoButtonsSection(
-                    onSelectRandomPhoto = { frameViewModel.selectRandomTestPhoto() },
-                    onSelectTestPhoto1 = { frameViewModel.selectTestPhoto(0, 0) },
-                    onSelectTestPhoto2 = { frameViewModel.selectTestPhoto(1, 1) },
-                    onSelectTestPhoto3 = { frameViewModel.selectTestPhoto(2, 2) },
-                    onSelectTestPhoto4 = { frameViewModel.selectTestPhoto(3, 3) },
-                    onClearAllPhotos = { 
+                Button(
+                    onClick = { 
                         repeat(4) { index ->
                             frameViewModel.removePhoto(index)
                         }
+                    },
+                    enabled = photos.any { it != null },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = IosColors.SystemRed
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "모든 사진 삭제",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White
+                        )
                     }
-                )
+                }
             }
             
             // 다음 단계 버튼
@@ -249,124 +268,6 @@ private fun PhotoGridSection(
     }
 }
 
-/**
- * 테스트용 사진 선택 버튼 섹션
- */
-@Composable
-private fun TestPhotoButtonsSection(
-    onSelectRandomPhoto: () -> Unit,
-    onSelectTestPhoto1: () -> Unit,
-    onSelectTestPhoto2: () -> Unit,
-    onSelectTestPhoto3: () -> Unit,
-    onSelectTestPhoto4: () -> Unit,
-    onClearAllPhotos: () -> Unit
-) {
-    Column {
-        Text(
-            text = "테스트용 사진 선택 (에뮬레이터용)",
-            style = MaterialTheme.typography.titleMedium,
-            color = IosColors.label,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "마우스 클릭으로 쉽게 사진을 선택하고 테스트할 수 있습니다.",
-            style = MaterialTheme.typography.bodySmall,
-            color = IosColors.secondaryLabel,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // 랜덤 사진 선택 버튼
-            Button(
-                onClick = onSelectRandomPhoto,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = IosColors.SystemBlue
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "랜덤",
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-            
-            // 테스트 사진 1-4 선택 버튼들
-            Button(
-                onClick = onSelectTestPhoto1,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = IosColors.SystemBlue.copy(alpha = 0.8f)
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "사진1",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-            
-            Button(
-                onClick = onSelectTestPhoto2,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = IosColors.SystemBlue.copy(alpha = 0.8f)
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "사진2",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-        
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Button(
-                onClick = onSelectTestPhoto3,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = IosColors.SystemBlue.copy(alpha = 0.8f)
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "사진3",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-            
-            Button(
-                onClick = onSelectTestPhoto4,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = IosColors.SystemBlue.copy(alpha = 0.8f)
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "사진4",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-            
-            Button(
-                onClick = onClearAllPhotos,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = IosColors.SystemRed
-                ),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "전체삭제",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-    }
-}
 
 /**
  * 사진 그리드 아이템

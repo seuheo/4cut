@@ -62,10 +62,9 @@ fun HomeScreen(
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val isTestMode by homeViewModel.isTestMode.collectAsState()
     
-    // Context 설정 및 테스트 모드 토글
+    // Context 설정
     LaunchedEffect(Unit) {
         homeViewModel.setContext(context)
-        homeViewModel.toggleTestMode()
     }
 
     Column(
