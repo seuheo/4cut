@@ -26,7 +26,7 @@ class FrameRepository {
     private fun loadInitialFrames() {
         val initialFrames = listOf(
             Frame(
-                id = 1,
+                id = "life_4cut_frame",
                 name = "인생네컷 프레임",
                 date = "25.01.13",
                 station = "인생네컷",
@@ -49,7 +49,7 @@ class FrameRepository {
     /**
      * 특정 ID의 프레임 가져오기
      */
-    fun getFrameById(id: Int): Frame? {
+    fun getFrameById(id: String): Frame? {
         return _frames.value.find { it.id == id }
     }
     

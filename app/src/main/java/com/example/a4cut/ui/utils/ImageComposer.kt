@@ -77,14 +77,19 @@ class ImageComposer(private val context: Context) {
                 
                 // 사진을 영역 크기에 맞춰 스케일링
                 val scaledPhoto = Bitmap.createScaledBitmap(
-                    bitmap, 
-                    rect.width().toInt(), 
-                    rect.height().toInt(), 
+                    bitmap,
+                    rect.width().toInt(),
+                    rect.height().toInt(),
                     true
                 )
                 
                 // 캔버스에 사진 그리기
-                canvas.drawBitmap(scaledPhoto, rect.left, rect.top, paint)
+                canvas.drawBitmap(
+                    scaledPhoto,
+                    rect.left,
+                    rect.top,
+                    paint
+                )
                 println("사진[$index] 배치 완료: 위치 (${rect.left.toInt()}, ${rect.top.toInt()})")
             } ?: run {
                 println("사진[$index]가 null이므로 건너뜀")

@@ -1257,7 +1257,7 @@ class FrameViewModel : ViewModel() {
                     println("사진 상태: ${_photoStates.map { it.bitmap != null }}")
                     
                     val result = when (selectedFrame?.id) {
-                        1 -> {
+                        "life_4cut_frame" -> {
                             println("인생네컷 프레임 감지! composeLife4CutFrame 호출")
                             // 인생네컷 프레임 전용 합성 함수 사용
                             val photos = _photoStates.map { it.bitmap }
@@ -1419,7 +1419,7 @@ class FrameViewModel : ViewModel() {
     /**
      * 특정 ID의 프레임 가져오기
      */
-    fun getFrameById(id: Int): Frame? {
+    fun getFrameById(id: String): Frame? {
         return frameRepository.getFrameById(id)
     }
     
