@@ -17,8 +17,10 @@ import java.io.FileOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.model.Frame
+import com.example.a4cut.data.model.KtxStation
 import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.data.repository.PhotoRepository
+import com.example.a4cut.data.repository.KtxStationRepository
 import com.example.a4cut.data.database.AppDatabase
 import com.example.a4cut.ui.utils.ImagePicker
 import com.example.a4cut.ui.utils.PermissionHelper
@@ -49,6 +51,7 @@ data class PhotoState(
 class FrameViewModel : ViewModel() {
     
     private val frameRepository = FrameRepository()
+    private val ktxStationRepository by lazy { KtxStationRepository() }
     private var imagePicker: ImagePicker? = null
     private var permissionHelper: PermissionHelper? = null
     private var imageComposer: ImageComposer? = null // ImageComposer 추가
@@ -102,6 +105,10 @@ class FrameViewModel : ViewModel() {
     // 합성된 최종 이미지를 저장할 상태
     private val _composedImage = MutableStateFlow<Bitmap?>(null)
     val composedImage: StateFlow<Bitmap?> = _composedImage.asStateFlow()
+    
+    // KTX역 선택 상태
+    private val _selectedKtxStation = MutableStateFlow<KtxStation?>(null)
+    val selectedKtxStation: StateFlow<KtxStation?> = _selectedKtxStation.asStateFlow()
     
     // 인생네컷 예시 이미지 상태
     private val _life4CutExample = MutableStateFlow<Bitmap?>(null)
@@ -1617,6 +1624,23 @@ class FrameViewModel : ViewModel() {
             }
         }
     }
+    
+    /**
+     * KTX역 선택
+     */
+    fun selectKtxStation(station: KtxStation) {
+        _selectedKtxStation.value = station
+        println("KTX역 선택됨: ${station.name} (${station.line.displayName})")
+    }
+    
+    /**
+     * KTX역 선택 해제
+     */
+    fun clearKtxStationSelection() {
+        _selectedKtxStation.value = null
+        println("KTX역 선택 해제됨")
+    }
+    
     
 }
 

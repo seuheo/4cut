@@ -35,9 +35,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.a4cut.ui.components.InstagramStoryCircle
+import com.example.a4cut.ui.components.KtxStationSelector
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import com.example.a4cut.data.database.entity.PhotoEntity
+import com.example.a4cut.data.model.KtxStation
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
@@ -61,6 +63,7 @@ fun HomeScreen(
     val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val isTestMode by homeViewModel.isTestMode.collectAsState()
+    val selectedKtxStation by homeViewModel.selectedKtxStation.collectAsState()
     
     // Context 설정
     LaunchedEffect(Unit) {
@@ -114,6 +117,17 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
+            // KTX역 선택 섹션 (임시 비활성화)
+            // item {
+            //     KtxStationSelector(
+            //         selectedStation = selectedKtxStation,
+            //         onStationSelected = { station ->
+            //             homeViewModel.selectKtxStation(station)
+            //         },
+            //         modifier = Modifier.padding(vertical = 8.dp)
+            //     )
+            // }
+
             // 스토리 섹션
             item {
                 StorySection(

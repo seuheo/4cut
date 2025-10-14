@@ -75,9 +75,11 @@ import com.example.a4cut.ui.components.ImagePreviewDialog
 import com.example.a4cut.ui.components.TossPrimaryButton
 import com.example.a4cut.ui.components.TossSecondaryButton
 import com.example.a4cut.ui.components.TossTextButton
+import com.example.a4cut.ui.components.KtxStationSelector
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
 import com.example.a4cut.ui.viewmodel.PhotoState
+import com.example.a4cut.data.model.KtxStation
 
 /**
  * iOS 스타일 프레임 선택 화면 - 예시 이미지와 동일한 깔끔한 디자인
@@ -99,6 +101,7 @@ fun FrameScreen(
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val successMessage by frameViewModel.successMessage.collectAsState()
     val composedImage by frameViewModel.composedImage.collectAsState()
+    val selectedKtxStation by frameViewModel.selectedKtxStation.collectAsState()
 
     // 미리보기 다이얼로그 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
@@ -152,7 +155,18 @@ fun FrameScreen(
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // 3. iOS 스타일 액션 버튼
+        // 3. KTX역 선택 섹션 (임시 비활성화)
+        // KtxStationSelector(
+        //     selectedStation = selectedKtxStation,
+        //     onStationSelected = { station ->
+        //         frameViewModel.selectKtxStation(station)
+        //     },
+        //     modifier = Modifier.padding(horizontal = 16.dp)
+        // )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // 4. iOS 스타일 액션 버튼
         IOSActionButtonSection(
             selectedFrame = selectedFrame,
             photoStates = photoStates,

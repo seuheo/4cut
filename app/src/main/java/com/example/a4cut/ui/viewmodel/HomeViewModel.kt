@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.database.AppDatabase
 import com.example.a4cut.data.repository.PhotoRepository
+import com.example.a4cut.data.repository.KtxStationRepository
 import com.example.a4cut.data.database.entity.PhotoEntity
+import com.example.a4cut.data.model.KtxStation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +26,7 @@ import java.util.Calendar
 class HomeViewModel : ViewModel() {
     
     private var photoRepository: PhotoRepository? = null
+    private val ktxStationRepository by lazy { KtxStationRepository() }
     
     // UI 상태
     private val _isLoading = MutableStateFlow(false)
@@ -35,6 +38,10 @@ class HomeViewModel : ViewModel() {
     // 테스트 모드 상태
     private val _isTestMode = MutableStateFlow(false)
     val isTestMode: StateFlow<Boolean> = _isTestMode.asStateFlow()
+    
+    // KTX역 선택 상태
+    private val _selectedKtxStation = MutableStateFlow<KtxStation?>(null)
+    val selectedKtxStation: StateFlow<KtxStation?> = _selectedKtxStation.asStateFlow()
     
     // 포토로그 데이터
     private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
@@ -393,5 +400,20 @@ class HomeViewModel : ViewModel() {
         }
     }
     // TEST CODE END
+    
+    /**
+     * KTX역 선택
+     */
+    fun selectKtxStation(station: KtxStation) {
+        _selectedKtxStation.value = station
+    }
+    
+    /**
+     * KTX역 선택 해제
+     */
+    fun clearKtxStationSelection() {
+        _selectedKtxStation.value = null
+    }
+    
 }
 
