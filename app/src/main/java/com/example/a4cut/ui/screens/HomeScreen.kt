@@ -41,8 +41,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
 /**
- * 인스타그램 스타일 홈 화면
- * 상단에 스토리 UI, 하단에 격자형 피드 레이아웃을 적용합니다.
+ * iOS 스타일 홈 화면
+ * 20대 사용자들이 선호하는 세련되고 깔끔한 미니멀리즘 디자인
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,16 +70,16 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundLight)
+            .background(IosColors.systemBackground)
     ) {
-        // 인스타그램 스타일 상단 바
+        // iOS 스타일 상단 바
         TopAppBar(
             title = {
                 Text(
                     text = "KTX 네컷",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = IosColors.label
                 )
             },
             actions = {
@@ -87,13 +87,13 @@ fun HomeScreen(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "검색",
-                        tint = TextPrimary
+                        tint = IosColors.label
                     )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = SurfaceLight,
-                titleContentColor = TextPrimary
+                containerColor = IosColors.systemBackground,
+                titleContentColor = IosColors.label
             )
         )
 
@@ -124,7 +124,7 @@ fun HomeScreen(
 }
 
 /**
- * 인스타그램 스타일 스토리 섹션
+ * iOS 스타일 스토리 섹션
  */
 @Composable
 private fun StorySection(
@@ -135,49 +135,49 @@ private fun StorySection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        // 스토리 헤더
+        // iOS 스타일 스토리 헤더
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "스토리",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
+                text = "최근 사진",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = IosColors.label
             )
             
             TextButton(
-                onClick = { /* TODO: 스토리 전체 보기 */ }
+                onClick = { /* TODO: 전체 보기 */ }
             ) {
                 Text(
                     text = "모두 보기",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = InstagramBlue
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = IosColors.SystemBlue
                 )
             }
         }
 
-        // 스토리 리스트
+        // iOS 스타일 스토리 리스트
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 새 스토리 추가 버튼
+            // 새 사진 추가 버튼
             item {
-                InstagramStoryCircle(
+                IOSStoryCircle(
                     onClick = onAddStory,
-                    isViewed = false
+                    isAddButton = true
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "새 스토리 추가",
-                        modifier = Modifier.size(24.dp),
-                        tint = TextPrimary
+                        contentDescription = "새 사진 추가",
+                        modifier = Modifier.size(20.dp),
+                        tint = IosColors.White
                     )
                 }
             }
@@ -185,15 +185,15 @@ private fun StorySection(
             // 최근 사진 스토리
             if (latestPhoto != null) {
                 item {
-                    InstagramStoryCircle(
-                        onClick = { /* TODO: 스토리 상세 보기 */ },
-                        isViewed = false
+                    IOSStoryCircle(
+                        onClick = { /* TODO: 사진 상세 보기 */ },
+                        isAddButton = false
                     ) {
                         AsyncImage(
                             model = latestPhoto.imagePath,
                             contentDescription = "최근 사진",
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(40.dp)
                                 .clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
@@ -203,28 +203,24 @@ private fun StorySection(
 
             // 더미 스토리들 (개발용)
             items(5) { index ->
-                InstagramStoryCircle(
-                    onClick = { /* TODO: 스토리 상세 보기 */ },
-                    isViewed = index % 2 == 0
+                IOSStoryCircle(
+                    onClick = { /* TODO: 사진 상세 보기 */ },
+                    isAddButton = false
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(40.dp)
                             .background(
-                                color = when (index % 3) {
-                                    0 -> KTXBlue.copy(alpha = 0.3f)
-                                    1 -> InstagramBlue.copy(alpha = 0.3f)
-                                    else -> LikeRed.copy(alpha = 0.3f)
-                                },
+                                color = IosColors.systemGray5,
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "${index + 1}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = IosColors.label
                         )
                     }
                 }
@@ -411,10 +407,10 @@ private fun EmptyFeedState(
         Button(
             onClick = onAddPhoto,
             colors = ButtonDefaults.buttonColors(
-                containerColor = InstagramBlue,
-                contentColor = Color.White
+                containerColor = IosColors.SystemBlue,
+                contentColor = IosColors.White
             ),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(12.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
@@ -427,6 +423,61 @@ private fun EmptyFeedState(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
+        }
+    }
+}
+
+/**
+ * iOS 스타일 스토리 서클 컴포넌트
+ */
+@Composable
+private fun IOSStoryCircle(
+    onClick: () -> Unit,
+    isAddButton: Boolean,
+    content: @Composable () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(if (isAddButton) 60.dp else 56.dp)
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        // 외부 원 (테두리)
+        Box(
+            modifier = Modifier
+                .size(if (isAddButton) 60.dp else 56.dp)
+                .background(
+                    color = if (isAddButton) IosColors.SystemBlue else IosColors.systemGray4,
+                    shape = CircleShape
+                )
+        )
+        
+        // 내부 원 (콘텐츠)
+        Box(
+            modifier = Modifier
+                .size(if (isAddButton) 52.dp else 48.dp)
+                .background(
+                    color = IosColors.systemBackground,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
         }
     }
 }
