@@ -117,21 +117,17 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 테스트용 사진들 로드
+     * 테스트용 사진들 로드 (아이유 사진 4장)
      */
     private fun loadTestPhotos() {
         viewModelScope.launch {
             try {
-                println("테스트 사진 로드 시작")
+                println("아이유 사진 로드 시작")
                 val testPhotoIds = listOf(
-                    R.drawable.test_photo_1,
-                    R.drawable.test_photo_2,
-                    R.drawable.test_photo_3,
-                    R.drawable.test_photo_4,
-                    R.drawable.test_photo_5,
-                    R.drawable.test_photo_6,
-                    R.drawable.test_photo_7,
-                    R.drawable.test_photo_8
+                    R.drawable.iu1,
+                    R.drawable.iu2,
+                    R.drawable.iu3,
+                    R.drawable.iu4
                 )
                 
                 val bitmaps = testPhotoIds.mapNotNull { drawableId: Int ->
@@ -150,6 +146,19 @@ class FrameViewModel : ViewModel() {
                 
                 println("테스트 사진 로드 완료: ${bitmaps.size}개")
                 _testPhotos.value = bitmaps
+                
+                // 아이유 사진들을 자동으로 선택된 사진으로 설정
+                if (bitmaps.size >= 4) {
+                    val selectedPhotos = bitmaps.take(4)
+                    _photos.value = selectedPhotos
+                    
+                    // PhotoState도 업데이트
+                    selectedPhotos.forEachIndexed { index, bitmap ->
+                        updatePhotoStateFromBitmap(index, bitmap)
+                    }
+                    
+                    println("아이유 사진 4장이 자동으로 선택되었습니다")
+                }
             } catch (e: Exception) {
                 println("테스트 사진 로드 전체 실패: ${e.message}")
                 _errorMessage.value = "테스트 사진 로드 실패: ${e.message}"
@@ -841,6 +850,37 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
+     * 아이유 사진 선택
+     */
+    fun selectIuPhoto(gridIndex: Int, iuPhotoIndex: Int) {
+        viewModelScope.launch {
+            try {
+                val iuPhotoIds = listOf(
+                    R.drawable.iu1,
+                    R.drawable.iu2,
+                    R.drawable.iu3,
+                    R.drawable.iu4
+                )
+                
+                if (gridIndex in 0..3 && iuPhotoIndex in 0..3) {
+                    context?.let { ctx ->
+                        val drawableId = iuPhotoIds[iuPhotoIndex]
+                        val bitmap = BitmapFactory.decodeResource(ctx.resources, drawableId)
+                        bitmap?.let { 
+                            val scaledBitmap = Bitmap.createScaledBitmap(it, 512, 512, true)
+                            selectPhoto(gridIndex, scaledBitmap)
+                            println("아이유 사진 ${iuPhotoIndex + 1}이 그리드 ${gridIndex + 1}에 선택되었습니다")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "아이유 사진 선택 실패: ${e.message}"
+                println("아이유 사진 선택 실패: ${e.message}")
+            }
+        }
+    }
+    
+    /**
      * Phase 1: 사진 선택 토글 (미리보기에서 사용)
      */
     fun togglePhotoSelection(index: Int) {
@@ -1211,8 +1251,11 @@ class FrameViewModel : ViewModel() {
     fun startImageComposition() {
         println("=== startImageComposition 시작 ===")
         println("selectedFrame: ${_selectedFrame.value}")
+        println("selectedFrame ID: ${_selectedFrame.value?.id}")
+        println("selectedFrame name: ${_selectedFrame.value?.name}")
         println("photos: ${_photos.value.map { it != null }}")
         println("photoStates: ${_photoStates.map { it.bitmap != null }}")
+        println("photoStates size: ${_photoStates.size}")
         
         if (_selectedFrame.value == null) {
             _errorMessage.value = "프레임을 선택해주세요"
@@ -1226,6 +1269,8 @@ class FrameViewModel : ViewModel() {
         
         println("startImageComposition: hasPhotosInPhotos = $hasPhotosInPhotos")
         println("startImageComposition: hasPhotosInStates = $hasPhotosInStates")
+        println("startImageComposition: _photos 상세 = ${_photos.value.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
+        println("startImageComposition: _photoStates 상세 = ${_photoStates.map { "${it.bitmap?.width ?: 0}x${it.bitmap?.height ?: 0}" }}")
         
         if (!hasPhotosInPhotos && !hasPhotosInStates) {
             _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
