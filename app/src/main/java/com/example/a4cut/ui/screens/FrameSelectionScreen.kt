@@ -56,21 +56,28 @@ fun FrameSelectionScreen(
     
     // ViewModel 상태 수집
     val photos by frameViewModel.photos.collectAsState()
+    val photoStates = frameViewModel.photoStates
     val frames by frameViewModel.frames.collectAsState()
     val selectedFrame by frameViewModel.selectedFrame.collectAsState()
     val isLoading by frameViewModel.isLoading.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     
     // 디버그 로그
-    LaunchedEffect(photos) {
+    LaunchedEffect(photos, photoStates) {
         val photoCount = photos.count { it != null }
+        val photoStateCount = photoStates.count { it.bitmap != null }
         println("=== FrameSelectionScreen 디버그 ===")
         println("FrameSelectionScreen: 사진 상태 업데이트 - ${photos.map { it != null }}")
+        println("FrameSelectionScreen: PhotoState 상태 - ${photoStates.map { it.bitmap != null }}")
         println("FrameSelectionScreen: 선택된 사진 개수: $photoCount")
+        println("FrameSelectionScreen: PhotoState 사진 개수: $photoStateCount")
         println("FrameSelectionScreen: 사진 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
         println("FrameSelectionScreen: 사진 리스트 크기: ${photos.size}")
         photos.forEachIndexed { index, bitmap ->
             println("FrameSelectionScreen: 사진[$index] = ${if (bitmap != null) "있음 (${bitmap.width}x${bitmap.height})" else "없음"}")
+        }
+        photoStates.forEachIndexed { index, photoState ->
+            println("FrameSelectionScreen: PhotoState[$index] = ${if (photoState.bitmap != null) "있음 (${photoState.bitmap.width}x${photoState.bitmap.height})" else "없음"}")
         }
         println("=== 디버그 끝 ===")
     }

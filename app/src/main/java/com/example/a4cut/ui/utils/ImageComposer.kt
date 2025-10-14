@@ -44,6 +44,8 @@ class ImageComposer(private val context: Context) {
     ): Bitmap = withContext(Dispatchers.Default) {
         println("=== composeLife4CutFrame 시작 ===")
         println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
+        println("전달받은 사진 개수: ${photos.size}")
+        println("사진 null 체크: ${photos.map { it != null }}")
         
         // 프레임 크기에 맞춰 결과 Bitmap 생성
         val resultBitmap = frameBitmap.copy(Bitmap.Config.ARGB_8888, true)

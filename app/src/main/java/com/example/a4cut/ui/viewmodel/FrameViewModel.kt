@@ -64,7 +64,10 @@ class FrameViewModel : ViewModel() {
     val photos: StateFlow<List<Bitmap?>> = _photos.asStateFlow()
     
     // Phase 2: PhotoState 리스트로 사진 편집 상태 관리
-    private val _photoStates = mutableStateListOf<PhotoState>()
+    private val _photoStates = mutableStateListOf<PhotoState>().apply {
+        // 4개의 빈 PhotoState로 초기화
+        repeat(4) { add(PhotoState(null)) }
+    }
     val photoStates: SnapshotStateList<PhotoState> = _photoStates
     
     // 선택된 이미지 URI를 저장할 StateFlow 추가
@@ -870,11 +873,6 @@ class FrameViewModel : ViewModel() {
      */
     private fun updatePhotoStateFromBitmap(index: Int, bitmap: Bitmap?) {
         if (index in 0..3) {
-            // PhotoState 리스트가 비어있으면 4개로 초기화
-            while (_photoStates.size < 4) {
-                _photoStates.add(PhotoState(null))
-            }
-            
             // 해당 인덱스의 PhotoState 업데이트
             _photoStates[index] = PhotoState(
                 bitmap = bitmap,
@@ -1261,6 +1259,11 @@ class FrameViewModel : ViewModel() {
                             println("인생네컷 프레임 감지! composeLife4CutFrame 호출")
                             // 인생네컷 프레임 전용 합성 함수 사용
                             val photos = _photoStates.map { it.bitmap }
+                            println("FrameViewModel: 전달할 사진 데이터")
+                            println("  - _photoStates 개수: ${_photoStates.size}")
+                            println("  - photos 개수: ${photos.size}")
+                            println("  - photos null 체크: ${photos.map { it != null }}")
+                            println("  - photos 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
                             composer.composeLife4CutFrame(frameBitmap, photos)
                         }
                         else -> {

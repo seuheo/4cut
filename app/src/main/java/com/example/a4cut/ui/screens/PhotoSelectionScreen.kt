@@ -152,7 +152,15 @@ fun PhotoSelectionScreen(
                 println("PhotoSelectionScreen: photoCount = $photoCount, photos = ${photos.map { it != null }}")
                 IosStyleButton(
                     text = "프레임 선택하기 (${photoCount}장 선택됨)",
-                    onClick = onNext,
+                    onClick = {
+                        println("=== PhotoSelectionScreen: 프레임 선택 화면으로 이동 ===")
+                        println("PhotoSelectionScreen: 현재 사진 상태 = ${photos.map { it != null }}")
+                        println("PhotoSelectionScreen: 선택된 사진 개수 = $photoCount")
+                        println("PhotoSelectionScreen: FrameViewModel 상태 확인")
+                        println("  - _photos: ${frameViewModel.photos.value.map { it != null }}")
+                        println("  - _photoStates: ${frameViewModel.photoStates.map { it.bitmap != null }}")
+                        onNext()
+                    },
                     enabled = photoCount > 0,
                     icon = Icons.Default.Star
                 )
