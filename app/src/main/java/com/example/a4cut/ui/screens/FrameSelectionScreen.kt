@@ -154,6 +154,11 @@ fun FrameSelectionScreen(
                         println("=== FrameSelectionScreen: 다음 단계 버튼 클릭 ===")
                         println("FrameSelectionScreen: 사진 상태 = ${photos.map { it != null }}")
                         println("FrameSelectionScreen: 선택된 프레임 = ${selectedFrame?.name}")
+                        println("FrameSelectionScreen: 이미지 합성 시작")
+                        
+                        // 이미지 합성 시작
+                        frameViewModel.startImageComposition()
+                        
                         println("FrameSelectionScreen: ResultScreen으로 이동")
                         onNext()
                     },
