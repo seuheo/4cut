@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.ripple.rememberRipple
@@ -62,7 +63,7 @@ fun PhotoSelectionScreen(
         frameViewModel.setContext(context)
     }
     
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundLight)
@@ -70,61 +71,73 @@ fun PhotoSelectionScreen(
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         // 헤더 섹션
-        HeaderSection(
-            successMessage = successMessage,
-            errorMessage = errorMessage
-        )
+        item {
+            HeaderSection(
+                successMessage = successMessage,
+                errorMessage = errorMessage
+            )
+        }
         
         // 4컷 사진 선택 그리드
-        PhotoGridSection(
-            photos = photos,
-            onPhotoClick = { index -> 
-                frameViewModel.togglePhotoSelection(index)
-            }
-        )
+        item {
+            PhotoGridSection(
+                photos = photos,
+                onPhotoClick = { index -> 
+                    frameViewModel.togglePhotoSelection(index)
+                }
+            )
+        }
         
         // 갤러리에서 사진 선택 버튼
         if (openGallery != null) {
+            item {
+                TossPrimaryButton(
+                    text = "갤러리에서 사진 선택하기",
+                    onClick = openGallery,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+        
+        // 테스트용 사진 선택 버튼들 (에뮬레이터용)
+        item {
+            TestPhotoButtonsSection(
+                onSelectRandomPhoto = { frameViewModel.selectRandomTestPhoto() },
+                onSelectTestPhoto1 = { frameViewModel.selectTestPhoto(0, 0) },
+                onSelectTestPhoto2 = { frameViewModel.selectTestPhoto(1, 1) },
+                onSelectTestPhoto3 = { frameViewModel.selectTestPhoto(2, 2) },
+                onSelectTestPhoto4 = { frameViewModel.selectTestPhoto(3, 3) },
+                onClearAllPhotos = { 
+                    repeat(4) { index ->
+                        frameViewModel.removePhoto(index)
+                    }
+                }
+            )
+        }
+        
+        // 다음 단계 버튼
+        item {
+            val photoCount = photos.count { it != null }
+            println("PhotoSelectionScreen: photoCount = $photoCount, photos = ${photos.map { it != null }}")
             TossPrimaryButton(
-                text = "갤러리에서 사진 선택하기",
-                onClick = openGallery,
+                text = "프레임 선택하기 (${photoCount}장 선택됨)",
+                onClick = onNext,
+                enabled = photoCount > 0,
                 modifier = Modifier.fillMaxWidth()
             )
         }
         
-        // 테스트용 사진 선택 버튼들 (에뮬레이터용)
-        TestPhotoButtonsSection(
-            onSelectRandomPhoto = { frameViewModel.selectRandomTestPhoto() },
-            onSelectTestPhoto1 = { frameViewModel.selectTestPhoto(0, 0) },
-            onSelectTestPhoto2 = { frameViewModel.selectTestPhoto(1, 1) },
-            onSelectTestPhoto3 = { frameViewModel.selectTestPhoto(2, 2) },
-            onSelectTestPhoto4 = { frameViewModel.selectTestPhoto(3, 3) },
-            onClearAllPhotos = { 
-                repeat(4) { index ->
-                    frameViewModel.removePhoto(index)
-                }
-            }
-        )
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        // 다음 단계 버튼
-        val photoCount = photos.count { it != null }
-        TossPrimaryButton(
-            text = "프레임 선택하기",
-            onClick = onNext,
-            enabled = photoCount > 0,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
         // 안내 텍스트
-        Text(
-            text = if (photoCount == 0) "최소 1장의 사진을 선택해주세요" else "선택된 사진: ${photoCount}장",
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (photoCount > 0) KTXBlue else TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
+        item {
+            val photoCount = photos.count { it != null }
+            Text(
+                text = if (photoCount == 0) "최소 1장의 사진을 선택해주세요" else "선택된 사진: ${photoCount}장",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (photoCount > 0) KTXBlue else TextSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 

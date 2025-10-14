@@ -788,8 +788,22 @@ class FrameViewModel : ViewModel() {
         }
     }
     
+    
     /**
-     * 사진 선택 토글 (있으면 제거, 없으면 추가 준비)
+     * 테스트용 사진 선택
+     */
+    fun selectTestPhoto(gridIndex: Int, testPhotoIndex: Int) {
+        if (gridIndex in 0..3 && testPhotoIndex in 0 until _testPhotos.value.size) {
+            val testPhoto = _testPhotos.value[testPhotoIndex]
+            selectPhoto(gridIndex, testPhoto)
+            clearError()
+        } else {
+            _errorMessage.value = "잘못된 사진 인덱스입니다"
+        }
+    }
+    
+    /**
+     * Phase 1: 사진 선택 토글 (미리보기에서 사용)
      */
     fun togglePhotoSelection(index: Int) {
         if (index in 0..3) {
@@ -802,26 +816,15 @@ class FrameViewModel : ViewModel() {
                     currentPhoto.recycle()
                 }
                 currentPhotos[index] = null
+            } else {
+                // 사진이 없으면 랜덤 테스트 사진 추가
+                selectRandomTestPhoto()
             }
-            // 사진이 없으면 추가 준비 (openImagePicker 호출 필요)
             
             _photos.value = currentPhotos
             clearError()
         } else {
             _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
-        }
-    }
-    
-    /**
-     * 테스트용 사진 선택
-     */
-    fun selectTestPhoto(gridIndex: Int, testPhotoIndex: Int) {
-        if (gridIndex in 0..3 && testPhotoIndex in 0 until _testPhotos.value.size) {
-            val testPhoto = _testPhotos.value[testPhotoIndex]
-            selectPhoto(gridIndex, testPhoto)
-            clearError()
-        } else {
-            _errorMessage.value = "잘못된 사진 인덱스입니다"
         }
     }
     
