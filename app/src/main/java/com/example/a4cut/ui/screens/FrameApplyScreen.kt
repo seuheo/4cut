@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.data.model.Frame
+import com.example.a4cut.ui.components.KtxStationSelector
+import com.example.a4cut.data.repository.KtxStationRepository
 import com.example.a4cut.ui.viewmodel.FrameApplyViewModel
 
 /**
@@ -44,6 +46,14 @@ fun FrameApplyScreen(
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
     val successMessage = uiState.successMessage
+    
+    // KTX 역 선택을 위한 상태 변수
+    val ktxStationRepository = remember { KtxStationRepository() }
+    var selectedLine by remember { mutableStateOf("Gyeongbu") }
+    val stations by remember(selectedLine) {
+        mutableStateOf(ktxStationRepository.getStationsByLine(selectedLine))
+    }
+    var selectedStation by remember { mutableStateOf<String?>(null) }
     
     // 사진이 없으면 로딩 표시
     if (photo == null) {
@@ -69,7 +79,7 @@ fun FrameApplyScreen(
                     // 저장 버튼 (프레임이 선택된 경우에만 활성화)
                     if (selectedFrame != null) {
                         IconButton(
-                            onClick = { viewModel.saveFrameAppliedPhoto() },
+                            onClick = { viewModel.saveFrameAppliedPhoto(selectedStation) },
                             enabled = !isLoading
                         ) {
                             Icon(Icons.Default.Check, contentDescription = "저장")
@@ -105,14 +115,23 @@ fun FrameApplyScreen(
             // 1. 선택된 사진 표시
             PhotoPreviewSection(photo = photo)
             
-            // 2. 프레임 선택 UI
+            // 2. KTX 역 선택 UI
+            KtxStationSelectionSection(
+                selectedLine = selectedLine,
+                onLineSelected = { selectedLine = it },
+                stations = stations,
+                selectedStation = selectedStation,
+                onStationSelected = { selectedStation = it }
+            )
+            
+            // 3. 프레임 선택 UI
             FrameSelectionSection(
                 frames = frames,
                 selectedFrame = selectedFrame,
                 onFrameSelected = { frame -> viewModel.selectFrame(frame) }
             )
             
-            // 3. 미리보기 섹션 (선택된 프레임이 있을 때만 표시)
+            // 4. 미리보기 섹션 (선택된 프레임이 있을 때만 표시)
             if (selectedFrame != null) {
                 FramePreviewSection(
                     previewBitmap = previewBitmap,
@@ -276,6 +295,55 @@ private fun FrameSelectionCard(
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
         }
+    }
+}
+
+/**
+ * KTX 역 선택 섹션
+ */
+@Composable
+private fun KtxStationSelectionSection(
+    selectedLine: String,
+    onLineSelected: (String) -> Unit,
+    stations: List<com.example.a4cut.data.model.KtxStation>,
+    selectedStation: String?,
+    onStationSelected: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "KTX 역 선택",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // 노선 선택 탭
+        TabRow(selectedTabIndex = if (selectedLine == "Gyeongbu") 0 else 1) {
+            Tab(
+                selected = selectedLine == "Gyeongbu",
+                onClick = { onLineSelected("Gyeongbu") },
+                text = { Text("경부선") }
+            )
+            Tab(
+                selected = selectedLine == "Honam",
+                onClick = { onLineSelected("Honam") },
+                text = { Text("호남선") }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 역 선택
+        KtxStationSelector(
+            stations = stations,
+            selectedStation = selectedStation,
+            onStationSelected = onStationSelected
+        )
     }
 }
 

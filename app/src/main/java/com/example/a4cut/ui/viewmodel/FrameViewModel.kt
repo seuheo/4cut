@@ -1630,7 +1630,7 @@ class FrameViewModel : ViewModel() {
      */
     fun selectKtxStation(station: KtxStation) {
         _selectedKtxStation.value = station
-        println("KTX역 선택됨: ${station.name} (${station.line.displayName})")
+        println("KTX역 선택됨: ${station.name} (${station.line})")
     }
     
     /**

@@ -232,7 +232,7 @@ class FrameApplyViewModel(
     /**
      * 프레임 적용 결과물 저장
      */
-    fun saveFrameAppliedPhoto() {
+    fun saveFrameAppliedPhoto(stationName: String? = null) {
         val photo = _uiState.value.photo
         val selectedFrame = _uiState.value.selectedFrame
         
@@ -279,6 +279,7 @@ class FrameApplyViewModel(
                             imagePath = savedUri.toString(),
                             title = "${photo.title} (${selectedFrame.name} 프레임)",
                             frameType = selectedFrame.name,
+                            station = stationName, // 역 정보 추가
                             createdAt = System.currentTimeMillis()
                         )
                         

@@ -27,6 +27,9 @@ data class PhotoEntity(
     // 촬영 위치 (역 이름 등)
     val location: String = "",
     
+    // KTX 역 정보 (필터링용)
+    val station: String? = null,
+    
     // 즐겨찾기 여부
     val isFavorite: Boolean = false,
     

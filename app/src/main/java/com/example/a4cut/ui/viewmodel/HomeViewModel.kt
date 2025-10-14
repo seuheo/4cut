@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
@@ -43,6 +44,10 @@ class HomeViewModel : ViewModel() {
     private val _selectedKtxStation = MutableStateFlow<KtxStation?>(null)
     val selectedKtxStation: StateFlow<KtxStation?> = _selectedKtxStation.asStateFlow()
     
+    // 역 선택 상태 관리 (필터링용)
+    private val _selectedStation = MutableStateFlow<String?>(null)
+    val selectedStation: StateFlow<String?> = _selectedStation.asStateFlow()
+    
     // 포토로그 데이터
     private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
     val photoLogs: StateFlow<List<PhotoEntity>> = _photoLogs.asStateFlow()
@@ -62,9 +67,14 @@ class HomeViewModel : ViewModel() {
         initialValue = null
     )
     
-    // 모든 사진 (피드용)
-    val allPhotos: StateFlow<List<PhotoEntity>> = photoLogs.map { photos ->
-        photos.sortedByDescending { it.createdAt }
+    // 모든 사진 (피드용) - 역 선택에 따라 필터링
+    val allPhotos: StateFlow<List<PhotoEntity>> = combine(photoLogs, _selectedStation) { photos, station ->
+        val filteredPhotos = if (station == null) {
+            photos
+        } else {
+            photos.filter { it.station == station }
+        }
+        filteredPhotos.sortedByDescending { it.createdAt }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -413,6 +423,13 @@ class HomeViewModel : ViewModel() {
      */
     fun clearKtxStationSelection() {
         _selectedKtxStation.value = null
+    }
+    
+    /**
+     * 역 선택 함수 (필터링용)
+     */
+    fun selectStation(stationName: String?) {
+        _selectedStation.value = stationName
     }
     
 }

@@ -21,6 +21,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.components.CalendarView
+import com.example.a4cut.ui.components.KtxStationSelector
+import com.example.a4cut.data.repository.KtxStationRepository
 import com.example.a4cut.ui.theme.IosColors
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.util.Calendar
@@ -57,6 +59,14 @@ fun CalendarScreen(
     val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
+    val selectedStation by homeViewModel.selectedStation.collectAsState()
+    
+    // KTX 역 선택을 위한 상태 변수 및 리포지토리
+    val ktxStationRepository = remember { KtxStationRepository() }
+    var selectedLine by remember { mutableStateOf("Gyeongbu") }
+    val stations by remember(selectedLine) {
+        mutableStateOf(ktxStationRepository.getStationsByLine(selectedLine))
+    }
     
     Scaffold(
         topBar = {
@@ -80,6 +90,34 @@ fun CalendarScreen(
                 .padding(paddingValues)
                 .background(IosColors.secondarySystemBackground)
         ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // KTX 노선 및 역 선택 UI 추가
+            Column {
+                TabRow(selectedTabIndex = if (selectedLine == "Gyeongbu") 0 else 1) {
+                    Tab(
+                        selected = selectedLine == "Gyeongbu",
+                        onClick = { selectedLine = "Gyeongbu" },
+                        text = { Text("경부선") }
+                    )
+                    Tab(
+                        selected = selectedLine == "Honam",
+                        onClick = { selectedLine = "Honam" },
+                        text = { Text("호남선") }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                KtxStationSelector(
+                    stations = stations,
+                    selectedStation = selectedStation,
+                    onStationSelected = { stationName ->
+                        homeViewModel.selectStation(stationName)
+                    }
+                )
+            }
+            
             Spacer(modifier = Modifier.height(16.dp))
             
             // 달력 뷰
