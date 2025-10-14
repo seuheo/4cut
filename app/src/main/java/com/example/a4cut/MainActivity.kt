@@ -1,5 +1,6 @@
 package com.example.a4cut
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -31,6 +32,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 디버그 모드에서 테스트 Activity로 이동 (임시로 주석 처리)
+        // if (BuildConfig.DEBUG) {
+        //     Log.d("MainActivity", "디버그 모드: 테스트 Activity로 이동")
+        //     startActivity(Intent(this, ImageComposerTestActivity::class.java))
+        //     finish()
+        //     return
+        // }
         
         try {
             enableEdgeToEdge()

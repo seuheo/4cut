@@ -44,36 +44,43 @@ class ImageComposer(private val context: Context) {
         frameBitmap: Bitmap,
         photos: List<Bitmap?>
     ): Bitmap = withContext(Dispatchers.Default) {
+        println("=== ImageComposer: composeLife4CutFrame 시작 ===")
+        println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
+        println("입력 사진 개수: ${photos.size}")
+        println("사진 null 체크: ${photos.map { it != null }}")
+        println("사진 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
+        
         val resultBitmap = frameBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(resultBitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-        // ✨ 중요: 1080x1920 캔버스 비율에 맞춰 재계산된 최종 좌표입니다.
-        val photoRects = listOf(
-            // 1번째 칸 (맨 위)
-            RectF(110f, 290f, 970f, 625f),
-            // 2번째 칸
-            RectF(110f, 655f, 970f, 990f),
-            // 3번째 칸
-            RectF(110f, 1020f, 970f, 1355f),
-            // 4번째 칸 (맨 아래)
-            RectF(110f, 1385f, 970f, 1720f)
-        )
+        // ✨ 중요: 프레임 위에 세로로 약간 더 긴 4개의 사각형 안에 사진 배치
+        val photoRects = calculateLife4CutPhotoPositions(frameBitmap.width, frameBitmap.height)
+        println("계산된 사진 위치들:")
+        photoRects.forEachIndexed { index, rect ->
+            println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom}) 크기: ${rect.width()}x${rect.height()}")
+        }
 
         photos.take(4).forEachIndexed { index, photo ->
             photo?.let { bitmap ->
                 val rect = photoRects[index]
-                // 각 칸의 크기에 맞게 사진 크기를 조절합니다.
-                val scaledPhoto = Bitmap.createScaledBitmap(
-                    bitmap,
-                    rect.width().toInt(),
-                    rect.height().toInt(),
-                    true
-                )
+                println("${index + 1}번째 사진 처리 시작:")
+                println("  원본 크기: ${bitmap.width}x${bitmap.height}")
+                println("  목표 크기: ${rect.width().toInt()}x${rect.height().toInt()}")
+                
+                // 각 칸의 크기에 맞게 사진을 프레임 사각형 모양에 정확히 맞게 크기 조절
+                val scaledPhoto = scaleBitmapToFill(bitmap, rect.width().toInt(), rect.height().toInt())
+                println("  스케일된 크기: ${scaledPhoto.width}x${scaledPhoto.height}")
+                
                 // 정확한 위치에 사진을 그립니다.
                 canvas.drawBitmap(scaledPhoto, rect.left, rect.top, paint)
+                println("  ${index + 1}번째 사진 그리기 완료")
+            } ?: run {
+                println("${index + 1}번째 사진이 null이므로 건너뜀")
             }
         }
+        
+        println("=== ImageComposer: composeLife4CutFrame 완료 ===")
         resultBitmap
     }
 
@@ -385,5 +392,149 @@ class ImageComposer(private val context: Context) {
      */
     fun recycleBitmaps(bitmaps: List<Bitmap?>) {
         bitmaps.forEach { recycleBitmap(it) }
+    }
+
+    /**
+     * 인생네컷 프레임용 4개 사진의 배치 위치를 계산 (세로로 약간 더 긴 사각형)
+     * @param frameWidth 프레임 너비
+     * @param frameHeight 프레임 높이
+     * @return 각 사진의 RectF 좌표 목록
+     */
+    private fun calculateLife4CutPhotoPositions(frameWidth: Int, frameHeight: Int): List<RectF> {
+        println("=== calculateLife4CutPhotoPositions 시작 ===")
+        println("입력 프레임 크기: ${frameWidth}x${frameHeight}")
+        
+        // 여백 계산 (프레임 테두리 공간 확보)
+        val horizontalMargin = frameWidth * 0.08f  // 좌우 여백 8%
+        val verticalMargin = frameHeight * 0.12f   // 상하 여백 12%
+        val photoSpacing = frameWidth * 0.02f      // 사진 간 간격 2%
+        
+        println("계산된 여백:")
+        println("  horizontalMargin: $horizontalMargin (${frameWidth * 0.08f})")
+        println("  verticalMargin: $verticalMargin (${frameHeight * 0.12f})")
+        println("  photoSpacing: $photoSpacing (${frameWidth * 0.02f})")
+        
+        // 사진 영역 크기 계산
+        val totalPhotoAreaWidth = frameWidth - (horizontalMargin * 2) - photoSpacing
+        val totalPhotoAreaHeight = frameHeight - (verticalMargin * 2) - photoSpacing
+        
+        val photoWidth = totalPhotoAreaWidth / 2
+        val photoHeight = totalPhotoAreaHeight / 2
+        
+        println("사진 영역 계산:")
+        println("  totalPhotoAreaWidth: $totalPhotoAreaWidth")
+        println("  totalPhotoAreaHeight: $totalPhotoAreaHeight")
+        println("  photoWidth: $photoWidth")
+        println("  photoHeight: $photoHeight")
+        
+        // 세로로 약간 더 긴 사각형을 위해 높이를 1.2배로 조정
+        val adjustedPhotoHeight = photoHeight * 1.2f
+        println("  adjustedPhotoHeight: $adjustedPhotoHeight (1.2배 적용)")
+        
+        // 각 사진의 위치 계산 (2x2 그리드, 세로로 약간 더 긴 사각형)
+        val positions = listOf(
+            // 1번 사진 (좌상단)
+            RectF(
+                horizontalMargin,
+                verticalMargin,
+                horizontalMargin + photoWidth,
+                verticalMargin + adjustedPhotoHeight
+            ),
+            // 2번 사진 (우상단)
+            RectF(
+                horizontalMargin + photoWidth + photoSpacing,
+                verticalMargin,
+                frameWidth - horizontalMargin,
+                verticalMargin + adjustedPhotoHeight
+            ),
+            // 3번 사진 (좌하단)
+            RectF(
+                horizontalMargin,
+                verticalMargin + adjustedPhotoHeight + photoSpacing,
+                horizontalMargin + photoWidth,
+                frameHeight - verticalMargin
+            ),
+            // 4번 사진 (우하단)
+            RectF(
+                horizontalMargin + photoWidth + photoSpacing,
+                verticalMargin + adjustedPhotoHeight + photoSpacing,
+                frameWidth - horizontalMargin,
+                frameHeight - verticalMargin
+            )
+        )
+        
+        println("최종 계산된 위치들:")
+        positions.forEachIndexed { index, rect ->
+            println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})")
+            println("    크기: ${rect.width()}x${rect.height()}")
+        }
+        println("=== calculateLife4CutPhotoPositions 완료 ===")
+        
+        return positions
+    }
+
+    /**
+     * Bitmap을 지정된 사각형 크기에 맞게 조절 (비율 유지하면서 프레임을 완전히 채움)
+     * @param bitmap 원본 Bitmap
+     * @param targetWidth 목표 너비
+     * @param targetHeight 목표 높이
+     * @return 조절된 Bitmap
+     */
+    private fun scaleBitmapToFit(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
+        val originalWidth = bitmap.width
+        val originalHeight = bitmap.height
+        
+        println("=== scaleBitmapToFit 시작 ===")
+        println("원본 크기: ${originalWidth}x${originalHeight}")
+        println("목표 크기: ${targetWidth}x${targetHeight}")
+        
+        // 원본 비율과 목표 비율 계산
+        val originalRatio = originalWidth.toFloat() / originalHeight.toFloat()
+        val targetRatio = targetWidth.toFloat() / targetHeight.toFloat()
+        
+        println("비율 계산:")
+        println("  원본 비율: $originalRatio")
+        println("  목표 비율: $targetRatio")
+        
+        val (scaledWidth, scaledHeight) = if (originalRatio > targetRatio) {
+            // 원본이 더 넓은 경우: 너비에 맞춰서 높이 조절 (프레임을 완전히 채움)
+            val scaledHeight = (targetWidth / originalRatio).toInt()
+            println("  원본이 더 넓음: 너비 기준으로 조절")
+            Pair(targetWidth, scaledHeight)
+        } else {
+            // 원본이 더 높은 경우: 높이에 맞춰서 너비 조절 (프레임을 완전히 채움)
+            val scaledWidth = (targetHeight * originalRatio).toInt()
+            println("  원본이 더 높음: 높이 기준으로 조절")
+            Pair(scaledWidth, targetHeight)
+        }
+        
+        println("최종 스케일 크기: ${scaledWidth}x${scaledHeight}")
+        println("=== scaleBitmapToFit 완료 ===")
+        
+        return Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+    }
+    
+    /**
+     * Bitmap을 지정된 사각형 크기에 정확히 맞게 조절 (비율 무시, 프레임 완전 채움)
+     * @param bitmap 원본 Bitmap
+     * @param targetWidth 목표 너비
+     * @param targetHeight 목표 높이
+     * @return 조절된 Bitmap
+     */
+    private fun scaleBitmapToFill(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
+        val originalWidth = bitmap.width
+        val originalHeight = bitmap.height
+        
+        println("=== scaleBitmapToFill 시작 ===")
+        println("원본 크기: ${originalWidth}x${originalHeight}")
+        println("목표 크기: ${targetWidth}x${targetHeight}")
+        
+        // 프레임의 사각형 모양에 정확히 맞게 스케일링 (비율 무시)
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+        
+        println("최종 스케일 크기: ${scaledBitmap.width}x${scaledBitmap.height}")
+        println("=== scaleBitmapToFill 완료 ===")
+        
+        return scaledBitmap
     }
 }

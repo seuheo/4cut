@@ -28,6 +28,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -160,6 +162,7 @@ fun FrameScreen(
                 frameViewModel.startImageComposition()
             }
         )
+        
         
         Spacer(modifier = Modifier.height(32.dp))
     }

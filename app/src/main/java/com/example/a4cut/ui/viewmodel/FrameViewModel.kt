@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.net.Uri
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -1266,6 +1269,14 @@ class FrameViewModel : ViewModel() {
                             println("  - photos 개수: ${photos.size}")
                             println("  - photos null 체크: ${photos.map { it != null }}")
                             println("  - photos 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
+                            println("  - 선택된 사진 개수: ${photos.count { it != null }}")
+                            
+                            if (photos.count { it != null } == 0) {
+                                println("경고: 선택된 사진이 없습니다!")
+                                _errorMessage.value = "사진을 먼저 선택해주세요"
+                                return@launch
+                            }
+                            
                             composer.composeLife4CutFrame(frameBitmap, photos)
                         }
                         else -> {
@@ -1565,11 +1576,16 @@ class FrameViewModel : ViewModel() {
                             }
                         }
                         currentPhotos[index] = bitmap
+                        
+                        // PhotoState도 함께 업데이트
+                        updatePhotoStateFromBitmap(index, bitmap)
+                        
                         println("그리드 위치 ${index}에 이미지 배치 완료")
                     }
                 }
                 _photos.value = currentPhotos
                 println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
+                println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
                 
                 _successMessage.value = "갤러리에서 ${uris.size}장의 사진을 선택했습니다"
                 clearError()
@@ -1601,5 +1617,6 @@ class FrameViewModel : ViewModel() {
             }
         }
     }
+    
 }
 

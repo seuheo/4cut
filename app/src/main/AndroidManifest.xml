@@ -33,6 +33,7 @@
             </intent-filter>
         </activity>
 
+
         <!-- FileProvider for sharing images with other apps -->
         <provider
             android:name="androidx.core.content.FileProvider"
