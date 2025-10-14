@@ -254,13 +254,13 @@ private fun FeedSection(
                 text = "내 사진",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
+                    color = IosColors.label
             )
             
             Text(
                 text = "${photos.size}개",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
+                    color = IosColors.secondaryLabel
             )
         }
 
@@ -320,7 +320,7 @@ private fun FeedPhotoItem(
     Box(
         modifier = modifier
             .scale(scale)
-            .background(BackgroundSecondary)
+            .background(IosColors.secondarySystemBackground)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -389,7 +389,7 @@ private fun EmptyFeedState(
             text = "아직 사진이 없어요",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            color = TextSecondary,
+                    color = IosColors.secondaryLabel,
             textAlign = TextAlign.Center
         )
         
@@ -398,7 +398,7 @@ private fun EmptyFeedState(
         Text(
             text = "첫 번째 KTX 네컷 사진을 만들어보세요!",
             style = MaterialTheme.typography.bodyLarge,
-            color = TextTertiary,
+                    color = IosColors.tertiaryLabel,
             textAlign = TextAlign.Center
         )
         

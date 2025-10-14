@@ -83,7 +83,7 @@ private fun InstagramNavigationItem(
             painter = painterResource(id = screen.icon),
             contentDescription = stringResource(screen.title),
             modifier = Modifier.size(24.dp),
-            tint = if (isSelected) TextPrimary else TextSecondary
+            tint = if (isSelected) IosColors.label else IosColors.secondaryLabel
         )
     }
 }
@@ -100,7 +100,7 @@ private fun InstagramBottomNavigation(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(SurfaceLight)
+            .background(IosColors.systemBackground)
             .padding(horizontal = 0.dp, vertical = 8.dp)
     ) {
         Row(

@@ -82,7 +82,7 @@ fun ResultScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundLight)
+            .background(IosColors.systemBackground)
     ) {
         // 인스타그램 스타일 상단 바
         TopAppBar(
@@ -91,7 +91,7 @@ fun ResultScreen(
                     text = "완성된 사진",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = IosColors.label
                 )
             },
             navigationIcon = {
@@ -99,7 +99,7 @@ fun ResultScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "뒤로가기",
-                        tint = TextPrimary
+                        tint = IosColors.label
                     )
                 }
             },
@@ -108,13 +108,13 @@ fun ResultScreen(
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "다시 만들기",
-                        tint = TextPrimary
+                        tint = IosColors.label
                     )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = SurfaceLight,
-                titleContentColor = TextPrimary
+                containerColor = IosColors.systemBackground,
+                titleContentColor = IosColors.label
             )
         )
 
@@ -215,7 +215,7 @@ fun ResultScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = SuccessGreen
+                    containerColor = IosColors.SystemGreen
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -258,7 +258,7 @@ fun ResultScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = InstagramBlue
+                    containerColor = IosColors.SystemBlue
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -302,7 +302,7 @@ private fun InstagramPostCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = SurfaceLight
+            containerColor = IosColors.systemBackground
         ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
@@ -384,12 +384,12 @@ private fun PostHeader(
                 text = "KTX 네컷",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
+                color = IosColors.label
             )
             Text(
                 text = frame?.name ?: "프레임",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
+                    color = IosColors.secondaryLabel
             )
         }
     }
@@ -458,7 +458,7 @@ private fun PostActions(
         )
         
         // 색상 (간단한 조건부 색상)
-        val heartColor = if (isLiked) LikeRed else TextSecondary
+        val heartColor = if (isLiked) IosColors.SystemRed else IosColors.secondaryLabel
 
         IconButton(
             onClick = onLikeToggle,
@@ -479,7 +479,7 @@ private fun PostActions(
                 imageVector = Icons.Default.Share,
                 contentDescription = "공유",
                 modifier = Modifier.size(24.dp),
-                tint = TextSecondary
+                tint = IosColors.secondaryLabel
             )
         }
 
@@ -491,7 +491,7 @@ private fun PostActions(
                 imageVector = Icons.Default.Star,
                 contentDescription = "저장",
                 modifier = Modifier.size(24.dp),
-                tint = TextSecondary
+                tint = IosColors.secondaryLabel
             )
         }
     }
@@ -512,7 +512,7 @@ private fun PostInfo(
             text = "KTX와 함께한 특별한 순간 ✨",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
-            color = TextPrimary
+            color = IosColors.label
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -520,7 +520,7 @@ private fun PostInfo(
         Text(
             text = "#KTX #네컷 #여행 #추억",
             style = MaterialTheme.typography.bodySmall,
-            color = InstagramBlue
+            color = IosColors.SystemBlue
         )
 
         if (frame != null) {
@@ -528,7 +528,7 @@ private fun PostInfo(
             Text(
                 text = "프레임: ${frame.name}",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
+                    color = IosColors.secondaryLabel
             )
         }
     }
@@ -565,7 +565,7 @@ private fun ProcessingState(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = SurfaceLight
+            containerColor = IosColors.systemBackground
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -582,7 +582,7 @@ private fun ProcessingState(
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(48.dp),
-                    color = InstagramBlue,
+                    color = IosColors.SystemBlue,
                     strokeWidth = 4.dp
                 )
                 
@@ -611,7 +611,7 @@ private fun ProcessingState(
                 text = loadingTexts[animationPhase],
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
+                color = IosColors.label
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -619,7 +619,7 @@ private fun ProcessingState(
             Text(
                 text = loadingSubTexts[animationPhase],
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextSecondary,
+                    color = IosColors.secondaryLabel,
                 textAlign = TextAlign.Center
             )
         }
@@ -638,12 +638,12 @@ private fun ErrorState(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = ErrorRed.copy(alpha = 0.1f)
+            containerColor = IosColors.SystemRed.copy(alpha = 0.1f)
         ),
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = ErrorRed.copy(alpha = 0.3f)
+            color = IosColors.SystemRed.copy(alpha = 0.3f)
         )
     ) {
         Column(
@@ -656,7 +656,7 @@ private fun ErrorState(
                 text = "오류가 발생했습니다",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = ErrorRed
+                color = IosColors.SystemRed
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -664,7 +664,7 @@ private fun ErrorState(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextSecondary,
+                    color = IosColors.secondaryLabel,
                 textAlign = TextAlign.Center
             )
 
@@ -673,7 +673,7 @@ private fun ErrorState(
             Button(
                 onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = ErrorRed,
+                    containerColor = IosColors.SystemRed,
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(8.dp)
@@ -714,7 +714,7 @@ private fun ActionButtons(
                 enabled = !isSaved,
                 modifier = Modifier.weight(1f).height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSaved) SuccessGreen else InstagramBlue,
+                    containerColor = if (isSaved) IosColors.SystemGreen else IosColors.SystemBlue,
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(12.dp)
@@ -737,7 +737,7 @@ private fun ActionButtons(
                 enabled = !isShared,
                 modifier = Modifier.weight(1f).height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isShared) SuccessGreen else KTXBlue,
+                    containerColor = if (isShared) IosColors.SystemGreen else IosColors.SystemBlue,
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(12.dp)
@@ -761,11 +761,11 @@ private fun ActionButtons(
             onClick = onRestart,
             modifier = Modifier.fillMaxWidth().height(48.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = TextPrimary
+                contentColor = IosColors.label
             ),
             border = androidx.compose.foundation.BorderStroke(
                 width = 1.dp,
-                color = BorderLight
+                color = IosColors.systemGray4
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -812,7 +812,7 @@ private fun RestartDialog(
             Button(
                 onClick = onKeepPhotos,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = InstagramBlue,
+                    containerColor = IosColors.SystemBlue,
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(8.dp)
@@ -828,11 +828,11 @@ private fun RestartDialog(
             OutlinedButton(
                 onClick = onNewPhotos,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = TextPrimary
+                    contentColor = IosColors.label
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = BorderLight
+                    color = IosColors.systemGray4
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {

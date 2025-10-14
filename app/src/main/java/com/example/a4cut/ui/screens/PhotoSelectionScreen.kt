@@ -66,7 +66,7 @@ fun PhotoSelectionScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundLight)
+            .background(IosColors.systemBackground)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
@@ -133,7 +133,7 @@ fun PhotoSelectionScreen(
             Text(
                 text = if (photoCount == 0) "최소 1장의 사진을 선택해주세요" else "선택된 사진: ${photoCount}장",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (photoCount > 0) KTXBlue else TextSecondary,
+                color = if (photoCount > 0) IosColors.SystemBlue else IosColors.secondaryLabel,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -153,14 +153,14 @@ private fun HeaderSection(
         Text(
             text = "사진 선택",
             style = MaterialTheme.typography.headlineLarge,
-            color = TextPrimary,
+                    color = IosColors.label,
             modifier = Modifier.padding(bottom = 8.dp)
         )
         
         Text(
             text = "4컷 사진을 만들기 위해 사진을 선택해주세요",
             style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
+                    color = IosColors.secondaryLabel,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
@@ -188,7 +188,7 @@ private fun PhotoGridSection(
         Text(
             text = "4컷 사진 선택",
             style = MaterialTheme.typography.titleLarge,
-            color = TextPrimary,
+                    color = IosColors.label,
             modifier = Modifier.padding(bottom = 12.dp)
         )
         
@@ -225,14 +225,14 @@ private fun TestPhotoButtonsSection(
         Text(
             text = "테스트용 사진 선택 (에뮬레이터용)",
             style = MaterialTheme.typography.titleMedium,
-            color = TextPrimary,
+                    color = IosColors.label,
             modifier = Modifier.padding(bottom = 8.dp)
         )
         
         Text(
             text = "마우스 클릭으로 쉽게 사진을 선택하고 테스트할 수 있습니다.",
             style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
+                    color = IosColors.secondaryLabel,
             modifier = Modifier.padding(bottom = 12.dp)
         )
         
@@ -355,7 +355,7 @@ private fun PhotoGridItem(
                 }
             },
         colors = CardDefaults.cardColors(
-            containerColor = if (isPressed) KTXBlue.copy(alpha = 0.1f) else SurfaceLight
+            containerColor = if (isPressed) IosColors.SystemBlue.copy(alpha = 0.1f) else IosColors.systemBackground
         ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
@@ -406,13 +406,13 @@ private fun PhotoGridItem(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "사진 추가",
-                        tint = if (isPressed) KTXBlue else TextSecondary,
+                        tint = if (isPressed) IosColors.SystemBlue else IosColors.secondaryLabel,
                         modifier = Modifier.size(32.dp)
                     )
                     Text(
                         text = "사진 추가",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isPressed) KTXBlue else TextSecondary
+                        color = if (isPressed) IosColors.SystemBlue else IosColors.secondaryLabel
                     )
                 }
             }

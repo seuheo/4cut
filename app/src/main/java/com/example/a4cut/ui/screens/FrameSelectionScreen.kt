@@ -69,7 +69,7 @@ fun FrameSelectionScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundLight)
+            .background(IosColors.systemBackground)
     ) {
         // 인스타그램 스타일 상단 바
         TopAppBar(
@@ -78,7 +78,7 @@ fun FrameSelectionScreen(
                     text = "프레임 선택",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = IosColors.label
                 )
             },
             navigationIcon = {
@@ -86,13 +86,13 @@ fun FrameSelectionScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "뒤로가기",
-                        tint = TextPrimary
+                        tint = IosColors.label
                     )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = SurfaceLight,
-                titleContentColor = TextPrimary
+                containerColor = IosColors.systemBackground,
+                titleContentColor = IosColors.label
             )
         )
 
@@ -170,7 +170,7 @@ private fun SelectedPhotosPreview(
             text = "선택된 사진",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
+                color = IosColors.label,
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
@@ -203,10 +203,10 @@ private fun PhotoPreviewItem(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(BackgroundSecondary)
+            .background(IosColors.secondarySystemBackground)
             .border(
                 width = 2.dp,
-                color = if (bitmap != null) InstagramBlue else BorderLight,
+                color = if (bitmap != null) IosColors.SystemBlue else IosColors.systemGray4,
                 shape = RoundedCornerShape(12.dp)
             ),
         contentAlignment = Alignment.Center
@@ -223,7 +223,7 @@ private fun PhotoPreviewItem(
                 text = "${index + 1}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextTertiary
+                    color = IosColors.tertiaryLabel
             )
         }
     }
@@ -246,7 +246,7 @@ private fun FrameSelectionSection(
             text = "프레임 선택",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
+                color = IosColors.label,
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
@@ -291,11 +291,11 @@ private fun FrameSelectionItem(
             .scale(scale)
             .clip(RoundedCornerShape(16.dp))
             .background(
-                color = if (isSelected) InstagramBlue.copy(alpha = 0.1f) else SurfaceLight
+                color = if (isSelected) IosColors.SystemBlue.copy(alpha = 0.1f) else IosColors.systemBackground
             )
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) InstagramBlue else BorderLight,
+                color = if (isSelected) IosColors.SystemBlue else IosColors.systemGray4,
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(
@@ -312,7 +312,7 @@ private fun FrameSelectionItem(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(BackgroundSecondary),
+                    .background(IosColors.secondarySystemBackground),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -330,7 +330,7 @@ private fun FrameSelectionItem(
                 text = frame.name,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = if (isSelected) InstagramBlue else TextPrimary,
+                color = if (isSelected) IosColors.SystemBlue else IosColors.label,
                 textAlign = TextAlign.Center
             )
 
@@ -341,7 +341,7 @@ private fun FrameSelectionItem(
                     modifier = Modifier
                         .size(24.dp)
                         .background(
-                            color = InstagramBlue,
+                            color = IosColors.SystemBlue,
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -369,12 +369,12 @@ private fun SelectedFrameInfo(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = InstagramBlue.copy(alpha = 0.1f)
+            containerColor = IosColors.SystemBlue.copy(alpha = 0.1f)
         ),
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = InstagramBlue.copy(alpha = 0.3f)
+            color = IosColors.SystemBlue.copy(alpha = 0.3f)
         )
     ) {
         Row(
@@ -387,7 +387,7 @@ private fun SelectedFrameInfo(
                 imageVector = Icons.Default.Check,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = InstagramBlue
+                tint = IosColors.SystemBlue
             )
             
             Spacer(modifier = Modifier.width(12.dp))
@@ -398,13 +398,13 @@ private fun SelectedFrameInfo(
                 Text(
                     text = "선택된 프레임",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
+                    color = IosColors.secondaryLabel
                 )
                 Text(
                     text = frame.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = InstagramBlue
+                    color = IosColors.SystemBlue
                 )
             }
         }
@@ -426,7 +426,7 @@ private fun NextStepButton(
         enabled = isEnabled && !isLoading,
         modifier = modifier.height(48.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isEnabled) InstagramBlue else TextTertiary,
+            containerColor = if (isEnabled) IosColors.SystemBlue else IosColors.systemGray3,
             contentColor = Color.White
         ),
         shape = RoundedCornerShape(12.dp)
@@ -458,18 +458,18 @@ private fun ErrorMessage(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = ErrorRed.copy(alpha = 0.1f)
+            containerColor = IosColors.SystemRed.copy(alpha = 0.1f)
         ),
         shape = RoundedCornerShape(8.dp),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = ErrorRed.copy(alpha = 0.3f)
+            color = IosColors.SystemRed.copy(alpha = 0.3f)
         )
     ) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,
-            color = ErrorRed,
+            color = IosColors.SystemRed,
             modifier = Modifier.padding(16.dp)
         )
     }

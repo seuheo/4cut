@@ -559,7 +559,7 @@ private fun IOSActivitySection(
             )
             
             IOSActivityItem(
-                icon = Icons.Default.Photo,
+                        icon = Icons.Default.Star,
                 title = "총 촬영 횟수",
                 value = "${totalPhotos}장"
             )

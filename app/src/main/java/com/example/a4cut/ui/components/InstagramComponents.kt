@@ -58,8 +58,8 @@ fun InstagramPrimaryButton(
             .scale(scale)
             .height(44.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (enabled) InstagramBlue else TextTertiary,
-            contentColor = Color.White
+            containerColor = if (enabled) IosColors.SystemBlue else IosColors.systemGray3,
+            contentColor = IosColors.White
         ),
         shape = RoundedCornerShape(8.dp),
         interactionSource = interactionSource,
@@ -115,11 +115,11 @@ fun InstagramSecondaryButton(
             .scale(scale)
             .height(44.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = if (enabled) TextPrimary else TextTertiary
+            contentColor = if (enabled) IosColors.label else IosColors.systemGray3
         ),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = if (enabled) BorderLight else TextTertiary
+            color = if (enabled) IosColors.systemGray4 else IosColors.systemGray3
         ),
         shape = RoundedCornerShape(8.dp),
         interactionSource = interactionSource,
@@ -134,7 +134,7 @@ fun InstagramSecondaryButton(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = if (enabled) TextPrimary else TextTertiary
+                    tint = if (enabled) IosColors.label else IosColors.systemGray3
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
@@ -142,7 +142,7 @@ fun InstagramSecondaryButton(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = if (enabled) TextPrimary else TextTertiary
+                color = if (enabled) IosColors.label else IosColors.systemGray3
             )
         }
     }
@@ -158,7 +158,7 @@ fun InstagramTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    color: Color = InstagramBlue
+    color: Color = IosColors.SystemBlue
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -179,7 +179,7 @@ fun InstagramTextButton(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = if (enabled) color else TextTertiary,
+            color = if (enabled) color else IosColors.systemGray3,
             modifier = Modifier.alpha(alpha)
         )
     }
@@ -206,7 +206,7 @@ fun InstagramCard(
                 }
             ),
         colors = CardDefaults.cardColors(
-            containerColor = SurfaceLight
+            containerColor = IosColors.systemBackground
         ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
@@ -214,7 +214,7 @@ fun InstagramCard(
         ),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = BorderLight
+            color = IosColors.systemGray4
         )
     ) {
         Column(
@@ -248,9 +248,9 @@ fun InstagramStoryCircle(
     )
     
     val storyColors = if (isViewed) {
-        listOf(BorderLight, BorderLight)
+        listOf(IosColors.systemGray4, IosColors.systemGray4)
     } else {
-        listOf(StoryGradientStart, StoryGradientEnd)
+        listOf(IosColors.SystemBlue, IosColors.SystemBlue)
     }
 
     Box(
@@ -263,7 +263,7 @@ fun InstagramStoryCircle(
             )
             .padding(2.dp)
             .background(
-                color = SurfaceLight,
+                color = IosColors.systemBackground,
                 shape = CircleShape
             )
             .padding(2.dp)
@@ -287,8 +287,8 @@ fun InstagramActionIcon(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isActive: Boolean = false,
-    activeColor: Color = LikeRed,
-    inactiveColor: Color = TextPrimary
+    activeColor: Color = IosColors.SystemRed,
+    inactiveColor: Color = IosColors.label
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -319,7 +319,7 @@ fun InstagramActionIcon(
 @Composable
 fun InstagramDivider(
     modifier: Modifier = Modifier,
-    color: Color = DividerLight
+    color: Color = IosColors.separator
 ) {
     Box(
         modifier = modifier
@@ -336,7 +336,7 @@ fun InstagramDivider(
 @Composable
 fun InstagramLoadingIndicator(
     modifier: Modifier = Modifier,
-    color: Color = InstagramBlue
+    color: Color = IosColors.SystemBlue
 ) {
     Box(
         modifier = modifier.fillMaxWidth(),
