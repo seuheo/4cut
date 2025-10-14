@@ -36,6 +36,11 @@ class PhotoRepository(private val photoDao: PhotoDao) {
     suspend fun deletePhoto(photo: PhotoEntity) = photoDao.deletePhoto(photo)
     
     /**
+     * 모든 사진 삭제
+     */
+    suspend fun deleteAllPhotos() = photoDao.deleteAllPhotos()
+    
+    /**
      * 즐겨찾기된 사진 조회
      */
     fun getFavoritePhotos(): Flow<List<PhotoEntity>> = photoDao.getFavoritePhotos()

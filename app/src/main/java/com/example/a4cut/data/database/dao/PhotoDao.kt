@@ -42,6 +42,12 @@ interface PhotoDao {
     suspend fun deletePhoto(photo: PhotoEntity)
     
     /**
+     * 모든 사진 삭제
+     */
+    @Query("DELETE FROM photos")
+    suspend fun deleteAllPhotos()
+    
+    /**
      * 즐겨찾기된 사진만 조회
      */
     @Query("SELECT * FROM photos WHERE isFavorite = 1 ORDER BY createdAt DESC")

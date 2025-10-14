@@ -189,6 +189,28 @@ class HomeViewModel : ViewModel() {
     }
     
     /**
+     * 모든 사진 삭제
+     */
+    fun deleteAllPhotos() {
+        photoRepository?.let { repository ->
+            viewModelScope.launch {
+                try {
+                    _isLoading.value = true
+                    repository.deleteAllPhotos()
+                    // 삭제 후 목록 새로고침
+                    loadPhotoLogs()
+                    println("모든 사진이 삭제되었습니다.")
+                } catch (e: Exception) {
+                    _errorMessage.value = "모든 사진 삭제 실패: ${e.message}"
+                    println("모든 사진 삭제 실패: ${e.message}")
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+    
+    /**
      * 검색 기능
      */
     fun searchPhotos(query: String) {

@@ -1251,13 +1251,20 @@ class FrameViewModel : ViewModel() {
                 imageComposer?.let { composer ->
                     // 선택된 프레임 ID에 따른 분기 처리
                     val selectedFrame = _selectedFrame.value
+                    println("=== FrameViewModel: 프레임 분기 처리 ===")
+                    println("선택된 프레임 ID: ${selectedFrame?.id}")
+                    println("선택된 프레임 이름: ${selectedFrame?.name}")
+                    println("사진 상태: ${_photoStates.map { it.bitmap != null }}")
+                    
                     val result = when (selectedFrame?.id) {
                         1 -> {
+                            println("인생네컷 프레임 감지! composeLife4CutFrame 호출")
                             // 인생네컷 프레임 전용 합성 함수 사용
                             val photos = _photoStates.map { it.bitmap }
                             composer.composeLife4CutFrame(frameBitmap, photos)
                         }
                         else -> {
+                            println("기존 프레임 감지! composeImageWithPhotoStates 호출")
                             // 기존 합성 로직 사용
                             composer.composeImageWithPhotoStates(
                                 photoStates = _photoStates.toList(),
@@ -1265,6 +1272,7 @@ class FrameViewModel : ViewModel() {
                             )
                         }
                     }
+                    println("=== FrameViewModel: 프레임 분기 처리 완료 ===")
                     _composedImage.value = result // 합성 결과 저장
                     clearError()
                 } ?: run {

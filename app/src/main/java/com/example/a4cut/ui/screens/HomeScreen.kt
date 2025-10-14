@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,6 +84,19 @@ fun HomeScreen(
                 )
             },
             actions = {
+                // 모든 사진 삭제 버튼
+                if (allPhotos.isNotEmpty()) {
+                    IconButton(onClick = { 
+                        homeViewModel.deleteAllPhotos()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "모든 사진 삭제",
+                            tint = IosColors.SystemRed
+                        )
+                    }
+                }
+                
                 IconButton(onClick = onNavigateToSearch) {
                     Icon(
                         imageVector = Icons.Default.Search,
