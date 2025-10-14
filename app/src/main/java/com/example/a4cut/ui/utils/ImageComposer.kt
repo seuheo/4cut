@@ -50,54 +50,23 @@ class ImageComposer(private val context: Context) {
         val canvas = Canvas(resultBitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         
-        // 프레임 크기 기반으로 사진 영역 계산
-        val frameWidth = frameBitmap.width.toFloat()
-        val frameHeight = frameBitmap.height.toFloat()
-        
-        // 여백 설정 (프레임 테두리 고려)
-        val marginX = frameWidth * 0.1f  // 좌우 10% 여백
-        val marginY = frameHeight * 0.15f // 상하 15% 여백
-        val spacing = frameWidth * 0.02f  // 사진 간 간격 2%
-        
-        // 사진 영역 크기 계산
-        val photoAreaWidth = (frameWidth - (marginX * 2) - spacing) / 2
-        val photoAreaHeight = (frameHeight - (marginY * 2) - spacing) / 2
-        
-        // 4개 사진 영역 좌표 계산 (2x2 그리드)
+        // 🚨 인생네컷 프레임의 각 사진 칸의 정확한 픽셀 좌표
+        // Rect(left, top, right, bottom) - 세로로 4개 배치
         val photoRects = listOf(
-            // 첫 번째 사진 (좌상단)
-            RectF(
-                marginX,
-                marginY,
-                marginX + photoAreaWidth,
-                marginY + photoAreaHeight
-            ),
-            // 두 번째 사진 (우상단)
-            RectF(
-                marginX + photoAreaWidth + spacing,
-                marginY,
-                frameWidth - marginX,
-                marginY + photoAreaHeight
-            ),
-            // 세 번째 사진 (좌하단)
-            RectF(
-                marginX,
-                marginY + photoAreaHeight + spacing,
-                marginX + photoAreaWidth,
-                frameHeight - marginY
-            ),
-            // 네 번째 사진 (우하단)
-            RectF(
-                marginX + photoAreaWidth + spacing,
-                marginY + photoAreaHeight + spacing,
-                frameWidth - marginX,
-                frameHeight - marginY
-            )
+            // 첫 번째 칸 (가장 위)
+            RectF(85f, 125f, 490f, 475f),
+            // 두 번째 칸
+            RectF(85f, 495f, 490f, 845f),
+            // 세 번째 칸
+            RectF(85f, 865f, 490f, 1215f),
+            // 네 번째 칸 (가장 아래)
+            RectF(85f, 1235f, 490f, 1585f)
         )
         
-        println("사진 영역 좌표:")
+        println("인생네컷 프레임 사진 영역 좌표:")
         photoRects.forEachIndexed { index, rect ->
             println("사진[$index]: (${rect.left.toInt()}, ${rect.top.toInt()}) - (${rect.right.toInt()}, ${rect.bottom.toInt()})")
+            println("  크기: ${rect.width().toInt()}x${rect.height().toInt()}")
         }
         
         // 4장의 사진을 각 영역에 배치
