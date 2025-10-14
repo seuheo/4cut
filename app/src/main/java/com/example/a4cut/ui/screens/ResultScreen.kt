@@ -72,11 +72,26 @@ fun ResultScreen(
     
     // 디버그 로그
     LaunchedEffect(selectedFrame, photos) {
-        println("ResultScreen: selectedFrame = $selectedFrame, photos = ${photos.map { it != null }}, composedImage = ${composedImage != null}")
-        if (selectedFrame != null && photos.any { it != null } && composedImage == null) {
+        val photoCount = photos.count { it != null }
+        println("=== ResultScreen 디버그 ===")
+        println("ResultScreen: selectedFrame = $selectedFrame")
+        println("ResultScreen: photos = ${photos.map { it != null }}")
+        println("ResultScreen: photoCount = $photoCount")
+        println("ResultScreen: composedImage = ${composedImage != null}")
+        println("ResultScreen: isProcessing = $isProcessing")
+        println("ResultScreen: errorMessage = $errorMessage")
+        
+        if (selectedFrame != null && photoCount > 0 && composedImage == null && !isProcessing) {
             println("ResultScreen: 이미지 합성 시작")
             frameViewModel.startImageComposition()
+        } else {
+            println("ResultScreen: 이미지 합성 조건 불만족")
+            println("  - selectedFrame != null: ${selectedFrame != null}")
+            println("  - photoCount > 0: ${photoCount > 0}")
+            println("  - composedImage == null: ${composedImage == null}")
+            println("  - !isProcessing: ${!isProcessing}")
         }
+        println("=== ResultScreen 디버그 끝 ===")
     }
 
     Column(

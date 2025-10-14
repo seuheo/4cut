@@ -61,7 +61,15 @@ fun PhotoSelectionScreen(
     
     // 디버그 로그
     LaunchedEffect(photos) {
+        val photoCount = photos.count { it != null }
+        println("=== PhotoSelectionScreen 디버그 ===")
         println("PhotoSelectionScreen: 사진 상태 업데이트 - ${photos.map { it != null }}")
+        println("PhotoSelectionScreen: 선택된 사진 개수: $photoCount")
+        println("PhotoSelectionScreen: 사진 리스트 크기: ${photos.size}")
+        photos.forEachIndexed { index, bitmap ->
+            println("PhotoSelectionScreen: 사진[$index] = ${if (bitmap != null) "있음 (${bitmap.width}x${bitmap.height})" else "없음"}")
+        }
+        println("=== 디버그 끝 ===")
     }
     
     // Context 설정

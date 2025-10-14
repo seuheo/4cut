@@ -33,6 +33,100 @@ class ImageComposer(private val context: Context) {
     }
 
     /**
+     * 인생네컷 프레임 전용 합성 함수
+     * @param frameBitmap 인생네컷 프레임 Bitmap
+     * @param photos 합성할 Bitmap 사진 목록 (4개)
+     * @return 합성된 최종 Bitmap
+     */
+    suspend fun composeLife4CutFrame(
+        frameBitmap: Bitmap,
+        photos: List<Bitmap?>
+    ): Bitmap = withContext(Dispatchers.Default) {
+        println("=== composeLife4CutFrame 시작 ===")
+        println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
+        
+        // 프레임 크기에 맞춰 결과 Bitmap 생성
+        val resultBitmap = frameBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(resultBitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        
+        // 프레임 크기 기반으로 사진 영역 계산
+        val frameWidth = frameBitmap.width.toFloat()
+        val frameHeight = frameBitmap.height.toFloat()
+        
+        // 여백 설정 (프레임 테두리 고려)
+        val marginX = frameWidth * 0.1f  // 좌우 10% 여백
+        val marginY = frameHeight * 0.15f // 상하 15% 여백
+        val spacing = frameWidth * 0.02f  // 사진 간 간격 2%
+        
+        // 사진 영역 크기 계산
+        val photoAreaWidth = (frameWidth - (marginX * 2) - spacing) / 2
+        val photoAreaHeight = (frameHeight - (marginY * 2) - spacing) / 2
+        
+        // 4개 사진 영역 좌표 계산 (2x2 그리드)
+        val photoRects = listOf(
+            // 첫 번째 사진 (좌상단)
+            RectF(
+                marginX,
+                marginY,
+                marginX + photoAreaWidth,
+                marginY + photoAreaHeight
+            ),
+            // 두 번째 사진 (우상단)
+            RectF(
+                marginX + photoAreaWidth + spacing,
+                marginY,
+                frameWidth - marginX,
+                marginY + photoAreaHeight
+            ),
+            // 세 번째 사진 (좌하단)
+            RectF(
+                marginX,
+                marginY + photoAreaHeight + spacing,
+                marginX + photoAreaWidth,
+                frameHeight - marginY
+            ),
+            // 네 번째 사진 (우하단)
+            RectF(
+                marginX + photoAreaWidth + spacing,
+                marginY + photoAreaHeight + spacing,
+                frameWidth - marginX,
+                frameHeight - marginY
+            )
+        )
+        
+        println("사진 영역 좌표:")
+        photoRects.forEachIndexed { index, rect ->
+            println("사진[$index]: (${rect.left.toInt()}, ${rect.top.toInt()}) - (${rect.right.toInt()}, ${rect.bottom.toInt()})")
+        }
+        
+        // 4장의 사진을 각 영역에 배치
+        photos.take(4).forEachIndexed { index, photo ->
+            photo?.let { bitmap ->
+                val rect = photoRects[index]
+                println("사진[$index] 처리 중: 원본 크기 ${bitmap.width}x${bitmap.height}")
+                
+                // 사진을 영역 크기에 맞춰 스케일링
+                val scaledPhoto = Bitmap.createScaledBitmap(
+                    bitmap, 
+                    rect.width().toInt(), 
+                    rect.height().toInt(), 
+                    true
+                )
+                
+                // 캔버스에 사진 그리기
+                canvas.drawBitmap(scaledPhoto, rect.left, rect.top, paint)
+                println("사진[$index] 배치 완료: 위치 (${rect.left.toInt()}, ${rect.top.toInt()})")
+            } ?: run {
+                println("사진[$index]가 null이므로 건너뜀")
+            }
+        }
+        
+        println("=== composeLife4CutFrame 완료 ===")
+        resultBitmap
+    }
+
+    /**
      * 4컷 사진과 프레임을 합성하여 최종 이미지를 생성
      * @param photos 합성할 Bitmap 사진 목록 (4개)
      * @param frameBitmap 적용할 프레임 Bitmap

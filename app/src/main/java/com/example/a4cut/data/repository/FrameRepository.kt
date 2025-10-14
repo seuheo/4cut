@@ -27,102 +27,12 @@ class FrameRepository {
         val initialFrames = listOf(
             Frame(
                 id = 1,
-                name = "KTX 기본",
-                date = "25.07.18",
-                station = "서울역",
-                title = "기본 프레임",
-                isPremium = false,
-                drawableId = R.drawable.ktx_frame_signature
-            ),
-            Frame(
-                id = 2,
-                name = "부산 갈매기",
-                date = "23.05.05",
-                station = "부산역",
-                title = "부산과 함께한 추억",
-                isPremium = true,
-                drawableId = R.drawable.ktx_frame_busan
-            ),
-            Frame(
-                id = 3,
-                name = "전주 한옥",
-                date = "16.03.01",
-                station = "전주역",
-                title = "전주와 함께한 추억",
-                isPremium = false,
-                drawableId = R.drawable.ktx_frame_jeonju
-            ),
-            Frame(
-                id = 4,
-                name = "서울 네온",
-                date = "12.08.20",
-                station = "서울역",
-                title = "서울과 함께한 추억",
-                isPremium = true,
-                drawableId = R.drawable.ktx_frame_seoul
-            ),
-            Frame(
-                id = 5,
-                name = "경주 역사",
-                date = "10.04.15",
-                station = "경주역",
-                title = "경주와 함께한 추억",
-                isPremium = false,
-                drawableId = R.drawable.ktx_frame_gyeongju
-            ),
-            Frame(
-                id = 6,
-                name = "바다 도시",
+                name = "인생네컷 프레임",
                 date = "25.01.13",
-                station = "해안역",
-                title = "바다와 도시의 만남",
-                isPremium = true,
-                drawableId = R.drawable.ktx_frame_coastal
-            ),
-            Frame(
-                id = 7,
-                name = "서울역 클래식",
-                date = "25.01.13",
-                station = "서울역",
-                title = "서울역의 과거와 현재",
+                station = "인생네컷",
+                title = "인생네컷 프레임",
                 isPremium = false,
-                drawableId = R.drawable.ktx_frame_seoul
-            ),
-            Frame(
-                id = 8,
-                name = "전통 기차역",
-                date = "25.01.13",
-                station = "처음역",
-                title = "전통과 현대의 조화",
-                isPremium = true,
-                drawableId = R.drawable.ktx_frame_traditional
-            ),
-            Frame(
-                id = 9,
-                name = "서울역 PNG",
-                date = "25.01.13",
-                station = "서울역",
-                title = "서울역 프레임 (PNG)",
-                isPremium = false,
-                drawableId = R.drawable.seoul_station
-            ),
-            Frame(
-                id = 10,
-                name = "부산역 PNG",
-                date = "25.01.13",
-                station = "부산역",
-                title = "부산역 프레임 (PNG)",
-                isPremium = true,
-                drawableId = R.drawable.busan_station
-            ),
-            Frame(
-                id = 11,
-                name = "전주역 PNG",
-                date = "25.01.13",
-                station = "전주역",
-                title = "전주역 프레임 (PNG)",
-                isPremium = false,
-                drawableId = R.drawable.jeonju_station
+                drawableId = R.drawable.life_4cut_frame
             )
         )
         

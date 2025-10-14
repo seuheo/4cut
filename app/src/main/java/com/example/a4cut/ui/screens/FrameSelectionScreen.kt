@@ -63,7 +63,16 @@ fun FrameSelectionScreen(
     
     // 디버그 로그
     LaunchedEffect(photos) {
+        val photoCount = photos.count { it != null }
+        println("=== FrameSelectionScreen 디버그 ===")
         println("FrameSelectionScreen: 사진 상태 업데이트 - ${photos.map { it != null }}")
+        println("FrameSelectionScreen: 선택된 사진 개수: $photoCount")
+        println("FrameSelectionScreen: 사진 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
+        println("FrameSelectionScreen: 사진 리스트 크기: ${photos.size}")
+        photos.forEachIndexed { index, bitmap ->
+            println("FrameSelectionScreen: 사진[$index] = ${if (bitmap != null) "있음 (${bitmap.width}x${bitmap.height})" else "없음"}")
+        }
+        println("=== 디버그 끝 ===")
     }
 
     Column(
@@ -134,12 +143,55 @@ fun FrameSelectionScreen(
 
             // 다음 단계 버튼
             item {
+                val photoCount = photos.count { it != null }
+                val hasValidPhotos = photoCount > 0
+                val hasSelectedFrame = selectedFrame != null
+                
                 NextStepButton(
-                    isEnabled = selectedFrame != null,
+                    isEnabled = hasValidPhotos && hasSelectedFrame,
                     isLoading = isLoading,
-                    onNext = onNext,
+                    onNext = {
+                        println("=== FrameSelectionScreen: 다음 단계 버튼 클릭 ===")
+                        println("FrameSelectionScreen: 사진 상태 = ${photos.map { it != null }}")
+                        println("FrameSelectionScreen: 선택된 프레임 = ${selectedFrame?.name}")
+                        println("FrameSelectionScreen: ResultScreen으로 이동")
+                        onNext()
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
+                
+                // 사진 선택 상태 안내
+                if (!hasValidPhotos) {
+                    Text(
+                        text = "최소 한 장의 사진을 선택해주세요",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = IosColors.SystemRed,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+                } else if (!hasSelectedFrame) {
+                    Text(
+                        text = "프레임을 선택해주세요",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = IosColors.SystemRed,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+                } else {
+                    Text(
+                        text = "선택된 사진: ${photoCount}장, 프레임: ${selectedFrame?.name}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = IosColors.SystemBlue,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+                }
             }
 
             // 에러 메시지

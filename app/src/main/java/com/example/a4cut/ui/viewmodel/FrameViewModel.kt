@@ -131,7 +131,7 @@ class FrameViewModel : ViewModel() {
                     R.drawable.test_photo_8
                 )
                 
-                val bitmaps = testPhotoIds.mapNotNull { drawableId ->
+                val bitmaps = testPhotoIds.mapNotNull { drawableId: Int ->
                     try {
                         context?.let { ctx ->
                             BitmapFactory.decodeResource(ctx.resources, drawableId)?.let { bitmap ->
@@ -172,7 +172,7 @@ class FrameViewModel : ViewModel() {
                     R.drawable.example_photo_adventure_moment
                 )
                 
-                val bitmaps = examplePhotoIds.mapNotNull { drawableId ->
+                val bitmaps = examplePhotoIds.mapNotNull { drawableId: Int ->
                     try {
                         context?.let { ctx ->
                             BitmapFactory.decodeResource(ctx.resources, drawableId)?.let { bitmap ->
@@ -725,9 +725,15 @@ class FrameViewModel : ViewModel() {
         photoRepository = PhotoRepository(database.photoDao())
         
         checkImagePermission()
-        loadTestPhotos() // 테스트용 사진들 로드
-        loadExamplePhotos() // 고품질 예시 사진들 로드
-        generateLife4CutExample() // 인생네컷 예시 생성
+        
+        // 기존 사진 데이터가 없을 때만 테스트 사진들 로드
+        if (_photos.value.all { it == null }) {
+            loadTestPhotos() // 테스트용 사진들 로드
+            loadExamplePhotos() // 고품질 예시 사진들 로드
+            generateLife4CutExample() // 인생네컷 예시 생성
+        } else {
+            println("기존 사진 데이터가 있으므로 테스트 사진 로드 건너뜀")
+        }
         println("setContext 완료")
     }
     
@@ -773,7 +779,13 @@ class FrameViewModel : ViewModel() {
      * 사진 선택 (Bitmap 기반)
      */
     fun selectPhoto(index: Int, bitmap: Bitmap?) {
-        println("selectPhoto 호출됨: index=$index, bitmap=${bitmap != null}")
+        println("=== selectPhoto 호출됨 ===")
+        println("selectPhoto: index=$index, bitmap=${bitmap != null}")
+        if (bitmap != null) {
+            println("selectPhoto: bitmap 크기 = ${bitmap.width}x${bitmap.height}")
+        }
+        println("selectPhoto: 현재 사진 상태 = ${_photos.value.map { it != null }}")
+        
         if (index in 0..3) {
             val currentPhotos = _photos.value.toMutableList()
             currentPhotos[index] = bitmap
@@ -782,12 +794,15 @@ class FrameViewModel : ViewModel() {
             // Phase 2: PhotoState도 함께 업데이트
             updatePhotoStateFromBitmap(index, bitmap)
             
-            println("사진 선택 완료: 새로운 그리드 상태=${_photos.value.map { it != null }}")
+            println("selectPhoto: 사진 선택 완료")
+            println("selectPhoto: 새로운 그리드 상태=${_photos.value.map { it != null }}")
+            println("selectPhoto: 선택된 사진 개수 = ${_photos.value.count { it != null }}")
             clearError()
         } else {
-            println("잘못된 사진 인덱스: $index")
+            println("selectPhoto: 잘못된 사진 인덱스: $index")
             _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
         }
+        println("=== selectPhoto 완료 ===")
     }
     
     /**
@@ -1196,14 +1211,27 @@ class FrameViewModel : ViewModel() {
      * 이미지 합성 시작
      */
     fun startImageComposition() {
+        println("=== startImageComposition 시작 ===")
+        println("selectedFrame: ${_selectedFrame.value}")
+        println("photos: ${_photos.value.map { it != null }}")
+        println("photoStates: ${_photoStates.map { it.bitmap != null }}")
+        
         if (_selectedFrame.value == null) {
             _errorMessage.value = "프레임을 선택해주세요"
+            println("startImageComposition: 프레임이 선택되지 않음")
             return
         }
 
-        val hasPhotos = _photoStates.any { it.bitmap != null }
-        if (!hasPhotos) {
+        // 두 가지 방식으로 사진 확인
+        val hasPhotosInPhotos = _photos.value.any { it != null }
+        val hasPhotosInStates = _photoStates.any { it.bitmap != null }
+        
+        println("startImageComposition: hasPhotosInPhotos = $hasPhotosInPhotos")
+        println("startImageComposition: hasPhotosInStates = $hasPhotosInStates")
+        
+        if (!hasPhotosInPhotos && !hasPhotosInStates) {
             _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
+            println("startImageComposition: 사진이 선택되지 않음")
             return
         }
 
@@ -1221,11 +1249,22 @@ class FrameViewModel : ViewModel() {
                 val frameBitmap = loadKtxFrameBitmap()
 
                 imageComposer?.let { composer ->
-                    // Phase 3: PhotoState를 사용하여 편집된 사진과 프레임 합성
-                    val result = composer.composeImageWithPhotoStates(
-                        photoStates = _photoStates.toList(),
-                        frameBitmap = frameBitmap
-                    )
+                    // 선택된 프레임 ID에 따른 분기 처리
+                    val selectedFrame = _selectedFrame.value
+                    val result = when (selectedFrame?.id) {
+                        1 -> {
+                            // 인생네컷 프레임 전용 합성 함수 사용
+                            val photos = _photoStates.map { it.bitmap }
+                            composer.composeLife4CutFrame(frameBitmap, photos)
+                        }
+                        else -> {
+                            // 기존 합성 로직 사용
+                            composer.composeImageWithPhotoStates(
+                                photoStates = _photoStates.toList(),
+                                frameBitmap = frameBitmap
+                            )
+                        }
+                    }
                     _composedImage.value = result // 합성 결과 저장
                     clearError()
                 } ?: run {
