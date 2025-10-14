@@ -1200,13 +1200,13 @@ class FrameViewModel : ViewModel() {
             _errorMessage.value = "프레임을 선택해주세요"
             return
         }
-        
-        val hasPhotos = _photos.value.any { it != null }
+
+        val hasPhotos = _photoStates.any { it.bitmap != null }
         if (!hasPhotos) {
             _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
             return
         }
-        
+
         viewModelScope.launch {
             _isProcessing.value = true
             try {
@@ -1216,13 +1216,14 @@ class FrameViewModel : ViewModel() {
                         bitmap.recycle()
                     }
                 }
-                
+
                 // 실제 KTX 시그니처 프레임 리소스 로드
                 val frameBitmap = loadKtxFrameBitmap()
-                
+
                 imageComposer?.let { composer ->
-                    val result = composer.composeImage(
-                        photos = _photos.value,
+                    // Phase 3: PhotoState를 사용하여 편집된 사진과 프레임 합성
+                    val result = composer.composeImageWithPhotoStates(
+                        photoStates = _photoStates.toList(),
                         frameBitmap = frameBitmap
                     )
                     _composedImage.value = result // 합성 결과 저장
@@ -1230,10 +1231,10 @@ class FrameViewModel : ViewModel() {
                 } ?: run {
                     _errorMessage.value = "이미지 합성기를 초기화할 수 없습니다"
                 }
-                
+
                 // 프레임 메모리 해제
                 frameBitmap.recycle()
-                
+
             } catch (e: Exception) {
                 _errorMessage.value = "이미지 합성 실패: ${e.message}"
             } finally {

@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
@@ -12,6 +13,7 @@ import android.provider.MediaStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStream
+import com.example.a4cut.ui.viewmodel.PhotoState
 
 /**
  * 이미지 합성 및 저장을 담당하는 유틸리티 클래스
@@ -56,6 +58,61 @@ class ImageComposer(private val context: Context) {
             if (bitmap != null && index < photoPositions.size) {
                 val position = photoPositions[index]
                 canvas.drawBitmap(bitmap, null, position, paint)
+            }
+        }
+
+        resultBitmap
+    }
+
+    /**
+     * Phase 3: PhotoState를 사용하여 편집된 사진과 프레임을 합성
+     * @param photoStates 편집 상태가 포함된 사진 목록 (4개)
+     * @param frameBitmap 적용할 프레임 Bitmap
+     * @return 합성된 최종 Bitmap
+     */
+    suspend fun composeImageWithPhotoStates(
+        photoStates: List<PhotoState>,
+        frameBitmap: Bitmap
+    ): Bitmap = withContext(Dispatchers.Default) {
+        // 최종 결과물이 될 Bitmap 생성
+        val resultBitmap = Bitmap.createBitmap(OUTPUT_WIDTH, OUTPUT_HEIGHT, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(resultBitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        // 1. 프레임을 배경으로 그리기 (전체 화면에 맞춤)
+        val frameRect = RectF(0f, 0f, OUTPUT_WIDTH.toFloat(), OUTPUT_HEIGHT.toFloat())
+        canvas.drawBitmap(frameBitmap, null, frameRect, paint)
+
+        // 2. 4컷 사진을 프레임 안의 지정된 위치에 그리기 (편집 상태 반영)
+        val photoPositions = calculatePhotoPositions()
+        
+        photoStates.forEachIndexed { index, photoState ->
+            if (photoState.bitmap != null && index < photoPositions.size) {
+                val basePosition = photoPositions[index]
+                
+                // Matrix를 사용하여 사용자 편집 상태 적용
+                val matrix = Matrix()
+                
+                // 기본 위치로 이동
+                val photoRect = RectF(0f, 0f, photoState.bitmap.width.toFloat(), photoState.bitmap.height.toFloat())
+                matrix.setRectToRect(photoRect, basePosition, Matrix.ScaleToFit.CENTER)
+                
+                // 사용자가 편집한 scale 적용 (중심점 기준)
+                matrix.postScale(
+                    photoState.scale, 
+                    photoState.scale, 
+                    basePosition.centerX(), 
+                    basePosition.centerY()
+                )
+                
+                // 사용자가 편집한 offset 적용
+                matrix.postTranslate(photoState.offsetX, photoState.offsetY)
+                
+                // Canvas의 특정 영역에만 그려지도록 클리핑
+                canvas.save()
+                canvas.clipRect(basePosition)
+                canvas.drawBitmap(photoState.bitmap, matrix, paint)
+                canvas.restore()
             }
         }
 

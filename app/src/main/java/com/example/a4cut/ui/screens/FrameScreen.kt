@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
@@ -77,7 +78,7 @@ import com.example.a4cut.ui.viewmodel.FrameViewModel
 import com.example.a4cut.ui.viewmodel.PhotoState
 
 /**
- * Phase 1: 통합 프레임 적용 화면 - 예시 이미지와 동일한 레이아웃
+ * Phase 4: 세련된 프레임 선택 화면 - 예시 이미지와 동일한 현대적 UI
  * 상단 미리보기 + 하단 프레임 캐러셀의 직관적인 단일 화면
  */
 @Composable
@@ -86,44 +87,45 @@ fun FrameScreen(
     frameViewModel: FrameViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    
+
     // FrameViewModel에서 상태 수집
     val frames by frameViewModel.frames.collectAsState()
     val selectedFrame by frameViewModel.selectedFrame.collectAsState()
-    val photos by frameViewModel.photos.collectAsState()
+    val photoStates = frameViewModel.photoStates
     val isLoading by frameViewModel.isLoading.collectAsState()
     val isProcessing by frameViewModel.isProcessing.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val successMessage by frameViewModel.successMessage.collectAsState()
     val composedImage by frameViewModel.composedImage.collectAsState()
-    
+
     // 미리보기 다이얼로그 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
-    
+
     // Context 설정
     LaunchedEffect(Unit) {
         frameViewModel.setContext(context)
     }
-    
+
     // 이미지 합성 완료 시 자동으로 미리보기 표시
     LaunchedEffect(composedImage) {
         if (composedImage != null && !isProcessing) {
             showPreviewDialog = true
         }
     }
-    
-    // Phase 1: 예시 이미지와 동일한 레이아웃 구성
+
+    // Phase 4: 예시 이미지와 동일한 세련된 레이아웃 구성
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5)), // 예시 이미지와 유사한 배경색
+            .background(Color(0xFFF0F2F5)), // 예시 이미지와 유사한 배경색
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. 상단 미리보기 영역 (예시 이미지의 상단 2/3 영역)
-        Spacer(modifier = Modifier.height(32.dp))
+        // 상단 여백
+        Spacer(modifier = Modifier.height(24.dp))
         
-        PhotoPreviewSection(
-            photoStates = frameViewModel.photoStates,
+        // 1. 상단 미리보기 영역 (예시 이미지의 상단 영역)
+        ModernPhotoPreviewSection(
+            photoStates = photoStates,
             selectedFrame = selectedFrame,
             onPhotoClick = { index -> 
                 frameViewModel.togglePhotoSelection(index)
@@ -133,10 +135,10 @@ fun FrameScreen(
             }
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
-        // 2. 하단 프레임 캐러셀 (예시 이미지의 하단 1/3 영역)
-        FrameCarouselSection(
+        // 2. 하단 프레임 캐러셀 (예시 이미지의 하단 영역)
+        ModernFrameCarouselSection(
             frames = frames,
             selectedFrame = selectedFrame,
             isLoading = isLoading,
@@ -146,49 +148,49 @@ fun FrameScreen(
             }
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         // 3. 액션 버튼 (예시 이미지의 "확인" 버튼과 유사)
-        ActionButtonSection(
+        ModernActionButtonSection(
             selectedFrame = selectedFrame,
-            photos = photos,
+            photoStates = photoStates,
             isProcessing = isProcessing,
-            onCompose = { 
+            onCompose = {
                 println("FrameScreen: 이미지 합성 버튼 클릭됨")
-                frameViewModel.startImageComposition() 
+                frameViewModel.startImageComposition()
             }
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
-    
+
     // 메시지 표시 (성공/에러)
     if (successMessage != null) {
-        MessageCard(
+        ModernMessageCard(
             message = successMessage!!,
             isError = false,
             modifier = Modifier.padding(16.dp)
         )
     }
-    
+
     if (errorMessage != null) {
-        MessageCard(
+        ModernMessageCard(
             message = errorMessage!!,
             isError = true,
             modifier = Modifier.padding(16.dp)
         )
     }
-    
+
     // 이미지 미리보기 다이얼로그
     if (showPreviewDialog && composedImage != null) {
         ImagePreviewDialog(
             bitmap = composedImage,
             onDismiss = { showPreviewDialog = false },
-            onSave = { 
+            onSave = {
                 frameViewModel.saveImage()
                 showPreviewDialog = false
             },
-            onShare = { 
+            onShare = {
                 frameViewModel.shareToInstagram()
                 showPreviewDialog = false
             },
@@ -198,11 +200,11 @@ fun FrameScreen(
 }
 
 /**
- * Phase 2: 상단 미리보기 섹션 - 제스처 기반 사진 편집 기능 추가
+ * Phase 4: 현대적인 상단 미리보기 섹션 - 예시 이미지와 동일한 세련된 디자인
  * 선택된 사진 4장을 2x2 그리드로 표시하고 프레임을 오버레이
  */
 @Composable
-private fun PhotoPreviewSection(
+private fun ModernPhotoPreviewSection(
     photoStates: List<PhotoState>,
     selectedFrame: Frame?,
     onPhotoClick: (Int) -> Unit,
@@ -210,31 +212,34 @@ private fun PhotoPreviewSection(
 ) {
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.8f)
-            .aspectRatio(0.56f) // 인생네컷 비율 (9:16)
-            .background(Color.White, RoundedCornerShape(12.dp))
-            .padding(8.dp),
+            .fillMaxWidth(0.85f)
+            .aspectRatio(0.6f) // 예시 이미지와 유사한 비율
+            .background(
+                Color.White, 
+                RoundedCornerShape(20.dp) // 더 둥근 모서리
+            )
+            .padding(12.dp), // 내부 여백 증가
         contentAlignment = Alignment.Center
     ) {
         // 사진 4장을 2x2 그리드로 배치 (제스처 편집 가능)
         if (photoStates.any { it.bitmap != null }) {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp) // 간격 증가
             ) {
                 // 상단 행
                 Row(
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    EditablePhotoItem(
+                    ModernEditablePhotoItem(
                         photoState = photoStates.getOrNull(0) ?: PhotoState(null),
                         index = 0,
                         onPhotoClick = onPhotoClick,
                         onTransform = onTransform,
                         modifier = Modifier.weight(1f)
                     )
-                    EditablePhotoItem(
+                    ModernEditablePhotoItem(
                         photoState = photoStates.getOrNull(1) ?: PhotoState(null),
                         index = 1,
                         onPhotoClick = onPhotoClick,
@@ -246,16 +251,16 @@ private fun PhotoPreviewSection(
                 // 하단 행
                 Row(
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    EditablePhotoItem(
+                    ModernEditablePhotoItem(
                         photoState = photoStates.getOrNull(2) ?: PhotoState(null),
                         index = 2,
                         onPhotoClick = onPhotoClick,
                         onTransform = onTransform,
                         modifier = Modifier.weight(1f)
                     )
-                    EditablePhotoItem(
+                    ModernEditablePhotoItem(
                         photoState = photoStates.getOrNull(3) ?: PhotoState(null),
                         index = 3,
                         onPhotoClick = onPhotoClick,
@@ -266,12 +271,24 @@ private fun PhotoPreviewSection(
             }
         } else {
             // 사진이 없을 때 안내 텍스트
-            Text(
-                text = "프레임을 선택하세요",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.Gray,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Photos",
+                    tint = Color(0xFF9CA3AF),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "사진을 추가하고\n프레임을 선택하세요",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFF6B7280),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
         
         // 선택된 프레임 오버레이
@@ -287,10 +304,10 @@ private fun PhotoPreviewSection(
 }
 
 /**
- * Phase 2: 제스처 편집 가능한 개별 사진 아이템
+ * Phase 4: 현대적인 제스처 편집 가능한 개별 사진 아이템
  */
 @Composable
-private fun EditablePhotoItem(
+private fun ModernEditablePhotoItem(
     photoState: PhotoState,
     index: Int,
     onPhotoClick: (Int) -> Unit,
@@ -300,7 +317,10 @@ private fun EditablePhotoItem(
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .background(Color.LightGray, RoundedCornerShape(4.dp))
+            .background(
+                Color(0xFFF3F4F6), // 더 부드러운 회색
+                RoundedCornerShape(12.dp) // 더 둥근 모서리
+            )
             .clickable { onPhotoClick(index) }
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
@@ -315,7 +335,7 @@ private fun EditablePhotoItem(
                 contentDescription = "Photo ${index + 1}",
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .graphicsLayer(
                         scaleX = photoState.scale,
                         scaleY = photoState.scale,
@@ -325,22 +345,33 @@ private fun EditablePhotoItem(
                 contentScale = ContentScale.Crop
             )
         } else {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Photo",
-                tint = Color.Gray,
-                modifier = Modifier.size(32.dp)
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Photo",
+                    tint = Color(0xFF9CA3AF),
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "사진 추가",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF6B7280)
+                )
+            }
         }
     }
 }
 
 /**
- * Phase 1: 하단 프레임 캐러셀 섹션 - 예시 이미지와 동일한 레이아웃
+ * Phase 4: 현대적인 하단 프레임 캐러셀 섹션 - 예시 이미지와 동일한 세련된 디자인
  * 프레임들을 가로 스크롤로 선택할 수 있는 캐러셀
  */
 @Composable
-private fun FrameCarouselSection(
+private fun ModernFrameCarouselSection(
     frames: List<Frame>,
     selectedFrame: Frame?,
     isLoading: Boolean,
@@ -351,23 +382,28 @@ private fun FrameCarouselSection(
     ) {
         // 프레임 선택 안내 텍스트
         Text(
-            text = "프레임 만들기",
-            style = MaterialTheme.typography.titleLarge,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 8.dp)
+            text = "프레임 선택",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = Color(0xFF1F2937),
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-        
+
         if (isLoading) {
-            CircularProgressIndicator(color = KTXBlue)
+            CircularProgressIndicator(
+                color = KTXBlue,
+                modifier = Modifier.size(32.dp)
+            )
         } else {
             // 프레임 캐러셀 (가로 스크롤)
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(frames) { frame ->
-                    FrameCarouselItem(
+                    ModernFrameCarouselItem(
                         frame = frame,
                         isSelected = selectedFrame?.id == frame.id,
                         onClick = { onFrameSelect(frame) }
@@ -379,23 +415,23 @@ private fun FrameCarouselSection(
 }
 
 /**
- * 프레임 캐러셀 개별 아이템
+ * Phase 4: 현대적인 프레임 캐러셀 개별 아이템
  */
 @Composable
-private fun FrameCarouselItem(
+private fun ModernFrameCarouselItem(
     frame: Frame,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
-            .size(100.dp)
+            .size(if (isSelected) 90.dp else 80.dp) // 선택 시 크기 변화
             .background(
-                color = if (isSelected) KTXBlue.copy(alpha = 0.2f) else Color.White,
-                shape = RoundedCornerShape(8.dp)
+                color = if (isSelected) KTXBlue.copy(alpha = 0.1f) else Color.White,
+                shape = RoundedCornerShape(16.dp) // 더 둥근 모서리
             )
             .clickable { onClick() }
-            .padding(4.dp),
+            .padding(6.dp),
         contentAlignment = Alignment.Center
     ) {
         // 프레임 미리보기 이미지
@@ -404,61 +440,102 @@ private fun FrameCarouselItem(
             contentDescription = frame.name,
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(6.dp)),
+                .clip(RoundedCornerShape(12.dp)),
             contentScale = ContentScale.Crop
         )
-        
-        // 선택 상태 표시
+
+        // 선택 상태 표시 (더 세련된 디자인)
         if (isSelected) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        KTXBlue.copy(alpha = 0.3f),
-                        RoundedCornerShape(6.dp)
+                        KTXBlue.copy(alpha = 0.2f),
+                        RoundedCornerShape(12.dp)
                     )
+            )
+            
+            // 선택 표시 아이콘
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .background(
+                        KTXBlue,
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Phase 4: 현대적인 액션 버튼 섹션 - 예시 이미지의 "확인" 버튼과 유사
+ */
+@Composable
+private fun ModernActionButtonSection(
+    selectedFrame: Frame?,
+    photoStates: List<PhotoState>,
+    isProcessing: Boolean,
+    onCompose: () -> Unit
+) {
+    val photoCount = photoStates.count { it.bitmap != null }
+    val isEnabled = selectedFrame != null && photoCount > 0 && !isProcessing
+
+    Button(
+        onClick = onCompose,
+        enabled = isEnabled,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isEnabled) KTXBlue else Color(0xFFD1D5DB)
+        ),
+        modifier = Modifier
+            .fillMaxWidth(0.85f)
+            .height(56.dp),
+        shape = RoundedCornerShape(16.dp) // 더 둥근 모서리
+    ) {
+        if (isProcessing) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "합성 중...",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = Color.White
+                )
+            }
+        } else {
+            Text(
+                text = "완성하기",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = Color.White
             )
         }
     }
 }
 
 /**
- * Phase 1: 액션 버튼 섹션 - 예시 이미지의 "확인" 버튼과 유사
+ * Phase 4: 현대적인 메시지 표시 카드
  */
 @Composable
-private fun ActionButtonSection(
-    selectedFrame: Frame?,
-    photos: List<Bitmap?>,
-    isProcessing: Boolean,
-    onCompose: () -> Unit
-) {
-    val photoCount = photos.count { it != null }
-    val isEnabled = selectedFrame != null && photoCount > 0 && !isProcessing
-    
-    Button(
-        onClick = onCompose,
-        enabled = isEnabled,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isEnabled) KTXBlue else Color.Gray
-        ),
-        modifier = Modifier
-            .fillMaxWidth(0.8f)
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Text(
-            text = if (isProcessing) "합성 중..." else "확인",
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White
-        )
-    }
-}
-
-/**
- * 메시지 표시 카드
- */
-@Composable
-private fun MessageCard(
+private fun ModernMessageCard(
     message: String,
     isError: Boolean,
     modifier: Modifier = Modifier
@@ -466,16 +543,30 @@ private fun MessageCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isError) MaterialTheme.colorScheme.errorContainer else KTXBlue.copy(alpha = 0.1f)
+            containerColor = if (isError) Color(0xFFFEF2F2) else Color(0xFFF0F9FF)
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isError) MaterialTheme.colorScheme.onErrorContainer else KTXBlue,
-            modifier = Modifier.padding(16.dp)
-        )
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (isError) Icons.Default.Close else Icons.Default.Check,
+                contentDescription = if (isError) "Error" else "Success",
+                tint = if (isError) Color(0xFFDC2626) else Color(0xFF059669),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = if (isError) Color(0xFFDC2626) else Color(0xFF059669)
+            )
+        }
     }
 }
 
