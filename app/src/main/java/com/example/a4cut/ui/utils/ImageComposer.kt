@@ -53,16 +53,16 @@ class ImageComposer(private val context: Context) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         
         // 🚨 인생네컷 프레임의 각 사진 칸의 정확한 픽셀 좌표
-        // Rect(left, top, right, bottom) - 세로로 4개 배치
+        // Rect(left, top, right, bottom) - 프레임 내 4개의 회색 빈 칸에 배치
         val photoRects = listOf(
-            // 첫 번째 칸 (가장 위)
+            // 첫 번째 칸 (왼쪽 위)
             RectF(85f, 125f, 490f, 475f),
-            // 두 번째 칸
+            // 두 번째 칸 (오른쪽 위)
+            RectF(500f, 125f, 905f, 475f),
+            // 세 번째 칸 (왼쪽 아래)
             RectF(85f, 495f, 490f, 845f),
-            // 세 번째 칸
-            RectF(85f, 865f, 490f, 1215f),
-            // 네 번째 칸 (가장 아래)
-            RectF(85f, 1235f, 490f, 1585f)
+            // 네 번째 칸 (오른쪽 아래)
+            RectF(500f, 495f, 905f, 845f)
         )
         
         println("인생네컷 프레임 사진 영역 좌표:")
