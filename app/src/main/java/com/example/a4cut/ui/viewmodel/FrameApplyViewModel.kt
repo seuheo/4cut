@@ -12,6 +12,7 @@ import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.data.repository.PhotoRepository
 import com.example.a4cut.data.service.LocationTaggingService
 import com.example.a4cut.ui.utils.ImageComposer
+import com.example.a4cut.data.repository.KTXStationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +32,7 @@ class FrameApplyViewModel(
     private val imageComposer = context?.let { ImageComposer(it) }
     private val imageLoader = context?.let { ImageLoader(it) }
     private val locationTaggingService = context?.let { LocationTaggingService(it) }
+    private val ktxStationRepository = KTXStationRepository()
 
     private val _uiState = MutableStateFlow(FrameApplyUiState())
     val uiState: StateFlow<FrameApplyUiState> = _uiState.asStateFlow()
@@ -232,7 +234,24 @@ class FrameApplyViewModel(
     }
 
     /**
-     * 프레임 적용 결과물 저장 (자동 위치 태깅 포함)
+     * KTX 역 이름을 좌표로 변환
+     */
+    private fun getStationCoordinates(stationName: String?): Pair<Double, Double>? {
+        if (stationName == null) return null
+        
+        // 모든 KTX 역 목록에서 해당 역 찾기
+        val allStations = ktxStationRepository.getAllStations()
+        val station = allStations.find { it.name == stationName }
+        
+        return if (station != null) {
+            Pair(station.latitude, station.longitude)
+        } else {
+            null
+        }
+    }
+
+    /**
+     * 프레임 적용 결과물 저장 (KTX 역 선택 및 자동 위치 태깅 포함)
      */
     fun saveFrameAppliedPhoto(stationName: String? = null) {
         val photo = _uiState.value.photo
@@ -243,8 +262,11 @@ class FrameApplyViewModel(
                 try {
                     _uiState.update { it.copy(isLoading = true) }
                     
-                    // 자동 위치 태깅 수행
+                    // 자동 위치 태깅 수행 (GPS 기반)
                     val locationMetadata = locationTaggingService?.generateLocationMetadata()
+                    
+                    // 사용자가 선택한 KTX 역의 좌표 가져오기
+                    val stationCoordinates = getStationCoordinates(stationName)
                     
                     // 사진 Bitmap 로드
                     val photoBitmap = loadBitmapFromPath(photo.imagePath)
@@ -279,15 +301,20 @@ class FrameApplyViewModel(
                     
                     if (savedUri != null) {
                         // 위치 정보를 포함한 새로운 PhotoEntity 생성
+                        // 우선순위: 사용자 선택 KTX 역 > 자동 위치 태깅 > 기존 위치
+                        val finalLocation = stationName ?: locationMetadata?.stationName ?: photo.location
+                        val finalLatitude = stationCoordinates?.first ?: locationMetadata?.latitude ?: photo.latitude
+                        val finalLongitude = stationCoordinates?.second ?: locationMetadata?.longitude ?: photo.longitude
+                        
                         val newPhoto = photo.copy(
                             id = 0, // 새로운 ID 생성
                             imagePath = savedUri.toString(),
                             title = "${photo.title} (${selectedFrame.name} 프레임)",
                             frameType = selectedFrame.name,
-                            location = locationMetadata?.stationName ?: stationName ?: photo.location,
-                            latitude = locationMetadata?.latitude,
-                            longitude = locationMetadata?.longitude,
-                            station = locationMetadata?.stationName ?: stationName,
+                            location = finalLocation,
+                            latitude = finalLatitude,
+                            longitude = finalLongitude,
+                            station = stationName ?: locationMetadata?.stationName,
                             createdAt = System.currentTimeMillis()
                         )
                         
@@ -295,10 +322,10 @@ class FrameApplyViewModel(
                         photoRepository?.insertPhoto(newPhoto)
                         
                         // 성공 메시지에 위치 정보 포함
-                        val successMessage = if (locationMetadata != null) {
-                            "프레임이 적용된 사진이 저장되었습니다. (${locationMetadata.stationName}에서 촬영)"
-                        } else {
-                            "프레임이 적용된 사진이 저장되었습니다."
+                        val successMessage = when {
+                            stationName != null -> "프레임이 적용된 사진이 저장되었습니다. (${stationName}에서 촬영)"
+                            locationMetadata != null -> "프레임이 적용된 사진이 저장되었습니다. (${locationMetadata.stationName}에서 촬영)"
+                            else -> "프레임이 적용된 사진이 저장되었습니다."
                         }
                         
                         _uiState.update { 

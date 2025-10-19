@@ -310,13 +310,25 @@ fun CalendarScreen(
             if (photosForSelectedDate.isNotEmpty()) {
                 Log.d("CalendarTest", "UI: 선택된 날짜의 사진 개수: ${photosForSelectedDate.size}")
                 
-                // 위치 정보(위도/경도)가 있는 사진만 필터링
+                // 위치 정보(위도/경도)가 있는 사진만 필터링 (Null 안전성 강화)
                 val photosWithLocation = photosForSelectedDate.mapNotNull { photo ->
-                    if (photo.latitude != null && photo.longitude != null) {
-                        Log.d("CalendarTest", "UI: 위치 정보 있는 사진 - ${photo.location} (${photo.latitude}, ${photo.longitude})")
-                        Triple(GeoPoint(photo.latitude, photo.longitude), photo.location, photo)
-                    } else {
-                        Log.d("CalendarTest", "UI: 위치 정보 없는 사진 - ${photo.location}")
+                    try {
+                        // 위도/경도 값이 유효한 범위인지 확인
+                        val latitude = photo.latitude
+                        val longitude = photo.longitude
+                        
+                        if (latitude != null && longitude != null && 
+                            latitude >= -90.0 && latitude <= 90.0 &&
+                            longitude >= -180.0 && longitude <= 180.0) {
+                            
+                            Log.d("CalendarTest", "UI: 위치 정보 있는 사진 - ${photo.location} (${latitude}, ${longitude})")
+                            Triple(GeoPoint(latitude, longitude), photo.location, photo)
+                        } else {
+                            Log.d("CalendarTest", "UI: 위치 정보가 유효하지 않은 사진 - ${photo.location} (lat: $latitude, lng: $longitude)")
+                            null
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CalendarTest", "UI: 위치 정보 처리 중 오류 - ${photo.location}", e)
                         null
                     }
                 }
@@ -355,29 +367,42 @@ fun CalendarScreen(
                                 }
                             },
                             update = { mapView ->
-                                Log.d("CalendarTest", "UI: MapView 업데이트. 마커 ${photosWithLocation.size}개 추가 시도")
-                                
-                                // 기존 마커 제거
-                                mapView.overlays.clear()
-                                
-                                var mapCenterSet = false
-                                photosWithLocation.forEach { (geoPoint, title, _) ->
-                                    val marker = Marker(mapView)
-                                    marker.position = geoPoint
-                                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                                    marker.title = title.ifBlank { "사진 위치" }
-                                    marker.snippet = "이곳에서 사진을 찍었습니다."
+                                try {
+                                    Log.d("CalendarTest", "UI: MapView 업데이트. 마커 ${photosWithLocation.size}개 추가 시도")
                                     
-                                    mapView.overlays.add(marker)
-                                    Log.d("CalendarTest", "UI: 마커 추가됨 - ${title} (${geoPoint.latitude})")
+                                    // 기존 마커 제거
+                                    mapView.overlays.clear()
                                     
-                                    // 첫 번째 마커 위치로 카메라 이동 (한 번만)
-                                    if (!mapCenterSet) {
-                                        mapView.controller.animateTo(geoPoint, initialZoom, 1000L)
-                                        mapCenterSet = true
+                                    var mapCenterSet = false
+                                    photosWithLocation.forEach { (geoPoint, title, _) ->
+                                        try {
+                                            // GeoPoint 유효성 검사
+                                            if (geoPoint.latitude.isFinite() && geoPoint.longitude.isFinite()) {
+                                                val marker = Marker(mapView)
+                                                marker.position = geoPoint
+                                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                                marker.title = title.ifBlank { "사진 위치" }
+                                                marker.snippet = "이곳에서 사진을 찍었습니다."
+                                                
+                                                mapView.overlays.add(marker)
+                                                Log.d("CalendarTest", "UI: 마커 추가됨 - ${title} (${geoPoint.latitude})")
+                                                
+                                                // 첫 번째 마커 위치로 카메라 이동 (한 번만)
+                                                if (!mapCenterSet) {
+                                                    mapView.controller.animateTo(geoPoint, initialZoom, 1000L)
+                                                    mapCenterSet = true
+                                                }
+                                            } else {
+                                                Log.e("CalendarTest", "UI: 유효하지 않은 GeoPoint - ${title} (${geoPoint.latitude}, ${geoPoint.longitude})")
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("CalendarTest", "UI: 마커 생성 중 오류 - ${title}", e)
+                                        }
                                     }
+                                    mapView.invalidate() // 마커 추가 후 지도 갱신
+                                } catch (e: Exception) {
+                                    Log.e("CalendarTest", "UI: MapView 업데이트 중 오류", e)
                                 }
-                                mapView.invalidate() // 마커 추가 후 지도 갱신
                             },
                             modifier = Modifier.fillMaxSize()
                         )
