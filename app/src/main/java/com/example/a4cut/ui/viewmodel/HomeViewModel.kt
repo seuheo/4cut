@@ -16,9 +16,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
+import android.util.Log
 
 /**
  * 새로운 홈 화면의 ViewModel
@@ -120,20 +122,93 @@ class HomeViewModel : ViewModel() {
             val database = AppDatabase.getDatabase(context)
             photoRepository = PhotoRepository(database.photoDao())
             
-            // 데이터베이스 초기화 성공 후 데이터 로드
-            loadPhotoLogs()
+            // 데이터베이스 초기화 성공 후 데이터 로드 (재시도 포함)
+            loadPhotoLogsWithRetry()
             
             // 초기화 성공 시 에러 메시지 제거
             clearError()
         } catch (e: Exception) {
-            _errorMessage.value = "데이터베이스 초기화 실패: ${e.message}"
+            _errorMessage.value = "데이터베이스 초기화 실패: ${e.message}. 앱을 다시 시작해주세요."
             e.printStackTrace()
             // 초기화 실패 시에도 기본 상태 유지
         }
     }
     
     /**
-     * 포토로그 데이터 로드
+     * 포토로그 데이터 로드 (재시도 메커니즘 포함)
+     */
+    private fun loadPhotoLogsWithRetry(maxRetries: Int = 3) {
+        val repository = photoRepository
+        if (repository == null) {
+            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
+            return
+        }
+        
+        viewModelScope.launch {
+            var retryCount = 0
+            var success = false
+            
+            while (retryCount < maxRetries && !success) {
+                try {
+                    _isLoading.value = true
+                    
+                    // 사진 목록과 개수 동시 로드
+                    launch {
+                        try {
+                            repository.getAllPhotos().collect { photos ->
+                                _photoLogs.value = photos
+                            }
+                        } catch (e: Exception) {
+                            _errorMessage.value = "사진 목록 로드 실패: ${e.message}"
+                            e.printStackTrace()
+                        }
+                    }
+                    
+                    launch {
+                        try {
+                            repository.getPhotoCount().collect { count ->
+                                _photoCount.value = count
+                            }
+                        } catch (e: Exception) {
+                            _errorMessage.value = "사진 개수 로드 실패: ${e.message}"
+                            e.printStackTrace()
+                        }
+                    }
+                    
+                    launch {
+                        try {
+                            repository.getFavoritePhotoCount().collect { count ->
+                                _favoritePhotoCount.value = count
+                            }
+                        } catch (e: Exception) {
+                            _errorMessage.value = "즐겨찾기 개수 로드 실패: ${e.message}"
+                            e.printStackTrace()
+                        }
+                    }
+                    
+                    // 성공적으로 로드되면 에러 메시지 자동 제거
+                    clearError()
+                    success = true
+                    
+                } catch (e: Exception) {
+                    retryCount++
+                    if (retryCount < maxRetries) {
+                        _errorMessage.value = "데이터 로드 실패 (재시도 ${retryCount}/${maxRetries}): ${e.message}"
+                        // 재시도 전 잠시 대기
+                        delay((1000 * retryCount).toLong())
+                    } else {
+                        _errorMessage.value = "데이터 로드 실패: ${e.message}. 앱을 다시 시작해주세요."
+                    }
+                    e.printStackTrace()
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+    
+    /**
+     * 포토로그 데이터 로드 (기본 버전)
      */
     private fun loadPhotoLogs() {
         val repository = photoRepository
@@ -288,6 +363,35 @@ class HomeViewModel : ViewModel() {
     }
     
     /**
+     * 데이터베이스 연결 상태 확인
+     */
+    fun isDatabaseReady(): Boolean {
+        return photoRepository != null
+    }
+    
+    /**
+     * 강제 데이터베이스 재초기화
+     */
+    fun forceReinitializeDatabase(context: Context) {
+        try {
+            // 기존 Repository 초기화
+            photoRepository = null
+            
+            // 새로운 데이터베이스 인스턴스 생성
+            val database = AppDatabase.getDatabase(context)
+            photoRepository = PhotoRepository(database.photoDao())
+            
+            // 데이터 로드 재시도
+            loadPhotoLogsWithRetry()
+            
+            clearError()
+        } catch (e: Exception) {
+            _errorMessage.value = "데이터베이스 재초기화 실패: ${e.message}. 앱을 다시 시작해주세요."
+            e.printStackTrace()
+        }
+    }
+    
+    /**
      * 즐겨찾기 개수만 새로고침
      */
     private fun refreshFavoriteCount() {
@@ -310,7 +414,7 @@ class HomeViewModel : ViewModel() {
      * 데이터 새로고침
      */
     fun refreshData() {
-        loadPhotoLogs()
+        loadPhotoLogsWithRetry()
     }
     
     /**
@@ -515,11 +619,23 @@ class HomeViewModel : ViewModel() {
                     set(Calendar.MILLISECOND, 999)
                 }.timeInMillis
                 
+                Log.d("CalendarTest", "날짜 범위: $startOfDay ~ $endOfDay")
+                Log.d("CalendarTest", "선택된 날짜: ${calendar.get(Calendar.YEAR)}-${calendar.get(Calendar.MONTH) + 1}-${calendar.get(Calendar.DAY_OF_MONTH)}")
+                
                 // 해당 날짜 범위의 사진 조회
                 val photos = repository.getPhotosByDateRange(startOfDay, endOfDay)
+                
+                // --- 로그 추가 ---
+                Log.d("CalendarTest", "선택된 날짜의 사진 개수: ${photos.size}")
+                photos.forEach { photo ->
+                    Log.d("CalendarTest", "  - 위치: ${photo.location}, 위도: ${photo.latitude}, 경도: ${photo.longitude}")
+                }
+                // --- ---
+                
                 _photosForSelectedDate.value = photos
                 
             } catch (e: Exception) {
+                Log.e("CalendarTest", "사진 로딩 실패", e)
                 _errorMessage.value = "선택한 날짜의 사진 로딩 실패: ${e.message}"
                 e.printStackTrace()
             }
@@ -531,6 +647,57 @@ class HomeViewModel : ViewModel() {
      */
     fun clearPhotosForSelectedDate() {
         _photosForSelectedDate.value = emptyList()
+    }
+    
+    /**
+     * 테스트용 위치 데이터 추가 (지도 테스트용)
+     */
+    fun addTestLocationData() {
+        val repository = photoRepository
+        if (repository == null) {
+            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다."
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                // 오늘 날짜의 타임스탬프 계산
+                val today = Calendar.getInstance()
+                val startOfDay = today.apply {
+                    set(Calendar.HOUR_OF_DAY, 12) // 오후 12시로 설정
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                
+                // 테스트용 사진 데이터 생성
+                val testPhoto = PhotoEntity(
+                    id = 0, // 새로운 ID로 생성
+                    imagePath = "test/seoul_station.jpg",
+                    createdAt = startOfDay,
+                    title = "서울역 테스트 사진",
+                    location = "서울역",
+                    latitude = 37.5547,
+                    longitude = 126.9704,
+                    station = "서울역",
+                    frameType = "ktx_signature",
+                    isFavorite = false
+                )
+                
+                val photoId = repository.insertPhoto(testPhoto)
+                Log.d("CalendarTest", "테스트 데이터 추가 완료 - ID: $photoId")
+                
+                // 데이터 새로고침
+                loadPhotoLogsWithRetry()
+                
+                _errorMessage.value = "테스트 위치 데이터가 추가되었습니다. (서울역)"
+                
+            } catch (e: Exception) {
+                Log.e("CalendarTest", "테스트 데이터 추가 실패", e)
+                _errorMessage.value = "테스트 데이터 추가 실패: ${e.message}"
+                e.printStackTrace()
+            }
+        }
     }
     
 }

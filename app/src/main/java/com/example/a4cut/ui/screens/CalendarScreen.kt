@@ -35,6 +35,7 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import android.util.Log
 
 /**
  * iOS 미니멀 스타일 달력 화면
@@ -302,14 +303,20 @@ fun CalendarScreen(
             
             // 캘린더 하단에 지도 표시 (위치 정보가 있는 사진이 있을 때만)
             if (photosForSelectedDate.isNotEmpty()) {
+                Log.d("CalendarTest", "UI: 선택된 날짜의 사진 개수: ${photosForSelectedDate.size}")
+                
                 // 위치 정보(위도/경도)가 있는 사진만 필터링
                 val photosWithLocation = photosForSelectedDate.mapNotNull { photo ->
                     if (photo.latitude != null && photo.longitude != null) {
+                        Log.d("CalendarTest", "UI: 위치 정보 있는 사진 - ${photo.location} (${photo.latitude}, ${photo.longitude})")
                         Pair(LatLng(photo.latitude, photo.longitude), photo.location)
                     } else {
+                        Log.d("CalendarTest", "UI: 위치 정보 없는 사진 - ${photo.location}")
                         null
                     }
                 }
+                
+                Log.d("CalendarTest", "UI: 지도에 표시할 사진 개수: ${photosWithLocation.size}")
                 
                 if (photosWithLocation.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
