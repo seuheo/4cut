@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -26,6 +28,13 @@ import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.ui.theme.IosColors
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.util.Calendar
+// Google Maps 관련 import
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 
 /**
  * iOS 미니멀 스타일 달력 화면
@@ -60,6 +69,8 @@ fun CalendarScreen(
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
     val selectedStation by homeViewModel.selectedStation.collectAsState()
+    // 선택된 날짜의 사진 목록 구독 (지도 표시용)
+    val photosForSelectedDate by homeViewModel.photosForSelectedDate.collectAsState()
     
     // KTX 역 선택을 위한 상태 변수 및 리포지토리
     val ktxStationRepository = remember { KTXStationRepository() }
@@ -89,6 +100,7 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(IosColors.secondarySystemBackground)
+                .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -132,6 +144,8 @@ fun CalendarScreen(
                     } else {
                         currentMonth--
                     }
+                    selectedDate = null // 월 변경 시 선택 해제
+                    homeViewModel.clearPhotosForSelectedDate() // 월 변경 시 지도 숨기기
                 },
                 onNextMonth = { 
                     if (currentMonth == 11) {
@@ -140,9 +154,14 @@ fun CalendarScreen(
                     } else {
                         currentMonth++
                     }
+                    selectedDate = null // 월 변경 시 선택 해제
+                    homeViewModel.clearPhotosForSelectedDate() // 월 변경 시 지도 숨기기
                 },
                 onDateSelect = { calendar ->
                     selectedDate = calendar
+                    // ViewModel에 선택된 날짜의 사진 로드 요청
+                    homeViewModel.loadPhotosForDate(calendar)
+                    
                     // 특정 날짜를 클릭했을 때의 동작
                     println("Selected date: ${calendar.time}")
                     
@@ -211,36 +230,24 @@ fun CalendarScreen(
                             color = IosColors.label
                         )
                         
-                        // 해당 날짜에 사진이 있는지 확인
-                        val year = selected.get(Calendar.YEAR)
-                        val month = selected.get(Calendar.MONTH) + 1
-                        val day = selected.get(Calendar.DAY_OF_MONTH)
-                        val hasPhotos = datesWithPhotos.any { localDate ->
-                            localDate.year == year && 
-                            localDate.monthValue == month && 
-                            localDate.dayOfMonth == day
-                        }
+                        // 해당 날짜에 사진이 있는지 확인 (ViewModel의 새 상태 사용)
+                        val hasPhotos = photosForSelectedDate.isNotEmpty()
                         
                         if (hasPhotos) {
                             Spacer(modifier = Modifier.height(8.dp))
+                            // 위치 정보가 있는 첫 번째 사진의 역 이름을 표시
+                            val locationText = photosForSelectedDate
+                                .firstNotNullOfOrNull { it.location.ifBlank { null } }
+                                ?.let { " ($it)" } ?: ""
+                            
                             Text(
-                                text = "📸 이 날에 찍은 사진이 있습니다",
+                                text = "📸 이 날에 찍은 사진이 있습니다$locationText",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             
-                            // 해당 날짜의 사진들에서 KTX 역 정보 표시
-                            val photosOnSelectedDate = allPhotos.filter { photo ->
-                                val photoDate = java.util.Calendar.getInstance().apply {
-                                    timeInMillis = photo.createdAt
-                                }
-                                photoDate.get(java.util.Calendar.YEAR) == year &&
-                                photoDate.get(java.util.Calendar.MONTH) + 1 == month &&
-                                photoDate.get(java.util.Calendar.DAY_OF_MONTH) == day
-                            }
-                            
                             // KTX 역에서 촬영한 사진이 있는지 확인
-                            val ktxStationPhotos = photosOnSelectedDate.filter { photo ->
+                            val ktxStationPhotos = photosForSelectedDate.filter { photo ->
                                 photo.location.isNotBlank() && photo.location.contains("역")
                             }
                             
@@ -258,53 +265,94 @@ fun CalendarScreen(
                 }
             }
             
-            // 선택된 날짜의 사진 목록 표시
-            selectedDate?.let { selected ->
-                val year = selected.get(Calendar.YEAR)
-                val month = selected.get(Calendar.MONTH) + 1
-                val day = selected.get(Calendar.DAY_OF_MONTH)
+            // 선택된 날짜의 사진 목록 표시 (ViewModel의 새 상태 사용)
+            if (photosForSelectedDate.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "이 날에 찍은 사진들 (${photosForSelectedDate.size}장)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 
-                val photosOnSelectedDate = allPhotos.filter { photo ->
-                    val photoDate = java.util.Calendar.getInstance().apply {
-                        timeInMillis = photo.createdAt
+                // 사진 목록을 그리드로 표시
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(photosForSelectedDate) { photo ->
+                        PhotoGridItem(
+                            photo = photo,
+                            onClick = { onNavigateToPhotoDetail(photo.id.toString()) }
+                        )
                     }
-                    photoDate.get(java.util.Calendar.YEAR) == year &&
-                    photoDate.get(java.util.Calendar.MONTH) + 1 == month &&
-                    photoDate.get(java.util.Calendar.DAY_OF_MONTH) == day
+                }
+            } else if (selectedDate != null) {
+                // 해당 날짜에 사진이 없을 때 빈 상태 표시
+                Spacer(modifier = Modifier.height(16.dp))
+                EmptyCalendarDate()
+            }
+            
+            // 캘린더 하단에 지도 표시 (위치 정보가 있는 사진이 있을 때만)
+            if (photosForSelectedDate.isNotEmpty()) {
+                // 위치 정보(위도/경도)가 있는 사진만 필터링
+                val photosWithLocation = photosForSelectedDate.mapNotNull { photo ->
+                    if (photo.latitude != null && photo.longitude != null) {
+                        Pair(LatLng(photo.latitude, photo.longitude), photo.location)
+                    } else {
+                        null
+                    }
                 }
                 
-                if (photosOnSelectedDate.isNotEmpty()) {
+                if (photosWithLocation.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "이 날에 찍은 사진들 (${photosOnSelectedDate.size}장)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     
-                    // 사진 목록을 그리드로 표시
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 400.dp)
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 16.dp)
-                    ) {
-                        items(photosOnSelectedDate) { photo ->
-                            PhotoGridItem(
-                                photo = photo,
-                                onClick = { onNavigateToPhotoDetail(photo.id.toString()) }
+                    // 첫 번째 사진 위치를 카메라 기본 위치로 설정
+                    val defaultPosition = photosWithLocation.first().first
+                    val cameraPositionState = rememberCameraPositionState {
+                        position = CameraPosition.fromLatLngZoom(defaultPosition, 15f)
+                    }
+                    
+                    // 카메라 위치가 바뀔 때마다 (예: selectedDate가 바뀔 때) 카메라 이동
+                    LaunchedEffect(photosForSelectedDate) {
+                        photosWithLocation.firstOrNull()?.first?.let {
+                            cameraPositionState.animate(
+                                com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(it, 15f)
                             )
                         }
                     }
-                } else {
-                    // 해당 날짜에 사진이 없을 때 빈 상태 표시
-                    Spacer(modifier = Modifier.height(16.dp))
-                    EmptyCalendarDate()
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp) // 지도 높이 지정
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = IosColors.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        GoogleMap(
+                            modifier = Modifier.fillMaxSize(),
+                            cameraPositionState = cameraPositionState
+                        ) {
+                            // 각 사진 위치에 마커 표시
+                            photosWithLocation.forEach { (latLng, title) ->
+                                Marker(
+                                    state = MarkerState(position = latLng),
+                                    title = title.ifBlank { "사진 위치" },
+                                    snippet = "이곳에서 사진을 찍었습니다."
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp)) // 하단 여백
                 }
             }
             

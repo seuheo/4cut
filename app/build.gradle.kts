@@ -84,9 +84,9 @@ dependencies {
     // Google Play 서비스: 장소 (주변 KTX 역 검색용)
     implementation("com.google.android.libraries.places:places:3.1.0")
     
-    // Google Maps (선택 사항) - 캘린더나 상세 화면에 지도 표시용
-    implementation("com.google.maps.android:maps-compose:2.11.4")
-    implementation("com.google.android.gms:play-services-maps:18.1.0")
+    // Google Maps - 캘린더 화면에 지도 표시용
+    implementation("com.google.maps.android:maps-compose:4.3.3")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
     
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")

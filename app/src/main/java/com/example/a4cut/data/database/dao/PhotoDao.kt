@@ -161,4 +161,16 @@ interface PhotoDao {
      */
     @Query("SELECT * FROM photos WHERE strftime('%Y-%m', datetime(createdAt/1000, 'unixepoch')) = :yearMonth ORDER BY createdAt DESC")
     fun getPhotosByYearMonth(yearMonth: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (지도 표시용)
+     */
+    @Query("SELECT * FROM photos WHERE createdAt BETWEEN :startTime AND :endTime ORDER BY createdAt DESC")
+    suspend fun getPhotosByDateRange(startTime: Long, endTime: Long): List<PhotoEntity>
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (Flow 버전)
+     */
+    @Query("SELECT * FROM photos WHERE createdAt BETWEEN :startTime AND :endTime ORDER BY createdAt DESC")
+    fun getPhotosByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<PhotoEntity>>
 }

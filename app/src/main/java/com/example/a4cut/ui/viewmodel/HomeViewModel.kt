@@ -48,6 +48,10 @@ class HomeViewModel : ViewModel() {
     private val _selectedStation = MutableStateFlow<String?>(null)
     val selectedStation: StateFlow<String?> = _selectedStation.asStateFlow()
     
+    // 선택된 날짜의 사진 목록 상태 (지도 표시용)
+    private val _photosForSelectedDate = MutableStateFlow<List<PhotoEntity>>(emptyList())
+    val photosForSelectedDate: StateFlow<List<PhotoEntity>> = _photosForSelectedDate.asStateFlow()
+    
     // 포토로그 데이터
     private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
     val photoLogs: StateFlow<List<PhotoEntity>> = _photoLogs.asStateFlow()
@@ -430,6 +434,48 @@ class HomeViewModel : ViewModel() {
      */
     fun selectStation(stationName: String?) {
         _selectedStation.value = stationName
+    }
+    
+    /**
+     * 특정 날짜의 사진 목록을 로드 (지도 표시용)
+     */
+    fun loadPhotosForDate(calendar: Calendar) {
+        viewModelScope.launch {
+            try {
+                val repository = photoRepository ?: return@launch
+                
+                // 선택된 날짜의 00:00:00 시각
+                val startOfDay = calendar.apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+
+                // 선택된 날짜의 23:59:59 시각
+                val endOfDay = calendar.apply {
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }.timeInMillis
+                
+                // 해당 날짜 범위의 사진 조회
+                val photos = repository.getPhotosByDateRange(startOfDay, endOfDay)
+                _photosForSelectedDate.value = photos
+                
+            } catch (e: Exception) {
+                _errorMessage.value = "선택한 날짜의 사진 로딩 실패: ${e.message}"
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    /**
+     * 선택된 날짜의 사진 목록 초기화 (지도 숨기기용)
+     */
+    fun clearPhotosForSelectedDate() {
+        _photosForSelectedDate.value = emptyList()
     }
     
 }

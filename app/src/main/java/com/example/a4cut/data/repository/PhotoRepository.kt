@@ -171,4 +171,16 @@ class PhotoRepository(private val photoDao: PhotoDao) {
      * 월별 사진 조회
      */
     fun getPhotosByYearMonth(yearMonth: String): Flow<List<PhotoEntity>> = photoDao.getPhotosByYearMonth(yearMonth)
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (지도 표시용)
+     */
+    suspend fun getPhotosByDateRange(startTime: Long, endTime: Long): List<PhotoEntity> = 
+        photoDao.getPhotosByDateRange(startTime, endTime)
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (Flow 버전)
+     */
+    fun getPhotosByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<PhotoEntity>> = 
+        photoDao.getPhotosByDateRangeFlow(startTime, endTime)
 }
