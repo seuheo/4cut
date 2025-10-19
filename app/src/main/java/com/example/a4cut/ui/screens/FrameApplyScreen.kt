@@ -26,6 +26,7 @@ import com.example.a4cut.data.model.Frame
 import com.example.a4cut.ui.components.KtxStationSelector
 import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.ui.viewmodel.FrameApplyViewModel
+import android.util.Log
 
 /**
  * 프레임 적용 화면
@@ -79,7 +80,10 @@ fun FrameApplyScreen(
                     // 저장 버튼 (프레임이 선택된 경우에만 활성화)
                     if (selectedFrame != null) {
                         IconButton(
-                            onClick = { viewModel.saveFrameAppliedPhoto(selectedStation) },
+                            onClick = { 
+                                Log.d("FrameApplyScreen", "저장 버튼 클릭 - 선택된 역: $selectedStation")
+                                viewModel.saveFrameAppliedPhoto(selectedStation) 
+                            },
                             enabled = !isLoading
                         ) {
                             Icon(Icons.Default.Check, contentDescription = "저장")

@@ -13,6 +13,7 @@ import com.example.a4cut.data.repository.PhotoRepository
 import com.example.a4cut.data.service.LocationTaggingService
 import com.example.a4cut.ui.utils.ImageComposer
 import com.example.a4cut.data.repository.KTXStationRepository
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -237,15 +238,24 @@ class FrameApplyViewModel(
      * KTX 역 이름을 좌표로 변환
      */
     private fun getStationCoordinates(stationName: String?): Pair<Double, Double>? {
-        if (stationName == null) return null
+        if (stationName == null) {
+            Log.d("FrameApplyViewModel", "역 이름이 null입니다.")
+            return null
+        }
         
         // 모든 KTX 역 목록에서 해당 역 찾기
         val allStations = ktxStationRepository.getAllStations()
+        Log.d("FrameApplyViewModel", "전체 KTX 역 개수: ${allStations.size}")
+        Log.d("FrameApplyViewModel", "찾는 역 이름: $stationName")
+        
         val station = allStations.find { it.name == stationName }
         
         return if (station != null) {
+            Log.d("FrameApplyViewModel", "역 찾음: ${station.name} (${station.latitude}, ${station.longitude})")
             Pair(station.latitude, station.longitude)
         } else {
+            Log.e("FrameApplyViewModel", "역을 찾을 수 없음: $stationName")
+            Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
             null
         }
     }
@@ -266,7 +276,9 @@ class FrameApplyViewModel(
                     val locationMetadata = locationTaggingService?.generateLocationMetadata()
                     
                     // 사용자가 선택한 KTX 역의 좌표 가져오기
+                    Log.d("FrameApplyViewModel", "저장 시작 - 선택된 역: $stationName")
                     val stationCoordinates = getStationCoordinates(stationName)
+                    Log.d("FrameApplyViewModel", "역 좌표: $stationCoordinates")
                     
                     // 사진 Bitmap 로드
                     val photoBitmap = loadBitmapFromPath(photo.imagePath)
@@ -306,6 +318,11 @@ class FrameApplyViewModel(
                         val finalLatitude = stationCoordinates?.first ?: locationMetadata?.latitude ?: photo.latitude
                         val finalLongitude = stationCoordinates?.second ?: locationMetadata?.longitude ?: photo.longitude
                         
+                        Log.d("FrameApplyViewModel", "최종 위치 정보:")
+                        Log.d("FrameApplyViewModel", "  - 위치: $finalLocation")
+                        Log.d("FrameApplyViewModel", "  - 위도: $finalLatitude")
+                        Log.d("FrameApplyViewModel", "  - 경도: $finalLongitude")
+                        
                         val newPhoto = photo.copy(
                             id = 0, // 새로운 ID 생성
                             imagePath = savedUri.toString(),
@@ -318,8 +335,16 @@ class FrameApplyViewModel(
                             createdAt = System.currentTimeMillis()
                         )
                         
+                        Log.d("FrameApplyViewModel", "생성된 PhotoEntity: $newPhoto")
+                        
                         // PhotoRepository를 통해 새로운 사진 저장
-                        photoRepository?.insertPhoto(newPhoto)
+                        try {
+                            val photoId = photoRepository?.insertPhoto(newPhoto)
+                            Log.d("FrameApplyViewModel", "데이터베이스 저장 성공! Photo ID: $photoId")
+                        } catch (e: Exception) {
+                            Log.e("FrameApplyViewModel", "데이터베이스 저장 실패", e)
+                            throw e
+                        }
                         
                         // 성공 메시지에 위치 정보 포함
                         val successMessage = when {
