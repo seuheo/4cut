@@ -247,6 +247,7 @@ class FrameApplyViewModel(
         val allStations = ktxStationRepository.getAllStations()
         Log.d("FrameApplyViewModel", "전체 KTX 역 개수: ${allStations.size}")
         Log.d("FrameApplyViewModel", "찾는 역 이름: $stationName")
+        Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
         
         val station = allStations.find { it.name == stationName }
         

@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.a4cut.data.model.KtxStation
+import android.util.Log
 
 @Composable
 fun KtxStationSelector(
@@ -26,8 +27,10 @@ fun KtxStationSelector(
                 selected = isSelected,
                 onClick = {
                     if (isSelected) {
+                        Log.d("KtxStationSelector", "역 선택 해제: ${station.name}")
                         onStationSelected(null) // 다시 누르면 선택 해제
                     } else {
+                        Log.d("KtxStationSelector", "역 선택: ${station.name}")
                         onStationSelected(station.name)
                     }
                 },

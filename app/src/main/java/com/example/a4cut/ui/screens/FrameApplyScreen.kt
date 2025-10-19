@@ -52,7 +52,10 @@ fun FrameApplyScreen(
     val ktxStationRepository = remember { KTXStationRepository() }
     var selectedLine by remember { mutableStateOf("Gyeongbu") }
     val stations by remember(selectedLine) {
-        mutableStateOf(ktxStationRepository.getStationsByLine(selectedLine))
+        val stationList = ktxStationRepository.getStationsByLine(selectedLine)
+        Log.d("FrameApplyScreen", "선택된 노선: $selectedLine, 역 개수: ${stationList.size}")
+        Log.d("FrameApplyScreen", "역 목록: ${stationList.map { it.name }}")
+        mutableStateOf(stationList)
     }
     var selectedStation by remember { mutableStateOf<String?>(null) }
     
