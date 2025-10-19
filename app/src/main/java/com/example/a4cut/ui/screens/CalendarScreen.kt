@@ -22,7 +22,7 @@ import coil.compose.AsyncImage
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.components.CalendarView
 import com.example.a4cut.ui.components.KtxStationSelector
-import com.example.a4cut.data.repository.KtxStationRepository
+import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.ui.theme.IosColors
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.util.Calendar
@@ -62,7 +62,7 @@ fun CalendarScreen(
     val selectedStation by homeViewModel.selectedStation.collectAsState()
     
     // KTX 역 선택을 위한 상태 변수 및 리포지토리
-    val ktxStationRepository = remember { KtxStationRepository() }
+    val ktxStationRepository = remember { KTXStationRepository() }
     var selectedLine by remember { mutableStateOf("Gyeongbu") }
     val stations by remember(selectedLine) {
         mutableStateOf(ktxStationRepository.getStationsByLine(selectedLine))
@@ -228,6 +228,31 @@ fun CalendarScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                            
+                            // 해당 날짜의 사진들에서 KTX 역 정보 표시
+                            val photosOnSelectedDate = allPhotos.filter { photo ->
+                                val photoDate = java.util.Calendar.getInstance().apply {
+                                    timeInMillis = photo.createdAt
+                                }
+                                photoDate.get(java.util.Calendar.YEAR) == year &&
+                                photoDate.get(java.util.Calendar.MONTH) + 1 == month &&
+                                photoDate.get(java.util.Calendar.DAY_OF_MONTH) == day
+                            }
+                            
+                            // KTX 역에서 촬영한 사진이 있는지 확인
+                            val ktxStationPhotos = photosOnSelectedDate.filter { photo ->
+                                photo.location.isNotBlank() && photo.location.contains("역")
+                            }
+                            
+                            if (ktxStationPhotos.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                val uniqueStations = ktxStationPhotos.map { it.location }.distinct()
+                                Text(
+                                    text = "🚉 ${uniqueStations.joinToString(", ")}에서 촬영",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
                         }
                     }
                 }
@@ -337,7 +362,7 @@ private fun EmptyCalendarDate() {
 }
 
 /**
- * 사진 그리드 아이템
+ * 사진 그리드 아이템 (위치 정보 포함)
  */
 @Composable
 private fun PhotoGridItem(
@@ -351,12 +376,35 @@ private fun PhotoGridItem(
             .clip(RoundedCornerShape(8.dp)),
         onClick = onClick
     ) {
-        AsyncImage(
-            model = photo.imagePath,
-            contentDescription = photo.title,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+        Box {
+            AsyncImage(
+                model = photo.imagePath,
+                contentDescription = photo.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            
+            // 위치 정보 오버레이 (KTX 역인 경우에만)
+            if (photo.location.isNotBlank() && photo.location.contains("역")) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            shape = RoundedCornerShape(bottomStart = 8.dp)
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "🚉 ${photo.location}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
     }
 }
 

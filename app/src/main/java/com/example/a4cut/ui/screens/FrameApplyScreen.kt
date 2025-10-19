@@ -24,7 +24,7 @@ import coil.compose.AsyncImage
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.data.model.Frame
 import com.example.a4cut.ui.components.KtxStationSelector
-import com.example.a4cut.data.repository.KtxStationRepository
+import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.ui.viewmodel.FrameApplyViewModel
 
 /**
@@ -48,7 +48,7 @@ fun FrameApplyScreen(
     val successMessage = uiState.successMessage
     
     // KTX 역 선택을 위한 상태 변수
-    val ktxStationRepository = remember { KtxStationRepository() }
+    val ktxStationRepository = remember { KTXStationRepository() }
     var selectedLine by remember { mutableStateOf("Gyeongbu") }
     val stations by remember(selectedLine) {
         mutableStateOf(ktxStationRepository.getStationsByLine(selectedLine))

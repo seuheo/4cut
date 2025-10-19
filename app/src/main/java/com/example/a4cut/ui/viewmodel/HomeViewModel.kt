@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.database.AppDatabase
 import com.example.a4cut.data.repository.PhotoRepository
-import com.example.a4cut.data.repository.KtxStationRepository
+import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.data.model.KtxStation
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +27,7 @@ import java.util.Calendar
 class HomeViewModel : ViewModel() {
     
     private var photoRepository: PhotoRepository? = null
-    private val ktxStationRepository by lazy { KtxStationRepository() }
+    private val ktxStationRepository by lazy { KTXStationRepository() }
     
     // UI 상태
     private val _isLoading = MutableStateFlow(false)

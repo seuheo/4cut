@@ -10,6 +10,7 @@ import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.data.model.Frame
 import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.data.repository.PhotoRepository
+import com.example.a4cut.data.service.LocationTaggingService
 import com.example.a4cut.ui.utils.ImageComposer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,7 @@ class FrameApplyViewModel(
 
     private val imageComposer = context?.let { ImageComposer(it) }
     private val imageLoader = context?.let { ImageLoader(it) }
+    private val locationTaggingService = context?.let { LocationTaggingService(it) }
 
     private val _uiState = MutableStateFlow(FrameApplyUiState())
     val uiState: StateFlow<FrameApplyUiState> = _uiState.asStateFlow()
@@ -230,7 +232,7 @@ class FrameApplyViewModel(
     }
 
     /**
-     * 프레임 적용 결과물 저장
+     * 프레임 적용 결과물 저장 (자동 위치 태깅 포함)
      */
     fun saveFrameAppliedPhoto(stationName: String? = null) {
         val photo = _uiState.value.photo
@@ -240,6 +242,9 @@ class FrameApplyViewModel(
             viewModelScope.launch {
                 try {
                     _uiState.update { it.copy(isLoading = true) }
+                    
+                    // 자동 위치 태깅 수행
+                    val locationMetadata = locationTaggingService?.generateLocationMetadata()
                     
                     // 사진 Bitmap 로드
                     val photoBitmap = loadBitmapFromPath(photo.imagePath)
@@ -273,23 +278,33 @@ class FrameApplyViewModel(
                     val savedUri = imageComposer.saveBitmapToGallery(resultBitmap, fileName)
                     
                     if (savedUri != null) {
-                        // 새로운 PhotoEntity 생성하여 데이터베이스에 저장
+                        // 위치 정보를 포함한 새로운 PhotoEntity 생성
                         val newPhoto = photo.copy(
                             id = 0, // 새로운 ID 생성
                             imagePath = savedUri.toString(),
                             title = "${photo.title} (${selectedFrame.name} 프레임)",
                             frameType = selectedFrame.name,
-                            station = stationName, // 역 정보 추가
+                            location = locationMetadata?.stationName ?: stationName ?: photo.location,
+                            latitude = locationMetadata?.latitude,
+                            longitude = locationMetadata?.longitude,
+                            station = locationMetadata?.stationName ?: stationName,
                             createdAt = System.currentTimeMillis()
                         )
                         
                         // PhotoRepository를 통해 새로운 사진 저장
                         photoRepository?.insertPhoto(newPhoto)
                         
+                        // 성공 메시지에 위치 정보 포함
+                        val successMessage = if (locationMetadata != null) {
+                            "프레임이 적용된 사진이 저장되었습니다. (${locationMetadata.stationName}에서 촬영)"
+                        } else {
+                            "프레임이 적용된 사진이 저장되었습니다."
+                        }
+                        
                         _uiState.update { 
                             it.copy(
                                 isLoading = false,
-                                successMessage = "프레임이 적용된 사진이 저장되었습니다."
+                                successMessage = successMessage
                             )
                         }
                     } else {

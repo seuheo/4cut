@@ -89,12 +89,14 @@ class PhotoRepository(private val photoDao: PhotoDao) {
     ): Flow<List<PhotoEntity>> = photoDao.searchPhotosAdvanced(query, seasons, moods, weather, sortBy)
     
     /**
-     * KTX 4컷 사진 생성 (편의 메서드) - 확장된 메타데이터 지원
+     * KTX 4컷 사진 생성 (편의 메서드) - 확장된 메타데이터 및 GPS 좌표 지원
      */
     suspend fun createKTXPhoto(
         imagePath: String,
         title: String = "",
         location: String = "",
+        latitude: Double? = null,
+        longitude: Double? = null,
         frameType: String = "ktx_signature",
         tags: String = "",
         description: String = "",
@@ -110,6 +112,8 @@ class PhotoRepository(private val photoDao: PhotoDao) {
             createdAt = System.currentTimeMillis(),
             title = title,
             location = location,
+            latitude = latitude,
+            longitude = longitude,
             frameType = frameType,
             colorTheme = "ktx_blue",
             tags = tags,

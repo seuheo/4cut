@@ -20,7 +20,8 @@ import com.example.a4cut.data.model.Frame
 import com.example.a4cut.data.model.KtxStation
 import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.data.repository.PhotoRepository
-import com.example.a4cut.data.repository.KtxStationRepository
+import com.example.a4cut.data.repository.KTXStationRepository
+import com.example.a4cut.data.service.LocationTaggingService
 import com.example.a4cut.data.database.AppDatabase
 import com.example.a4cut.ui.utils.ImagePicker
 import com.example.a4cut.ui.utils.PermissionHelper
@@ -51,12 +52,13 @@ data class PhotoState(
 class FrameViewModel : ViewModel() {
     
     private val frameRepository = FrameRepository()
-    private val ktxStationRepository by lazy { KtxStationRepository() }
+    private val ktxStationRepository by lazy { KTXStationRepository() }
     private var imagePicker: ImagePicker? = null
     private var permissionHelper: PermissionHelper? = null
     private var imageComposer: ImageComposer? = null // ImageComposer 추가
     private var context: Context? = null // Context 저장
     private var photoRepository: PhotoRepository? = null // PhotoRepository 추가
+    private var locationTaggingService: LocationTaggingService? = null // 위치 태깅 서비스 추가
     
     // 프레임 관련 상태
     private val _frames = MutableStateFlow<List<Frame>>(emptyList())
@@ -728,6 +730,7 @@ class FrameViewModel : ViewModel() {
         imagePicker = ImagePicker(context)
         permissionHelper = PermissionHelper(context)
         imageComposer = ImageComposer(context) // ImageComposer 초기화
+        locationTaggingService = LocationTaggingService(context) // 위치 태깅 서비스 초기화
         
         // PhotoRepository 초기화
         val database = AppDatabase.getDatabase(context)
@@ -1330,14 +1333,26 @@ class FrameViewModel : ViewModel() {
                 val savedUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
                 
                 if (savedUri != null) {
-                    // 갤러리 저장 성공 시 데이터베이스에도 저장
+                    // 갤러리 저장 성공 시 데이터베이스에도 저장 (자동 위치 태깅 포함)
                     try {
+                        // 자동 위치 태깅 수행
+                        val locationMetadata = locationTaggingService?.generateLocationMetadata()
+                        
                         photoRepository?.createKTXPhoto(
                             imagePath = savedUri.toString(),
                             title = "KTX 네컷 사진",
-                            location = "KTX 역"
+                            location = locationMetadata?.stationName ?: "KTX 역",
+                            latitude = locationMetadata?.latitude,
+                            longitude = locationMetadata?.longitude
                         )
-                        _successMessage.value = "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
+                        
+                        // 성공 메시지에 위치 정보 포함
+                        val successMessage = if (locationMetadata != null) {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${locationMetadata.stationName}에서 촬영)"
+                        } else {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
+                        }
+                        _successMessage.value = successMessage
                     } catch (dbException: Exception) {
                         // 데이터베이스 저장 실패해도 갤러리 저장은 성공했으므로 부분 성공 메시지
                         _successMessage.value = "이미지는 갤러리에 저장되었지만 앱 저장에 실패했습니다."
