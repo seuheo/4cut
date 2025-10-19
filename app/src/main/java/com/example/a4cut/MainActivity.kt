@@ -11,6 +11,7 @@ import androidx.activity.viewModels
 import com.example.a4cut.ui.navigation.AppNavigation
 import com.example.a4cut.ui.theme._4cutTheme
 import com.example.a4cut.ui.viewmodel.FrameViewModel
+import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
 
@@ -32,6 +33,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // osmdroid 초기 설정
+        try {
+            Configuration.getInstance().load(applicationContext, null)
+            Configuration.getInstance().userAgentValue = "KTX_4cut_App"
+            Log.d("MainActivity", "osmdroid 초기 설정 완료")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "osmdroid 초기 설정 실패", e)
+        }
         
         // 디버그 모드에서 테스트 Activity로 이동 (임시로 주석 처리)
         // if (BuildConfig.DEBUG) {

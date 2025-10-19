@@ -28,13 +28,18 @@ import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.ui.theme.IosColors
 import com.example.a4cut.ui.viewmodel.HomeViewModel
 import java.util.Calendar
-// Google Maps 관련 import
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
+// OpenStreetMap (osmdroid) 관련 import
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.views.MapView
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.runtime.saveable.rememberSaveable
+import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 
 /**
@@ -309,7 +314,7 @@ fun CalendarScreen(
                 val photosWithLocation = photosForSelectedDate.mapNotNull { photo ->
                     if (photo.latitude != null && photo.longitude != null) {
                         Log.d("CalendarTest", "UI: 위치 정보 있는 사진 - ${photo.location} (${photo.latitude}, ${photo.longitude})")
-                        Pair(LatLng(photo.latitude, photo.longitude), photo.location)
+                        Triple(GeoPoint(photo.latitude, photo.longitude), photo.location, photo)
                     } else {
                         Log.d("CalendarTest", "UI: 위치 정보 없는 사진 - ${photo.location}")
                         null
@@ -321,41 +326,83 @@ fun CalendarScreen(
                 if (photosWithLocation.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // 첫 번째 사진 위치를 카메라 기본 위치로 설정
-                    val defaultPosition = photosWithLocation.first().first
-                    val cameraPositionState = rememberCameraPositionState {
-                        position = CameraPosition.fromLatLngZoom(defaultPosition, 15f)
-                    }
+                    // 지도 상태 저장 (줌 레벨, 스크롤 위치)
+                    var mapViewState by rememberSaveable { mutableStateOf<Pair<GeoPoint, Double>?>(null) }
                     
-                    // 카메라 위치가 바뀔 때마다 (예: selectedDate가 바뀔 때) 카메라 이동
-                    LaunchedEffect(photosForSelectedDate) {
-                        photosWithLocation.firstOrNull()?.first?.let {
-                            cameraPositionState.animate(
-                                com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(it, 15f)
-                            )
-                        }
-                    }
+                    // 초기 위치 설정 (첫 번째 사진 또는 저장된 상태)
+                    val initialCenter = mapViewState?.first ?: photosWithLocation.first().first
+                    val initialZoom = mapViewState?.second ?: 15.0
+                    
+                    Log.d("CalendarTest", "UI: OSM 지도 표시 시작. 사진 개수: ${photosWithLocation.size}")
 
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp) // 지도 높이 지정
+                            .height(300.dp)
                             .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = IosColors.White),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
-                        GoogleMap(
-                            modifier = Modifier.fillMaxSize(),
-                            cameraPositionState = cameraPositionState
-                        ) {
-                            // 각 사진 위치에 마커 표시
-                            photosWithLocation.forEach { (latLng, title) ->
-                                Marker(
-                                    state = MarkerState(position = latLng),
-                                    title = title.ifBlank { "사진 위치" },
-                                    snippet = "이곳에서 사진을 찍었습니다."
-                                )
+                        // AndroidView를 사용하여 osmdroid MapView 통합
+                        AndroidView(
+                            factory = { context ->
+                                MapView(context).apply {
+                                    setTileSource(TileSourceFactory.MAPNIK) // OSM 기본 타일 소스
+                                    setMultiTouchControls(true)
+                                    controller.setZoom(initialZoom)
+                                    controller.setCenter(initialCenter)
+                                }
+                            },
+                            update = { mapView ->
+                                Log.d("CalendarTest", "UI: MapView 업데이트. 마커 ${photosWithLocation.size}개 추가 시도")
+                                
+                                // 기존 마커 제거
+                                mapView.overlays.clear()
+                                
+                                var mapCenterSet = false
+                                photosWithLocation.forEach { (geoPoint, title, _) ->
+                                    val marker = Marker(mapView)
+                                    marker.position = geoPoint
+                                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                    marker.title = title.ifBlank { "사진 위치" }
+                                    marker.snippet = "이곳에서 사진을 찍었습니다."
+                                    
+                                    mapView.overlays.add(marker)
+                                    Log.d("CalendarTest", "UI: 마커 추가됨 - ${title} (${geoPoint.latitude})")
+                                    
+                                    // 첫 번째 마커 위치로 카메라 이동 (한 번만)
+                                    if (!mapCenterSet) {
+                                        mapView.controller.animateTo(geoPoint, initialZoom, 1000L)
+                                        mapCenterSet = true
+                                    }
+                                }
+                                mapView.invalidate() // 마커 추가 후 지도 갱신
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // MapView 라이프사이클 관리
+                        val lifecycleOwner = LocalLifecycleOwner.current
+                        DisposableEffect(lifecycleOwner) {
+                            val observer = LifecycleEventObserver { _, event ->
+                                when (event) {
+                                    Lifecycle.Event.ON_PAUSE -> {
+                                        // MapView 일시정지
+                                    }
+                                    Lifecycle.Event.ON_RESUME -> {
+                                        // MapView 재개
+                                    }
+                                    Lifecycle.Event.ON_DESTROY -> {
+                                        // 현재 지도 상태 저장
+                                        // mapViewState = Pair(mapView.mapCenter as GeoPoint, mapView.zoomLevelDouble)
+                                    }
+                                    else -> {}
+                                }
+                            }
+                            lifecycleOwner.lifecycle.addObserver(observer)
+                            onDispose {
+                                lifecycleOwner.lifecycle.removeObserver(observer)
                             }
                         }
                     }

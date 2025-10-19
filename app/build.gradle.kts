@@ -78,15 +78,14 @@ dependencies {
     // DataStore (설정 및 데이터 영구 저장)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     
-    // Google Play 서비스: 위치 정보 (GPS)
+    // Google Play 서비스: 위치 정보 (GPS) - GPS 좌표 획득용으로 유지
     implementation("com.google.android.gms:play-services-location:21.0.1")
     
     // Google Play 서비스: 장소 (주변 KTX 역 검색용)
     implementation("com.google.android.libraries.places:places:3.1.0")
     
-    // Google Maps - 캘린더 화면에 지도 표시용
-    implementation("com.google.maps.android:maps-compose:4.3.3")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    // OpenStreetMap (osmdroid) - Google Maps 대체
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
     
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
