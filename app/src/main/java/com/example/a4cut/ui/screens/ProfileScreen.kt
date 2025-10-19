@@ -51,6 +51,9 @@ fun ProfileScreen(
     val latestPhotos by homeViewModel.latestPhotos.collectAsState()
     val totalPhotos = latestPhotos.size
     
+    // 에러 메시지 상태
+    val errorMessage by homeViewModel.errorMessage.collectAsState()
+    
     // 통계 계산
     val thisMonthPhotos = latestPhotos.count { photo ->
         val photoDate = LocalDate.ofEpochDay(photo.createdAt / (24 * 60 * 60 * 1000))
@@ -109,6 +112,57 @@ fun ProfileScreen(
             
             // 앱 정보 섹션
             AppInfoSection(totalPhotos = totalPhotos)
+            
+            // 에러 메시지 표시
+            errorMessage?.let { message ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "오류",
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        IconButton(
+                            onClick = { homeViewModel.clearErrorMessage() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "닫기",
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(32.dp))
         }

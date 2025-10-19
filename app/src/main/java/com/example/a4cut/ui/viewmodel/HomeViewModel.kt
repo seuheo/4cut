@@ -119,8 +119,12 @@ class HomeViewModel : ViewModel() {
         try {
             val database = AppDatabase.getDatabase(context)
             photoRepository = PhotoRepository(database.photoDao())
+            
+            // 데이터베이스 초기화 성공 후 데이터 로드
             loadPhotoLogs()
-            // 자동 테스트 데이터 추가 제거 - 테스트 버튼으로 제어
+            
+            // 초기화 성공 시 에러 메시지 제거
+            clearError()
         } catch (e: Exception) {
             _errorMessage.value = "데이터베이스 초기화 실패: ${e.message}"
             e.printStackTrace()
@@ -132,47 +136,56 @@ class HomeViewModel : ViewModel() {
      * 포토로그 데이터 로드
      */
     private fun loadPhotoLogs() {
-        photoRepository?.let { repository ->
-            viewModelScope.launch {
-                _isLoading.value = true
-                try {
-                    // 사진 목록과 개수 동시 로드
-                    launch {
-                        try {
-                            repository.getAllPhotos().collect { photos ->
-                                _photoLogs.value = photos
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "사진 목록 로드 실패: ${e.message}"
+        val repository = photoRepository
+        if (repository == null) {
+            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
+            return
+        }
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // 사진 목록과 개수 동시 로드
+                launch {
+                    try {
+                        repository.getAllPhotos().collect { photos ->
+                            _photoLogs.value = photos
                         }
+                    } catch (e: Exception) {
+                        _errorMessage.value = "사진 목록 로드 실패: ${e.message}"
+                        e.printStackTrace()
                     }
-                    
-                    launch {
-                        try {
-                            repository.getPhotoCount().collect { count ->
-                                _photoCount.value = count
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "사진 개수 로드 실패: ${e.message}"
-                        }
-                    }
-                    
-                    launch {
-                        try {
-                            repository.getFavoritePhotoCount().collect { count ->
-                                _favoritePhotoCount.value = count
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "즐겨찾기 개수 로드 실패: ${e.message}"
-                        }
-                    }
-                    
-                    clearError()
-                } catch (e: Exception) {
-                    _errorMessage.value = "포토로그 로드 실패: ${e.message}"
-                } finally {
-                    _isLoading.value = false
                 }
+                
+                launch {
+                    try {
+                        repository.getPhotoCount().collect { count ->
+                            _photoCount.value = count
+                        }
+                    } catch (e: Exception) {
+                        _errorMessage.value = "사진 개수 로드 실패: ${e.message}"
+                        e.printStackTrace()
+                    }
+                }
+                
+                launch {
+                    try {
+                        repository.getFavoritePhotoCount().collect { count ->
+                            _favoritePhotoCount.value = count
+                        }
+                    } catch (e: Exception) {
+                        _errorMessage.value = "즐겨찾기 개수 로드 실패: ${e.message}"
+                        e.printStackTrace()
+                    }
+                }
+                
+                // 성공적으로 로드되면 에러 메시지 자동 제거
+                clearError()
+            } catch (e: Exception) {
+                _errorMessage.value = "포토로그 로드 실패: ${e.message}"
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
             }
         }
     }
@@ -181,13 +194,20 @@ class HomeViewModel : ViewModel() {
      * 즐겨찾기 토글
      */
     fun toggleFavorite(photo: PhotoEntity) {
-        photoRepository?.let { repository ->
-            viewModelScope.launch {
-                try {
-                    repository.toggleFavorite(photo)
-                } catch (e: Exception) {
-                    _errorMessage.value = "즐겨찾기 변경 실패: ${e.message}"
-                }
+        val repository = photoRepository
+        if (repository == null) {
+            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다."
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                repository.toggleFavorite(photo)
+                // 즐겨찾기 변경 후 카운트 새로고침
+                refreshFavoriteCount()
+            } catch (e: Exception) {
+                _errorMessage.value = "즐겨찾기 변경 실패: ${e.message}"
+                e.printStackTrace()
             }
         }
     }
@@ -196,15 +216,20 @@ class HomeViewModel : ViewModel() {
      * 사진 삭제
      */
     fun deletePhoto(photo: PhotoEntity) {
-        photoRepository?.let { repository ->
-            viewModelScope.launch {
-                try {
-                    repository.deletePhoto(photo)
-                    // 삭제 후 목록 새로고침
-                    loadPhotoLogs()
-                } catch (e: Exception) {
-                    _errorMessage.value = "사진 삭제 실패: ${e.message}"
-                }
+        val repository = photoRepository
+        if (repository == null) {
+            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다."
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                repository.deletePhoto(photo)
+                // 삭제 후 목록 새로고침
+                loadPhotoLogs()
+            } catch (e: Exception) {
+                _errorMessage.value = "사진 삭제 실패: ${e.message}"
+                e.printStackTrace()
             }
         }
     }
@@ -253,6 +278,32 @@ class HomeViewModel : ViewModel() {
      */
     private fun clearError() {
         _errorMessage.value = null
+    }
+    
+    /**
+     * 에러 메시지 수동 제거 (UI에서 호출)
+     */
+    fun clearErrorMessage() {
+        _errorMessage.value = null
+    }
+    
+    /**
+     * 즐겨찾기 개수만 새로고침
+     */
+    private fun refreshFavoriteCount() {
+        val repository = photoRepository
+        if (repository == null) return
+        
+        viewModelScope.launch {
+            try {
+                repository.getFavoritePhotoCount().collect { count ->
+                    _favoritePhotoCount.value = count
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "즐겨찾기 개수 새로고침 실패: ${e.message}"
+                e.printStackTrace()
+            }
+        }
     }
     
     /**
@@ -440,10 +491,14 @@ class HomeViewModel : ViewModel() {
      * 특정 날짜의 사진 목록을 로드 (지도 표시용)
      */
     fun loadPhotosForDate(calendar: Calendar) {
+        val repository = photoRepository
+        if (repository == null) {
+            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다."
+            return
+        }
+        
         viewModelScope.launch {
             try {
-                val repository = photoRepository ?: return@launch
-                
                 // 선택된 날짜의 00:00:00 시각
                 val startOfDay = calendar.apply {
                     set(Calendar.HOUR_OF_DAY, 0)
