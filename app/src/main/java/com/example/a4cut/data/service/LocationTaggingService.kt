@@ -2,6 +2,7 @@ package com.example.a4cut.data.service
 
 import android.content.Context
 import com.example.a4cut.data.repository.KTXStationRepository
+import com.example.a4cut.data.model.KtxStation
 
 /**
  * 위치 기반 자동 태깅 서비스
@@ -19,7 +20,7 @@ class LocationTaggingService(private val context: Context) {
      */
     suspend fun getCurrentLocationTag(
         radiusMeters: Int = 500
-    ): KTXStationRepository.KTXStation? {
+    ): KtxStation? {
         // 위치 권한 확인
         if (!locationService.hasLocationPermission()) {
             return null
@@ -52,7 +53,7 @@ class LocationTaggingService(private val context: Context) {
         latitude: Double,
         longitude: Double,
         radiusMeters: Int = 500
-    ): KTXStationRepository.KTXStation? {
+    ): KtxStation? {
         return ktxStationRepository.findNearestKTXStation(
             latitude,
             longitude,

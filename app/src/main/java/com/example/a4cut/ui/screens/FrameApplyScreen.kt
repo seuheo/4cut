@@ -49,18 +49,20 @@ fun FrameApplyScreen(
     val successMessage = uiState.successMessage
     
     // KTX 역 선택을 위한 상태 변수
-    val ktxStationRepository = remember { KTXStationRepository() }
-    var selectedLine by remember { mutableStateOf("Gyeongbu") }
-    val stations by remember(selectedLine) {
-        val stationList = ktxStationRepository.getStationsByLine(selectedLine)
-        Log.d("FrameApplyScreen", "선택된 노선: $selectedLine, 역 개수: ${stationList.size}")
-        Log.d("FrameApplyScreen", "역 목록: ${stationList.map { it.name }}")
-        mutableStateOf(stationList)
-    }
+    val ktxLines by viewModel.ktxLines.collectAsState()
+    val stationsByLine by viewModel.stationsByLine.collectAsState()
+    var selectedLine by remember { mutableStateOf(ktxLines.firstOrNull() ?: "Gyeongbu") }
     var selectedStation by remember { mutableStateOf<String?>(null) }
+    
+    // 노선 변경 시 역 목록 업데이트
+    LaunchedEffect(selectedLine) {
+        viewModel.loadStationsForLine(selectedLine)
+        selectedStation = null // 노선 변경 시 역 선택 초기화
+    }
     
     // 사진이 없으면 로딩 표시
     if (photo == null) {
+        Log.d("FrameApplyScreen", "사진이 null입니다. 로딩 표시 중...")
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -69,6 +71,9 @@ fun FrameApplyScreen(
         }
         return
     }
+    
+    Log.d("FrameApplyScreen", "사진 로드 완료: ${photo.title}")
+    Log.d("FrameApplyScreen", "KTX 역 선택 UI 렌더링 시작")
     
     Scaffold(
         topBar = {
@@ -80,16 +85,17 @@ fun FrameApplyScreen(
                     }
                 },
                 actions = {
-                    // 저장 버튼 (프레임이 선택된 경우에만 활성화)
+                    // 갤러리 저장 버튼 (프레임이 선택된 경우에만 활성화)
                     if (selectedFrame != null) {
                         IconButton(
                             onClick = { 
-                                Log.d("FrameApplyScreen", "저장 버튼 클릭 - 선택된 역: $selectedStation")
-                                viewModel.saveFrameAppliedPhoto(selectedStation) 
+                                Log.d("FrameApplyScreen", "갤러리 저장 버튼 클릭 - 선택된 역: $selectedStation")
+                                viewModel.updateSelectedStation(selectedStation)
+                                viewModel.saveToGallery()
                             },
                             enabled = !isLoading
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = "저장")
+                            Icon(Icons.Default.Check, contentDescription = "갤러리에 저장")
                         }
                     }
                 }
@@ -123,10 +129,11 @@ fun FrameApplyScreen(
             PhotoPreviewSection(photo = photo)
             
             // 2. KTX 역 선택 UI
+            Log.d("FrameApplyScreen", "KTX 역 선택 섹션 렌더링 - 역 개수: ${stationsByLine.size}")
             KtxStationSelectionSection(
                 selectedLine = selectedLine,
                 onLineSelected = { selectedLine = it },
-                stations = stations,
+                stations = stationsByLine,
                 selectedStation = selectedStation,
                 onStationSelected = { selectedStation = it }
             )
@@ -317,6 +324,8 @@ private fun KtxStationSelectionSection(
     onStationSelected: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    Log.d("FrameApplyScreen", "KtxStationSelectionSection 렌더링 시작 - stations: ${stations.size}")
+    
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -329,18 +338,25 @@ private fun KtxStationSelectionSection(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        // 노선 선택 탭
-        TabRow(selectedTabIndex = if (selectedLine == "Gyeongbu") 0 else 1) {
-            Tab(
-                selected = selectedLine == "Gyeongbu",
-                onClick = { onLineSelected("Gyeongbu") },
-                text = { Text("경부선") }
-            )
-            Tab(
-                selected = selectedLine == "Honam",
-                onClick = { onLineSelected("Honam") },
-                text = { Text("호남선") }
-            )
+        // 노선 선택 탭 (동적 생성)
+        val lines = listOf("Gyeongbu", "Honam", "Gyeongjeon", "Jungang", "Jeolla", "Donghae")
+        val lineNames = mapOf(
+            "Gyeongbu" to "경부선",
+            "Honam" to "호남선", 
+            "Gyeongjeon" to "경전선",
+            "Jungang" to "중앙선",
+            "Jeolla" to "전라선",
+            "Donghae" to "동해선"
+        )
+        
+        TabRow(selectedTabIndex = lines.indexOf(selectedLine).coerceAtLeast(0)) {
+            lines.forEach { line ->
+                Tab(
+                    selected = selectedLine == line,
+                    onClick = { onLineSelected(line) },
+                    text = { Text(lineNames[line] ?: line) }
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))

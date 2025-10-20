@@ -2,6 +2,7 @@ package com.example.a4cut.ui.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.ImageLoader
@@ -37,6 +38,37 @@ class FrameApplyViewModel(
 
     private val _uiState = MutableStateFlow(FrameApplyUiState())
     val uiState: StateFlow<FrameApplyUiState> = _uiState.asStateFlow()
+    
+    // KTX 역 관련 상태
+    private val _ktxLines = MutableStateFlow<List<String>>(emptyList())
+    val ktxLines: StateFlow<List<String>> = _ktxLines.asStateFlow()
+    
+    private val _stationsByLine = MutableStateFlow<List<com.example.a4cut.data.model.KtxStation>>(emptyList())
+    val stationsByLine: StateFlow<List<com.example.a4cut.data.model.KtxStation>> = _stationsByLine.asStateFlow()
+    
+    private val _selectedStationName = MutableStateFlow<String?>(null)
+    
+    init {
+        loadKtxLines()
+    }
+    
+    private fun loadKtxLines() {
+        _ktxLines.value = ktxStationRepository.getLines()
+        // 첫 노선 자동으로 선택
+        _ktxLines.value.firstOrNull()?.let {
+            loadStationsForLine(it)
+        }
+    }
+    
+    fun loadStationsForLine(line: String) {
+        _stationsByLine.value = ktxStationRepository.getStationsByLine(line)
+        Log.d("FrameApplyVM", "노선 [$line]의 역 로드: ${_stationsByLine.value.map { it.name }}")
+    }
+    
+    fun updateSelectedStation(stationName: String?) {
+        _selectedStationName.value = stationName
+        Log.d("FrameApplyVM", "선택된 역 업데이트: $stationName")
+    }
 
     /**
      * 사진 ID로 사진 데이터 로드
@@ -141,6 +173,9 @@ class FrameApplyViewModel(
                         )
                     }
                     
+                    // 프레임 미리보기 생성 완료 시 DB에 자동 저장
+                    savePhotoMetadataToDatabase(photo, selectedFrame, previewBitmap)
+                    
                     // 메모리 정리
                     imageComposer.recycleBitmap(photoBitmap)
                     imageComposer.recycleBitmap(frameBitmap)
@@ -235,53 +270,77 @@ class FrameApplyViewModel(
     }
 
     /**
-     * KTX 역 이름을 좌표로 변환
+     * 사진 메타데이터를 DB에 자동 저장 (미리보기 생성 시)
      */
-    private fun getStationCoordinates(stationName: String?): Pair<Double, Double>? {
-        if (stationName == null) {
-            Log.d("FrameApplyViewModel", "역 이름이 null입니다.")
-            return null
+    private fun savePhotoMetadataToDatabase(photo: PhotoEntity, selectedFrame: Frame, previewBitmap: Bitmap?) {
+        viewModelScope.launch {
+            try {
+                // 선택된 역 정보 가져오기
+                val stationName = _selectedStationName.value
+                val station = stationName?.let { ktxStationRepository.findStationByName(it) }
+                
+                // 임시 파일로 저장하여 URI 얻기 (DB 저장을 위해)
+                val tempUri = saveBitmapToTempStorage(previewBitmap, "temp_${System.currentTimeMillis()}.jpg")
+                
+                val newPhoto = photo.copy(
+                    id = 0, // 새로운 ID 생성
+                    imagePath = tempUri?.toString() ?: "",
+                    title = "${photo.title} (${selectedFrame.name} 프레임)",
+                    frameType = selectedFrame.name,
+                    location = station?.name ?: photo.location,
+                    latitude = station?.latitude ?: photo.latitude,
+                    longitude = station?.longitude ?: photo.longitude,
+                    station = stationName,
+                    createdAt = System.currentTimeMillis()
+                )
+                
+                Log.d("FrameApplyVM", "DB에 저장할 PhotoEntity: $newPhoto")
+                
+                if (photoRepository != null) {
+                    val photoId = photoRepository.insertPhoto(newPhoto)
+                    Log.d("FrameApplyVM", "DB 저장 성공! Photo ID: $photoId")
+                } else {
+                    Log.e("FrameApplyVM", "PhotoRepository가 null입니다!")
+                }
+                
+            } catch (e: Exception) {
+                Log.e("FrameApplyVM", "DB 저장 실패", e)
+            }
         }
+    }
+    
+    /**
+     * 비트맵을 임시 저장소에 저장
+     */
+    private suspend fun saveBitmapToTempStorage(bitmap: Bitmap?, filename: String): Uri? {
+        if (bitmap == null || context == null) return null
         
-        // 모든 KTX 역 목록에서 해당 역 찾기
-        val allStations = ktxStationRepository.getAllStations()
-        Log.d("FrameApplyViewModel", "전체 KTX 역 개수: ${allStations.size}")
-        Log.d("FrameApplyViewModel", "찾는 역 이름: $stationName")
-        Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
-        
-        val station = allStations.find { it.name == stationName }
-        
-        return if (station != null) {
-            Log.d("FrameApplyViewModel", "역 찾음: ${station.name} (${station.latitude}, ${station.longitude})")
-            Pair(station.latitude, station.longitude)
-        } else {
-            Log.e("FrameApplyViewModel", "역을 찾을 수 없음: $stationName")
-            Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
+        return try {
+            val tempFile = java.io.File(context.cacheDir, filename)
+            val outputStream = java.io.FileOutputStream(tempFile)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+            outputStream.close()
+            Uri.fromFile(tempFile)
+        } catch (e: Exception) {
+            Log.e("FrameApplyVM", "임시 저장 실패", e)
             null
         }
     }
-
+    
     /**
-     * 프레임 적용 결과물 저장 (KTX 역 선택 및 자동 위치 태깅 포함)
+     * 갤러리에 최종 결과물 저장
      */
-    fun saveFrameAppliedPhoto(stationName: String? = null) {
+    fun saveToGallery() {
         val photo = _uiState.value.photo
         val selectedFrame = _uiState.value.selectedFrame
+        val previewBitmap = _uiState.value.previewBitmap
         
-        if (photo != null && selectedFrame != null && context != null && imageComposer != null) {
+        if (photo != null && selectedFrame != null && previewBitmap != null && context != null && imageComposer != null) {
             viewModelScope.launch {
                 try {
                     _uiState.update { it.copy(isLoading = true) }
                     
-                    // 자동 위치 태깅 수행 (GPS 기반)
-                    val locationMetadata = locationTaggingService?.generateLocationMetadata()
-                    
-                    // 사용자가 선택한 KTX 역의 좌표 가져오기
-                    Log.d("FrameApplyViewModel", "저장 시작 - 선택된 역: $stationName")
-                    val stationCoordinates = getStationCoordinates(stationName)
-                    Log.d("FrameApplyViewModel", "역 좌표: $stationCoordinates")
-                    
-                    // 사진 Bitmap 로드
+                    // 사진 Bitmap 로드 (고해상도)
                     val photoBitmap = loadBitmapFromPath(photo.imagePath)
                     if (photoBitmap == null) {
                         _uiState.update { 
@@ -313,51 +372,10 @@ class FrameApplyViewModel(
                     val savedUri = imageComposer.saveBitmapToGallery(resultBitmap, fileName)
                     
                     if (savedUri != null) {
-                        // 위치 정보를 포함한 새로운 PhotoEntity 생성
-                        // 우선순위: 사용자 선택 KTX 역 > 자동 위치 태깅 > 기존 위치
-                        val finalLocation = stationName ?: locationMetadata?.stationName ?: photo.location
-                        val finalLatitude = stationCoordinates?.first ?: locationMetadata?.latitude ?: photo.latitude
-                        val finalLongitude = stationCoordinates?.second ?: locationMetadata?.longitude ?: photo.longitude
-                        
-                        Log.d("FrameApplyViewModel", "최종 위치 정보:")
-                        Log.d("FrameApplyViewModel", "  - 위치: $finalLocation")
-                        Log.d("FrameApplyViewModel", "  - 위도: $finalLatitude")
-                        Log.d("FrameApplyViewModel", "  - 경도: $finalLongitude")
-                        
-                        val newPhoto = photo.copy(
-                            id = 0, // 새로운 ID 생성
-                            imagePath = savedUri.toString(),
-                            title = "${photo.title} (${selectedFrame.name} 프레임)",
-                            frameType = selectedFrame.name,
-                            location = finalLocation,
-                            latitude = finalLatitude,
-                            longitude = finalLongitude,
-                            station = stationName ?: locationMetadata?.stationName,
-                            createdAt = System.currentTimeMillis()
-                        )
-                        
-                        Log.d("FrameApplyViewModel", "생성된 PhotoEntity: $newPhoto")
-                        
-                        // PhotoRepository를 통해 새로운 사진 저장
-                        try {
-                            val photoId = photoRepository?.insertPhoto(newPhoto)
-                            Log.d("FrameApplyViewModel", "데이터베이스 저장 성공! Photo ID: $photoId")
-                        } catch (e: Exception) {
-                            Log.e("FrameApplyViewModel", "데이터베이스 저장 실패", e)
-                            throw e
-                        }
-                        
-                        // 성공 메시지에 위치 정보 포함
-                        val successMessage = when {
-                            stationName != null -> "프레임이 적용된 사진이 저장되었습니다. (${stationName}에서 촬영)"
-                            locationMetadata != null -> "프레임이 적용된 사진이 저장되었습니다. (${locationMetadata.stationName}에서 촬영)"
-                            else -> "프레임이 적용된 사진이 저장되었습니다."
-                        }
-                        
                         _uiState.update { 
                             it.copy(
                                 isLoading = false,
-                                successMessage = successMessage
+                                successMessage = "사진이 갤러리에 저장되었습니다."
                             )
                         }
                     } else {
@@ -385,6 +403,34 @@ class FrameApplyViewModel(
             }
         }
     }
+
+    /**
+     * KTX 역 이름을 좌표로 변환
+     */
+    private fun getStationCoordinates(stationName: String?): Pair<Double, Double>? {
+        if (stationName == null) {
+            Log.d("FrameApplyViewModel", "역 이름이 null입니다.")
+            return null
+        }
+        
+        // 모든 KTX 역 목록에서 해당 역 찾기
+        val allStations = ktxStationRepository.getAllStations()
+        Log.d("FrameApplyViewModel", "전체 KTX 역 개수: ${allStations.size}")
+        Log.d("FrameApplyViewModel", "찾는 역 이름: $stationName")
+        Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
+        
+        val station = allStations.find { it.name == stationName }
+        
+        return if (station != null) {
+            Log.d("FrameApplyViewModel", "역 찾음: ${station.name} (${station.latitude}, ${station.longitude})")
+            Pair(station.latitude, station.longitude)
+        } else {
+            Log.e("FrameApplyViewModel", "역을 찾을 수 없음: $stationName")
+            Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
+            null
+        }
+    }
+
 }
 
 /**

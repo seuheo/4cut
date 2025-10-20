@@ -1,5 +1,6 @@
 package com.example.a4cut.data.repository
 
+import com.example.a4cut.data.model.KtxStation
 import com.example.a4cut.data.service.LocationService
 
 /**
@@ -9,65 +10,54 @@ import com.example.a4cut.data.service.LocationService
 class KTXStationRepository {
     
     /**
-     * KTX 역 정보 데이터 클래스
-     */
-    data class KTXStation(
-        val name: String,           // 역 이름 (예: "서울역")
-        val latitude: Double,       // 위도
-        val longitude: Double,      // 경도
-        val line: String,           // 노선 (예: "경부선", "호남선")
-        val stationCode: String     // 역 코드 (예: "SEO")
-    )
-    
-    /**
      * 주요 KTX 역 목록 (실제 좌표 기반)
      * 실제 KTX가 정차하는 주요 역들의 좌표를 포함
      */
     private val ktxStations = listOf(
         // 경부선
-        KTXStation("서울역", 37.5547, 126.9706, "경부선", "SEO"),
-        KTXStation("영등포역", 37.5155, 126.9076, "경부선", "YDP"),
-        KTXStation("수원역", 37.2659, 126.9997, "경부선", "SUW"),
-        KTXStation("평택역", 36.9907, 127.0856, "경부선", "PTK"),
-        KTXStation("천안아산역", 36.7944, 127.1044, "경부선", "CNA"),
-        KTXStation("오송역", 36.6178, 127.3311, "경부선", "OSN"),
-        KTXStation("대전역", 36.3317, 127.4339, "경부선", "DJN"),
-        KTXStation("김천구미역", 36.1136, 128.2044, "경부선", "KMG"),
-        KTXStation("동대구역", 35.8786, 128.6283, "경부선", "DGU"),
-        KTXStation("신경주역", 35.8514, 129.1956, "경부선", "SGU"),
-        KTXStation("울산역", 35.5389, 129.3111, "경부선", "USN"),
-        KTXStation("부산역", 35.1156, 129.0403, "경부선", "BSN"),
+        KtxStation("서울역", "Gyeongbu", 37.5547, 126.9706, "SEO"),
+        KtxStation("영등포역", "Gyeongbu", 37.5155, 126.9076, "YDP"),
+        KtxStation("수원역", "Gyeongbu", 37.2659, 126.9997, "SUW"),
+        KtxStation("평택역", "Gyeongbu", 36.9907, 127.0856, "PTK"),
+        KtxStation("천안아산역", "Gyeongbu", 36.7944, 127.1044, "CNA"),
+        KtxStation("오송역", "Gyeongbu", 36.6178, 127.3311, "OSN"),
+        KtxStation("대전역", "Gyeongbu", 36.3317, 127.4339, "DJN"),
+        KtxStation("김천구미역", "Gyeongbu", 36.1136, 128.2044, "KMG"),
+        KtxStation("동대구역", "Gyeongbu", 35.8786, 128.6283, "DGU"),
+        KtxStation("신경주역", "Gyeongbu", 35.8514, 129.1956, "SGU"),
+        KtxStation("울산역", "Gyeongbu", 35.5389, 129.3111, "USN"),
+        KtxStation("부산역", "Gyeongbu", 35.1156, 129.0403, "BSN"),
         
         // 호남선
-        KTXStation("익산역", 35.9403, 126.9542, "호남선", "IKS"),
-        KTXStation("정읍역", 35.5669, 126.8561, "호남선", "JEP"),
-        KTXStation("광주송정역", 35.1372, 126.7922, "호남선", "GJS"),
-        KTXStation("나주역", 35.0314, 126.7119, "호남선", "NAJ"),
-        KTXStation("목포역", 34.8122, 126.3922, "호남선", "MOK"),
+        KtxStation("익산역", "Honam", 35.9403, 126.9542, "IKS"),
+        KtxStation("정읍역", "Honam", 35.5669, 126.8561, "JEP"),
+        KtxStation("광주송정역", "Honam", 35.1372, 126.7922, "GJS"),
+        KtxStation("나주역", "Honam", 35.0314, 126.7119, "NAJ"),
+        KtxStation("목포역", "Honam", 34.8122, 126.3922, "MOK"),
         
         // 경전선
-        KTXStation("진주역", 35.1922, 128.0856, "경전선", "JIN"),
-        KTXStation("진영역", 35.3042, 128.7319, "경전선", "JIY"),
-        KTXStation("창원역", 35.2214, 128.6819, "경전선", "CWN"),
-        KTXStation("마산역", 35.1969, 128.5722, "경전선", "MAS"),
+        KtxStation("진주역", "Gyeongjeon", 35.1922, 128.0856, "JIN"),
+        KtxStation("진영역", "Gyeongjeon", 35.3042, 128.7319, "JIY"),
+        KtxStation("창원역", "Gyeongjeon", 35.2214, 128.6819, "CWN"),
+        KtxStation("마산역", "Gyeongjeon", 35.1969, 128.5722, "MAS"),
         
         // 중앙선
-        KTXStation("청량리역", 37.5806, 127.0481, "중앙선", "CGR"),
-        KTXStation("덕소역", 37.5869, 127.2081, "중앙선", "DKS"),
-        KTXStation("양평역", 37.4922, 127.4919, "중앙선", "YPG"),
-        KTXStation("원주역", 37.3447, 127.9206, "중앙선", "WJN"),
-        KTXStation("제천역", 37.1369, 128.2119, "중앙선", "JCN"),
-        KTXStation("단양역", 36.9856, 128.3656, "중앙선", "DNY"),
-        KTXStation("영주역", 36.8081, 128.6256, "중앙선", "YJU"),
+        KtxStation("청량리역", "Jungang", 37.5806, 127.0481, "CGR"),
+        KtxStation("덕소역", "Jungang", 37.5869, 127.2081, "DKS"),
+        KtxStation("양평역", "Jungang", 37.4922, 127.4919, "YPG"),
+        KtxStation("원주역", "Jungang", 37.3447, 127.9206, "WJN"),
+        KtxStation("제천역", "Jungang", 37.1369, 128.2119, "JCN"),
+        KtxStation("단양역", "Jungang", 36.9856, 128.3656, "DNY"),
+        KtxStation("영주역", "Jungang", 36.8081, 128.6256, "YJU"),
         
         // 전라선
-        KTXStation("여수엑스포역", 34.7606, 127.7619, "전라선", "YSE"),
+        KtxStation("여수엑스포역", "Jeolla", 34.7606, 127.7619, "YSE"),
         
         // 동해선
-        KTXStation("포항역", 36.0192, 129.3439, "동해선", "POH"),
-        KTXStation("경주역", 35.8431, 129.2119, "동해선", "GJU"),
-        KTXStation("울산역", 35.5389, 129.3111, "동해선", "USN"),
-        KTXStation("부산역", 35.1156, 129.0403, "동해선", "BSN")
+        KtxStation("포항역", "Donghae", 36.0192, 129.3439, "POH"),
+        KtxStation("경주역", "Donghae", 35.8431, 129.2119, "GJU"),
+        KtxStation("울산역", "Donghae", 35.5389, 129.3111, "USN"),
+        KtxStation("부산역", "Donghae", 35.1156, 129.0403, "BSN")
     )
     
     /**
@@ -81,7 +71,7 @@ class KTXStationRepository {
         latitude: Double, 
         longitude: Double, 
         radiusMeters: Int = 500
-    ): List<KTXStation> {
+    ): List<KtxStation> {
         // 거리 계산을 위한 임시 LocationService (Context 없이 사용)
         val locationService = object {
             fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
@@ -115,7 +105,7 @@ class KTXStationRepository {
         latitude: Double, 
         longitude: Double, 
         radiusMeters: Int = 500
-    ): KTXStation? {
+    ): KtxStation? {
         return findNearbyKTXStations(latitude, longitude, radiusMeters).firstOrNull()
     }
     
@@ -124,7 +114,7 @@ class KTXStationRepository {
      * @param stationName 역 이름
      * @return KTX 역 정보 또는 null
      */
-    fun findStationByName(stationName: String): KTXStation? {
+    fun findStationByName(stationName: String): KtxStation? {
         return ktxStations.find { 
             it.name.contains(stationName) || stationName.contains(it.name)
         }
@@ -135,18 +125,9 @@ class KTXStationRepository {
      * @param line 노선명 (예: "Gyeongbu", "Honam")
      * @return 해당 노선의 KTX 역 목록
      */
-    fun getStationsByLine(line: String): List<com.example.a4cut.data.model.KtxStation> {
+    fun getStationsByLine(line: String): List<KtxStation> {
         return ktxStations.filter { 
-            when (line) {
-                "Gyeongbu" -> it.line == "경부선"
-                "Honam" -> it.line == "호남선"
-                else -> it.line == line
-            }
-        }.map { station ->
-            com.example.a4cut.data.model.KtxStation(
-                name = station.name,
-                line = line
-            )
+            it.line == line
         }
     }
     
@@ -154,7 +135,15 @@ class KTXStationRepository {
      * 모든 KTX 역 목록을 반환
      * @return 전체 KTX 역 목록
      */
-    fun getAllStations(): List<KTXStation> {
+    fun getAllStations(): List<KtxStation> {
         return ktxStations
+    }
+    
+    /**
+     * 사용 가능한 노선 목록을 반환
+     * @return 노선 목록
+     */
+    fun getLines(): List<String> {
+        return listOf("Gyeongbu", "Honam", "Gyeongjeon", "Jungang", "Jeolla", "Donghae")
     }
 }
