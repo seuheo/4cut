@@ -15,7 +15,7 @@ import com.example.a4cut.data.database.converter.Converters
  */
 @Database(
     entities = [PhotoEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

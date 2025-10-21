@@ -326,6 +326,7 @@ fun AppNavigation(
             ) {
                 ResultScreen(
                     frameViewModel = sharedFrameViewModel,
+                    photoRepository = photoRepository, // DB 저장을 위한 Repository 전달
                     onBack = {
                         navController.popBackStack()
                     },

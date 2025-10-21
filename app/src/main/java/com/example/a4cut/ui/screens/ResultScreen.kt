@@ -36,8 +36,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.a4cut.data.model.Frame
 import com.example.a4cut.ui.components.ImagePreviewDialog
+import com.example.a4cut.ui.components.KtxStationSelector
+import com.example.a4cut.data.repository.KTXStationRepository
+import com.example.a4cut.data.repository.PhotoRepository
+import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
+import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * 인스타그램 스타일 결과 화면
@@ -50,7 +61,8 @@ fun ResultScreen(
     frameViewModel: FrameViewModel,
     onBack: () -> Unit,
     onRestart: () -> Unit,
-    onRestartWithPhotos: () -> Unit = onRestart // 기존 사진 유지하고 프레임만 변경
+    onRestartWithPhotos: () -> Unit = onRestart, // 기존 사진 유지하고 프레임만 변경
+    photoRepository: PhotoRepository? = null // DB 저장을 위한 Repository 추가
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     
@@ -62,6 +74,21 @@ fun ResultScreen(
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     // val isSaved by frameViewModel.isSaved.collectAsState()
     // val isShared by frameViewModel.isShared.collectAsState()
+    
+    // KTX 역 선택을 위한 상태
+    val ktxStationRepository = remember { KTXStationRepository() }
+    val ktxLines by remember { MutableStateFlow(ktxStationRepository.getLines()) }.collectAsState()
+    val _stationsByLine = remember { MutableStateFlow(ktxStationRepository.getStationsByLine("Gyeongbu")) }
+    val stationsByLine by _stationsByLine.collectAsState()
+    var selectedLine by remember { mutableStateOf("Gyeongbu") }
+    var selectedStation by remember { mutableStateOf<String?>(null) }
+    
+    // 노선 변경 시 역 목록 업데이트
+    LaunchedEffect(selectedLine) {
+        val stations = ktxStationRepository.getStationsByLine(selectedLine)
+        _stationsByLine.value = stations
+        selectedStation = null // 노선 변경 시 역 선택 초기화
+    }
     
     // 로컬 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
@@ -168,12 +195,25 @@ fun ResultScreen(
                 }
             }
 
+            // KTX 역 선택 섹션 (이미지가 완성된 후에만 표시)
+            if (composedImage != null) {
+                KtxStationSelectionSection(
+                    selectedLine = selectedLine,
+                    onLineSelected = { selectedLine = it },
+                    stations = stationsByLine,
+                    selectedStation = selectedStation,
+                    onStationSelected = { selectedStation = it }
+                )
+            }
+
             // 액션 버튼들
             if (composedImage != null) {
                 ActionButtons(
                     isSaved = false, // 임시로 false
                     isShared = false, // 임시로 false
                     onSave = { 
+                        // KTX 역 정보와 함께 DB에 자동 저장
+                        saveToDatabaseWithStation(selectedStation, photoRepository, context)
                         frameViewModel.saveImage()
                         showSaveSnackbar = true
                     },
@@ -859,4 +899,123 @@ private fun RestartDialog(
             }
         }
     )
+}
+
+/**
+ * KTX 역 선택 섹션
+ */
+@Composable
+private fun KtxStationSelectionSection(
+    selectedLine: String,
+    onLineSelected: (String) -> Unit,
+    stations: List<com.example.a4cut.data.model.KtxStation>,
+    selectedStation: String?,
+    onStationSelected: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Log.d("ResultScreen", "KtxStationSelectionSection 렌더링 - stations: ${stations.size}")
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "KTX 역 선택 (선택 사항)",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // 노선 선택 탭
+            val lines = listOf("Gyeongbu", "Honam", "Gyeongjeon", "Jungang", "Jeolla", "Donghae")
+            val lineNames = mapOf(
+                "Gyeongbu" to "경부선",
+                "Honam" to "호남선", 
+                "Gyeongjeon" to "경전선",
+                "Jungang" to "중앙선",
+                "Jeolla" to "전라선",
+                "Donghae" to "동해선"
+            )
+            
+            TabRow(selectedTabIndex = lines.indexOf(selectedLine).coerceAtLeast(0)) {
+                lines.forEach { line ->
+                    Tab(
+                        selected = selectedLine == line,
+                        onClick = { onLineSelected(line) },
+                        text = { Text(lineNames[line] ?: line) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 역 선택
+            KtxStationSelector(
+                stations = stations,
+                selectedStation = selectedStation,
+                onStationSelected = onStationSelected
+            )
+        }
+    }
+}
+
+/**
+ * 선택된 KTX 역 정보와 함께 DB에 저장
+ */
+private fun saveToDatabaseWithStation(
+    selectedStation: String?,
+    photoRepository: PhotoRepository?,
+    context: android.content.Context
+) {
+    if (photoRepository == null) {
+        Log.e("ResultScreen", "PhotoRepository가 null입니다!")
+        return
+    }
+    
+    if (selectedStation == null) {
+        Log.d("ResultScreen", "KTX 역이 선택되지 않았습니다. 기본 정보로 저장합니다.")
+        return
+    }
+    
+    Log.d("ResultScreen", "선택된 KTX 역: $selectedStation")
+    
+    // KTX 역 정보 조회
+    val ktxStationRepository = KTXStationRepository()
+    val station = ktxStationRepository.findStationByName(selectedStation)
+    
+    if (station != null) {
+        Log.d("ResultScreen", "KTX 역 정보: ${station.name} (${station.latitude}, ${station.longitude})")
+        
+        // PhotoEntity 생성 및 저장
+        val photoEntity = PhotoEntity(
+            id = 0, // 새로운 ID 생성
+            imagePath = "temp_path_${System.currentTimeMillis()}", // 임시 경로
+            title = "KTX 네컷 사진",
+            location = station.name,
+            latitude = station.latitude,
+            longitude = station.longitude,
+            station = station.name,
+            createdAt = System.currentTimeMillis()
+        )
+        
+        // 코루틴에서 DB 저장 실행
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val photoId = photoRepository.insertPhoto(photoEntity)
+                Log.d("ResultScreen", "DB 저장 성공! Photo ID: $photoId")
+            } catch (e: Exception) {
+                Log.e("ResultScreen", "DB 저장 실패", e)
+            }
+        }
+    } else {
+        Log.e("ResultScreen", "KTX 역을 찾을 수 없음: $selectedStation")
+    }
 }

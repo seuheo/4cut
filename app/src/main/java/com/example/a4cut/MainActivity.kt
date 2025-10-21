@@ -34,10 +34,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // osmdroid 초기 설정
+        // osmdroid 초기 설정 (SharedPreferences 필수 전달)
         try {
-            Configuration.getInstance().load(applicationContext, null)
-            Configuration.getInstance().userAgentValue = "KTX_4cut_App"
+            val ctx = applicationContext
+            val prefs = ctx.getSharedPreferences("osmdroid", MODE_PRIVATE)
+            Configuration.getInstance().load(ctx, prefs)
+            Configuration.getInstance().userAgentValue = ctx.packageName
             Log.d("MainActivity", "osmdroid 초기 설정 완료")
         } catch (e: Exception) {
             Log.e("MainActivity", "osmdroid 초기 설정 실패", e)
