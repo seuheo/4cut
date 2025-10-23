@@ -49,10 +49,8 @@ class AppApplication : Application() {
             .crossfade(true) // 부드러운 전환 효과
             .crossfade(300) // 300ms 전환 시간
             .apply {
-                // 디버그 모드에서만 로깅 활성화
-                if (BuildConfig.DEBUG) {
-                    logger(DebugLogger())
-                }
+                // 디버그 모드에서만 로깅 활성화 (개발 중에는 항상 활성화)
+                logger(DebugLogger())
             }
             .build()
             
