@@ -161,16 +161,17 @@ fun ProfileScreen(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
-                            IconButton(
-                                onClick = { homeViewModel.addTestLocationData() }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "테스트 데이터 추가",
-                                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            // 테스트 데이터 추가 버튼 비활성화 (중복 저장 방지)
+                            // IconButton(
+                            //     onClick = { homeViewModel.addTestLocationData() }
+                            // ) {
+                            //     Icon(
+                            //         imageVector = Icons.Default.Add,
+                            //         contentDescription = "테스트 데이터 추가",
+                            //         tint = MaterialTheme.colorScheme.onErrorContainer,
+                            //         modifier = Modifier.size(20.dp)
+                            //     )
+                            // }
                             IconButton(
                                 onClick = { homeViewModel.forceReinitializeDatabase(context) }
                             ) {
