@@ -173,8 +173,8 @@ class FrameApplyViewModel(
                         )
                     }
                     
-                    // 프레임 미리보기 생성 완료 시 DB에 자동 저장
-                    savePhotoMetadataToDatabase(photo, selectedFrame, previewBitmap)
+                    // 프레임 미리보기 생성 완료 (DB 저장은 ResultScreen에서 처리)
+                    // savePhotoMetadataToDatabase(photo, selectedFrame, previewBitmap) // 중복 저장 방지
                     
                     // 메모리 정리
                     imageComposer.recycleBitmap(photoBitmap)

@@ -155,7 +155,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             // 사진 목록 Flow 구독
             repository.getAllPhotos().collect { photos ->
-                Log.d("HomeViewModel", "사진 목록 업데이트: ${photos.size}개")
+                Log.d("HomeViewModel", "사진 목록 업데이트: ${photos.size} photos")
                 _photoLogs.value = photos
             }
         }
@@ -163,7 +163,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             // 사진 개수 Flow 구독
             repository.getPhotoCount().collect { count ->
-                Log.d("HomeViewModel", "사진 개수 업데이트: $count개")
+                Log.d("HomeViewModel", "사진 개수 업데이트: $count photos")
                 _photoCount.value = count
             }
         }
@@ -171,7 +171,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             // 즐겨찾기 개수 Flow 구독
             repository.getFavoritePhotoCount().collect { count ->
-                Log.d("HomeViewModel", "즐겨찾기 개수 업데이트: $count개")
+                Log.d("HomeViewModel", "즐겨찾기 개수 업데이트: $count favorites")
                 _favoritePhotoCount.value = count
             }
         }
@@ -494,9 +494,12 @@ class HomeViewModel : ViewModel() {
     fun loadPhotosForDate(calendar: Calendar) {
         val repository = photoRepository
         if (repository == null) {
+            Log.e("CalendarTest", "Repository가 null입니다")
             _errorMessage.value = "데이터베이스가 초기화되지 않았습니다."
             return
         }
+        
+        Log.d("CalendarTest", "loadPhotosForDate 호출됨")
         
         viewModelScope.launch {
             try {
@@ -529,7 +532,9 @@ class HomeViewModel : ViewModel() {
                 }
                 // --- ---
                 
+                Log.d("CalendarTest", "_photosForSelectedDate 업데이트 전: ${_photosForSelectedDate.value.size}")
                 _photosForSelectedDate.value = photos
+                Log.d("CalendarTest", "_photosForSelectedDate 업데이트 후: ${_photosForSelectedDate.value.size}")
                 
             } catch (e: Exception) {
                 Log.e("CalendarTest", "사진 로딩 실패", e)

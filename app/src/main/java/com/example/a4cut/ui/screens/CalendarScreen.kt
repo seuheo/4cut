@@ -88,6 +88,21 @@ fun CalendarScreen(
         }
     }
     
+    // 사진이 있는 날짜가 있으면 자동으로 선택
+    androidx.compose.runtime.LaunchedEffect(allPhotos) {
+        if (allPhotos.isNotEmpty() && selectedDate == null) {
+            // 가장 최근 사진의 날짜를 자동 선택
+            val latestPhoto = allPhotos.maxByOrNull { it.createdAt }
+            if (latestPhoto != null) {
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = latestPhoto.createdAt
+                selectedDate = calendar
+                homeViewModel.loadPhotosForDate(calendar)
+                Log.d("CalendarTest", "UI: 자동으로 최근 사진 날짜 선택: ${calendar.get(Calendar.YEAR)}-${calendar.get(Calendar.MONTH) + 1}-${calendar.get(Calendar.DAY_OF_MONTH)}")
+            }
+        }
+    }
+    
     // KTX 역 선택을 위한 상태 변수 및 리포지토리
     val ktxStationRepository = remember { KTXStationRepository() }
     var selectedLine by remember { mutableStateOf("Gyeongbu") }
@@ -322,45 +337,66 @@ fun CalendarScreen(
             
             // 캘린더 하단에 지도 표시 (위치 정보가 있는 사진이 있을 때만)
             Log.d("CalendarTest", "UI: photosForSelectedDate 상태 확인 - 개수: ${photosForSelectedDate.size}")
-            if (photosForSelectedDate.isNotEmpty()) {
+            Log.d("CalendarTest", "UI: selectedDate 상태: $selectedDate")
+            Log.d("CalendarTest", "UI: allPhotos 개수: ${allPhotos.size}")
+            
+            // 지도 표시 조건: 날짜가 선택되었거나 사진이 있으면 지도 표시
+            if (selectedDate != null || allPhotos.isNotEmpty()) {
                 Log.d("CalendarTest", "UI: 선택된 날짜의 사진 개수: ${photosForSelectedDate.size}")
                 
-                // 위치 정보(위도/경도)가 있는 사진만 필터링 (Null 안전성 강화)
-                val photosWithLocation = photosForSelectedDate.mapNotNull { photo ->
-                    try {
-                        // 위도/경도 값이 유효한 범위인지 확인
-                        val latitude = photo.latitude
-                        val longitude = photo.longitude
-                        
-                        if (latitude != null && longitude != null && 
-                            latitude >= -90.0 && latitude <= 90.0 &&
-                            longitude >= -180.0 && longitude <= 180.0) {
+                // 지도에 표시할 사진 데이터 준비
+                val testPhotosWithLocation = if (photosForSelectedDate.isNotEmpty()) {
+                    // 선택된 날짜의 사진이 있으면 해당 사진 사용
+                    photosForSelectedDate.mapNotNull { photo ->
+                        try {
+                            val latitude = photo.latitude ?: 37.5547
+                            val longitude = photo.longitude ?: 126.9706
                             
-                            Log.d("CalendarTest", "UI: 위치 정보 있는 사진 - ${photo.location} (${latitude}, ${longitude})")
-                            Triple(GeoPoint(latitude, longitude), photo.location, photo)
-                        } else {
-                            Log.d("CalendarTest", "UI: 위치 정보가 유효하지 않은 사진 - ${photo.location} (lat: $latitude, lng: $longitude)")
+                            Log.d("CalendarTest", "UI: 선택된 날짜 사진 위치 정보 - ${photo.location} (${latitude}, ${longitude})")
+                            Triple(GeoPoint(latitude, longitude), photo.location ?: "사진 위치", photo)
+                        } catch (e: Exception) {
+                            Log.e("CalendarTest", "UI: 사진 위치 정보 처리 중 오류", e)
                             null
                         }
-                    } catch (e: Exception) {
-                        Log.e("CalendarTest", "UI: 위치 정보 처리 중 오류 - ${photo.location}", e)
-                        null
                     }
+                } else if (allPhotos.isNotEmpty()) {
+                    // 선택된 날짜에 사진이 없으면 전체 사진 중 최근 사진 사용
+                    val latestPhoto = allPhotos.maxByOrNull { it.createdAt }
+                    if (latestPhoto != null) {
+                        try {
+                            val latitude = latestPhoto.latitude ?: 37.5547
+                            val longitude = latestPhoto.longitude ?: 126.9706
+                            
+                            Log.d("CalendarTest", "UI: 최근 사진 위치 정보 - ${latestPhoto.location} (${latitude}, ${longitude})")
+                            listOf(Triple(GeoPoint(latitude, longitude), latestPhoto.location ?: "최근 사진", latestPhoto))
+                        } catch (e: Exception) {
+                            Log.e("CalendarTest", "UI: 최근 사진 위치 정보 처리 중 오류", e)
+                            listOf(Triple(GeoPoint(37.5547, 126.9706), "서울역", null))
+                        }
+                    } else {
+                        listOf(Triple(GeoPoint(37.5547, 126.9706), "서울역", null))
+                    }
+                } else {
+                    // 사진이 전혀 없으면 테스트용 서울역 좌표 사용
+                    Log.d("CalendarTest", "UI: 테스트용 서울역 좌표 사용")
+                    listOf(
+                        Triple(GeoPoint(37.5547, 126.9706), "서울역", null)
+                    )
                 }
                 
-                Log.d("CalendarTest", "UI: 지도에 표시할 사진 개수: ${photosWithLocation.size}")
+                Log.d("CalendarTest", "UI: 지도에 표시할 사진 개수: ${testPhotosWithLocation.size}")
                 
-                if (photosWithLocation.isNotEmpty()) {
+                if (testPhotosWithLocation.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     // 지도 상태 저장 (줌 레벨, 스크롤 위치)
                     var mapViewState by rememberSaveable { mutableStateOf<Pair<GeoPoint, Double>?>(null) }
                     
                     // 초기 위치 설정 (첫 번째 사진 또는 저장된 상태)
-                    val initialCenter = mapViewState?.first ?: photosWithLocation.first().first
+                    val initialCenter = mapViewState?.first ?: testPhotosWithLocation.first().first
                     val initialZoom = mapViewState?.second ?: 15.0
                     
-                    Log.d("CalendarTest", "UI: OSM 지도 표시 시작. 사진 개수: ${photosWithLocation.size}")
+                    Log.d("CalendarTest", "UI: OSM 지도 표시 시작. 사진 개수: ${testPhotosWithLocation.size}")
 
                     Card(
                         modifier = Modifier
@@ -383,13 +419,13 @@ fun CalendarScreen(
                             },
                             update = { mapView ->
                                 try {
-                                    Log.d("CalendarTest", "UI: MapView 업데이트. 마커 ${photosWithLocation.size}개 추가 시도")
+                                    Log.d("CalendarTest", "UI: MapView 업데이트. 마커 ${testPhotosWithLocation.size}개 추가 시도")
                                     
                                     // 기존 마커 제거
                                     mapView.overlays.clear()
                                     
                                     var mapCenterSet = false
-                                    photosWithLocation.forEach { (geoPoint, title, _) ->
+                                    testPhotosWithLocation.forEach { (geoPoint, title, _) ->
                                         try {
                                             // GeoPoint 유효성 검사
                                             if (geoPoint.latitude.isFinite() && geoPoint.longitude.isFinite()) {
