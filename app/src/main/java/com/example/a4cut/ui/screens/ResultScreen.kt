@@ -1016,6 +1016,9 @@ private fun saveToDatabaseWithStation(
             try {
                 val photoId = photoRepository.insertPhoto(photoEntity)
                 Log.d("ResultScreen", "DB 저장 성공! Photo ID: $photoId")
+                
+                // 저장 성공 후 HomeViewModel 새로고침을 위한 시그널
+                // (HomeViewModel의 Flow가 자동으로 감지하므로 별도 작업 불필요)
             } catch (e: Exception) {
                 Log.e("ResultScreen", "DB 저장 실패", e)
             }

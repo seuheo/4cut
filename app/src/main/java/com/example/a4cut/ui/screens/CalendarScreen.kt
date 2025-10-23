@@ -175,6 +175,8 @@ fun CalendarScreen(
                 },
                 onDateSelect = { calendar ->
                     selectedDate = calendar
+                    Log.d("CalendarTest", "UI: 날짜 선택됨 - ${calendar.get(Calendar.YEAR)}-${calendar.get(Calendar.MONTH) + 1}-${calendar.get(Calendar.DAY_OF_MONTH)}")
+                    
                     // ViewModel에 선택된 날짜의 사진 로드 요청
                     homeViewModel.loadPhotosForDate(calendar)
                     
@@ -190,6 +192,8 @@ fun CalendarScreen(
                         photoDate.get(java.util.Calendar.MONTH) == calendar.get(java.util.Calendar.MONTH) &&
                         photoDate.get(java.util.Calendar.DAY_OF_MONTH) == calendar.get(java.util.Calendar.DAY_OF_MONTH)
                     }
+                    
+                    Log.d("CalendarTest", "UI: 해당 날짜의 사진 개수: ${photosOnDate.size}")
                     
                     if (photosOnDate.isNotEmpty()) {
                         // 해당 날짜의 첫 번째 사진으로 이동

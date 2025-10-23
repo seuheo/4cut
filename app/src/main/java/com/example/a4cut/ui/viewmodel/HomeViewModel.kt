@@ -134,15 +134,28 @@ class HomeViewModel : ViewModel() {
         }
     }
     
+    // Flow 구독 상태 관리
+    private var isSubscribed = false
+    
     /**
-     * Flow 구독 시작
+     * Flow 구독 시작 (중복 방지)
      */
     private fun startFlowSubscriptions() {
         val repository = photoRepository ?: return
         
+        // 이미 구독 중이면 중복 구독 방지
+        if (isSubscribed) {
+            Log.d("HomeViewModel", "이미 Flow 구독 중이므로 중복 구독 방지")
+            return
+        }
+        
+        isSubscribed = true
+        Log.d("HomeViewModel", "Flow 구독 시작")
+        
         viewModelScope.launch {
             // 사진 목록 Flow 구독
             repository.getAllPhotos().collect { photos ->
+                Log.d("HomeViewModel", "사진 목록 업데이트: ${photos.size}개")
                 _photoLogs.value = photos
             }
         }
@@ -150,6 +163,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             // 사진 개수 Flow 구독
             repository.getPhotoCount().collect { count ->
+                Log.d("HomeViewModel", "사진 개수 업데이트: $count개")
                 _photoCount.value = count
             }
         }
@@ -157,6 +171,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             // 즐겨찾기 개수 Flow 구독
             repository.getFavoritePhotoCount().collect { count ->
+                Log.d("HomeViewModel", "즐겨찾기 개수 업데이트: $count개")
                 _favoritePhotoCount.value = count
             }
         }
@@ -176,8 +191,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.toggleFavorite(photo)
-                // Flow 구독 재시작
-        startFlowSubscriptions()
+                // Flow 기반으로 자동 업데이트됨
             } catch (e: Exception) {
                 _errorMessage.value = "즐겨찾기 변경 실패: ${e.message}"
                 e.printStackTrace()
@@ -198,8 +212,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.deletePhoto(photo)
-                // Flow 구독 재시작
-        startFlowSubscriptions()
+                // Flow 기반으로 자동 업데이트됨
             } catch (e: Exception) {
                 _errorMessage.value = "사진 삭제 실패: ${e.message}"
                 e.printStackTrace()
@@ -216,8 +229,7 @@ class HomeViewModel : ViewModel() {
                 try {
                     _isLoading.value = true
                     repository.deleteAllPhotos()
-                    // Flow 구독 재시작
-        startFlowSubscriptions()
+                    // Flow 기반으로 자동 업데이트됨
                     println("모든 사진이 삭제되었습니다.")
                 } catch (e: Exception) {
                     _errorMessage.value = "모든 사진 삭제 실패: ${e.message}"
@@ -282,8 +294,7 @@ class HomeViewModel : ViewModel() {
             val database = AppDatabase.getDatabase(context)
             photoRepository = PhotoRepository(database.photoDao())
             
-            // Flow 구독 재시작
-        startFlowSubscriptions()
+            // Flow 기반으로 자동 업데이트됨
             
             clearError()
         } catch (e: Exception) {
@@ -297,7 +308,8 @@ class HomeViewModel : ViewModel() {
      * 데이터 새로고침
      */
     fun refreshData() {
-        startFlowSubscriptions()
+        // Flow 구독이 이미 활성화되어 있으면 자동으로 업데이트됨
+        Log.d("HomeViewModel", "데이터 새로고침 요청 - Flow 구독 상태: $isSubscribed")
     }
     
     /**
@@ -315,8 +327,7 @@ class HomeViewModel : ViewModel() {
         } else {
             clearTestData()
         }
-        // Flow 구독 재시작
-        startFlowSubscriptions()
+        // Flow 기반으로 자동 업데이트됨
     }
     
     // TEST CODE START: 테스트 데이터를 생성하고 삽입하는 함수
@@ -443,8 +454,7 @@ class HomeViewModel : ViewModel() {
                         }
                     }
                     
-                    // Flow 구독 재시작
-        startFlowSubscriptions()
+                    // Flow 기반으로 자동 업데이트됨
                     
                     // 테스트 데이터 삭제 후 성공 메시지
                     _errorMessage.value = "테스트 데이터가 삭제되었습니다."
@@ -574,8 +584,7 @@ class HomeViewModel : ViewModel() {
                 val photoId = repository.insertPhoto(testPhoto)
                 Log.d("CalendarTest", "테스트 데이터 추가 완료 - ID: $photoId")
                 
-                // Flow 구독 재시작
-        startFlowSubscriptions()
+                // Flow 기반으로 자동 업데이트됨
                 
                 _errorMessage.value = "테스트 위치 데이터가 추가되었습니다. (서울역)"
                 
