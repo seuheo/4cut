@@ -310,7 +310,7 @@ private fun IOSPhotoPreviewSection(
             }
         }
         
-        // 선택된 프레임 오버레이
+        // 선택된 프레임 오버레이 (Box 내부로 이동)
         selectedFrame?.let { frame ->
             Image(
                 painter = painterResource(id = frame.drawableId),
