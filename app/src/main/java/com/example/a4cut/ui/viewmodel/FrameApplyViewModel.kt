@@ -32,7 +32,10 @@ class FrameApplyViewModel(
 ) : ViewModel() {
 
     private val imageComposer = context?.let { ImageComposer(it) }
-    private val imageLoader = context?.let { ImageLoader(it) }
+    private val imageLoader = context?.let { 
+        // AppApplication의 최적화된 ImageLoader 사용
+        com.example.a4cut.AppApplication.imageLoader
+    }
     private val locationTaggingService = context?.let { LocationTaggingService(it) }
     private val ktxStationRepository = KTXStationRepository()
 

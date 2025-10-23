@@ -31,6 +31,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 
@@ -1573,13 +1575,15 @@ class FrameViewModel : ViewModel() {
         _selectedImageUris.value = uris.take(4)
         println("선택된 URI 저장 완료: ${_selectedImageUris.value.size}개")
         
-        // 선택된 URI들을 Bitmap으로 변환하여 그리드에 배치
-        viewModelScope.launch {
+        // 선택된 URI들을 Bitmap으로 변환하여 그리드에 배치 (백그라운드 스레드에서 처리)
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val imagePicker = imagePicker
                 if (imagePicker == null) {
                     println("ImagePicker가 null입니다. Context를 다시 설정해주세요.")
-                    _errorMessage.value = "이미지 처리기가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
+                    withContext(Dispatchers.Main) {
+                        _errorMessage.value = "이미지 처리기가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
+                    }
                     return@launch
                 }
                 
@@ -1587,34 +1591,39 @@ class FrameViewModel : ViewModel() {
                 val processedImages = imagePicker.processImagesForGrid(uris, 512)
                 println("이미지 처리 완료: ${processedImages.size}개의 Bitmap 생성")
                 
-                // 변환된 Bitmap들을 그리드에 배치
-                val currentPhotos = _photos.value.toMutableList()
-                processedImages.forEachIndexed { index, bitmap ->
-                    if (index < 4) {
-                        // 기존 Bitmap 메모리 해제
-                        currentPhotos[index]?.let { oldBitmap ->
-                            if (!oldBitmap.isRecycled) {
-                                oldBitmap.recycle()
+                // 메인 스레드에서 UI 업데이트
+                withContext(Dispatchers.Main) {
+                    // 변환된 Bitmap들을 그리드에 배치
+                    val currentPhotos = _photos.value.toMutableList()
+                    processedImages.forEachIndexed { index, bitmap ->
+                        if (index < 4) {
+                            // 기존 Bitmap 메모리 해제
+                            currentPhotos[index]?.let { oldBitmap ->
+                                if (!oldBitmap.isRecycled) {
+                                    oldBitmap.recycle()
+                                }
                             }
+                            currentPhotos[index] = bitmap
+                            
+                            // PhotoState도 함께 업데이트
+                            updatePhotoStateFromBitmap(index, bitmap)
+                            
+                            println("그리드 위치 ${index}에 이미지 배치 완료")
                         }
-                        currentPhotos[index] = bitmap
-                        
-                        // PhotoState도 함께 업데이트
-                        updatePhotoStateFromBitmap(index, bitmap)
-                        
-                        println("그리드 위치 ${index}에 이미지 배치 완료")
                     }
+                    _photos.value = currentPhotos
+                    println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
+                    println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
+                    
+                    _successMessage.value = "갤러리에서 ${uris.size}장의 사진을 선택했습니다"
+                    clearError()
                 }
-                _photos.value = currentPhotos
-                println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
-                println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
-                
-                _successMessage.value = "갤러리에서 ${uris.size}장의 사진을 선택했습니다"
-                clearError()
             } catch (e: Exception) {
                 println("이미지 처리 중 오류 발생: ${e.message}")
                 e.printStackTrace()
-                _errorMessage.value = "이미지 처리 중 오류가 발생했습니다: ${e.message}"
+                withContext(Dispatchers.Main) {
+                    _errorMessage.value = "이미지 처리 중 오류가 발생했습니다: ${e.message}"
+                }
             }
         }
     }

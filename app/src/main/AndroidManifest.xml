@@ -20,6 +20,7 @@
 
     <!-- ... 나머지 내용 ... -->
     <application
+        android:name=".AppApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

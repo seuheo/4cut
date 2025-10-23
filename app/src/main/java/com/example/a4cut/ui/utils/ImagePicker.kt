@@ -68,20 +68,22 @@ class ImagePicker(private val context: Context) {
             BitmapFactory.decodeStream(inputStream, null, options)
         }
         
-        // 적절한 샘플링 크기 계산
+        // 적절한 샘플링 크기 계산 (더 공격적인 샘플링)
         val sampleSize = calculateSampleSize(options.outWidth, options.outHeight, targetSize)
         
         // 실제 이미지 로드 (샘플링 적용)
         val loadOptions = BitmapFactory.Options().apply {
             inSampleSize = sampleSize
             inPreferredConfig = Bitmap.Config.RGB_565 // 메모리 절약
+            inDither = false // 디더링 비활성화로 성능 향상
+            inTempStorage = ByteArray(16 * 1024) // 임시 스토리지 크기 제한
         }
         
         val bitmap = context.contentResolver.openInputStream(uri)?.use { inputStream ->
             BitmapFactory.decodeStream(inputStream, null, loadOptions)
         } ?: throw IllegalStateException("이미지를 로드할 수 없습니다")
         
-        // 정확한 크기로 리사이징
+        // 정확한 크기로 리사이징 (고품질 리사이징)
         return if (bitmap.width != targetSize || bitmap.height != targetSize) {
             val resizedBitmap = Bitmap.createScaledBitmap(bitmap, targetSize, targetSize, true)
             // 원본 비트맵 메모리 해제
@@ -96,6 +98,7 @@ class ImagePicker(private val context: Context) {
     
     /**
      * 샘플링 크기 계산 (메모리 최적화)
+     * 더 공격적인 샘플링으로 메모리 사용량 감소
      */
     private fun calculateSampleSize(
         originalWidth: Int,
@@ -103,7 +106,8 @@ class ImagePicker(private val context: Context) {
         targetSize: Int
     ): Int {
         var sampleSize = 1
-        while (originalWidth / sampleSize > targetSize || originalHeight / sampleSize > targetSize) {
+        // 더 공격적인 샘플링으로 메모리 사용량 감소
+        while (originalWidth / sampleSize > targetSize * 1.5 || originalHeight / sampleSize > targetSize * 1.5) {
             sampleSize *= 2
         }
         return sampleSize

@@ -50,7 +50,10 @@ class ImageComposer(private val context: Context) {
         println("사진 null 체크: ${photos.map { it != null }}")
         println("사진 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
         
-        val resultBitmap = frameBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        // 메모리 최적화된 Bitmap 생성
+        val resultBitmap = createSafeBitmap(frameBitmap.width, frameBitmap.height, Bitmap.Config.ARGB_8888)
+            ?: throw IllegalStateException("결과 Bitmap 생성 실패")
+        
         val canvas = Canvas(resultBitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
@@ -347,7 +350,9 @@ class ImageComposer(private val context: Context) {
             println("ImageComposer: Drawable 로딩 성공 - ${drawable.javaClass.simpleName}")
         }
         
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        // 메모리 최적화된 Bitmap 생성
+        val bitmap = createSafeBitmap(width, height, Bitmap.Config.ARGB_8888)
+            ?: throw IllegalStateException("Bitmap 생성 실패")
         val canvas = Canvas(bitmap)
         
         drawable?.setBounds(0, 0, width, height)
@@ -383,6 +388,40 @@ class ImageComposer(private val context: Context) {
             if (!it.isRecycled) {
                 it.recycle()
             }
+        }
+    }
+    
+    /**
+     * 안전한 Bitmap 생성 (메모리 최적화)
+     * @param width 너비
+     * @param height 높이
+     * @param config Bitmap 설정
+     * @return 생성된 Bitmap 또는 null
+     */
+    fun createSafeBitmap(width: Int, height: Int, config: Bitmap.Config = Bitmap.Config.RGB_565): Bitmap? {
+        return try {
+            // 메모리 사용량 계산
+            val memoryUsage = width * height * when (config) {
+                Bitmap.Config.ALPHA_8 -> 1
+                Bitmap.Config.RGB_565 -> 2
+                Bitmap.Config.ARGB_4444 -> 2
+                Bitmap.Config.ARGB_8888 -> 4
+                else -> 4
+            }
+            
+            // 메모리 사용량이 너무 크면 null 반환
+            if (memoryUsage > 50 * 1024 * 1024) { // 50MB 제한
+                println("ImageComposer: 메모리 사용량이 너무 큽니다: ${memoryUsage / 1024 / 1024}MB")
+                return null
+            }
+            
+            Bitmap.createBitmap(width, height, config)
+        } catch (e: OutOfMemoryError) {
+            println("ImageComposer: 메모리 부족으로 Bitmap 생성 실패: ${e.message}")
+            null
+        } catch (e: Exception) {
+            println("ImageComposer: Bitmap 생성 중 오류: ${e.message}")
+            null
         }
     }
 
