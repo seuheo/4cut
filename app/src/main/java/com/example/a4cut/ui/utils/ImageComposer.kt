@@ -449,15 +449,15 @@ class ImageComposer(private val context: Context) {
         println("=== calculateLife4CutPhotoPositions 시작 ===")
         println("입력 프레임 크기: ${frameWidth}x${frameHeight}")
         
-        // 여백 계산 (프레임 테두리 공간 확보)
-        val horizontalMargin = frameWidth * 0.08f  // 좌우 여백 8%
-        val verticalMargin = frameHeight * 0.12f   // 상하 여백 12%
-        val photoSpacing = frameWidth * 0.02f      // 사진 간 간격 2%
+        // 여백 계산 (PNG 프레임에 맞게 조정)
+        val horizontalMargin = frameWidth * 0.12f  // 좌우 여백 12% (더 넓게)
+        val verticalMargin = frameHeight * 0.15f   // 상하 여백 15% (더 넓게)
+        val photoSpacing = frameWidth * 0.03f       // 사진 간 간격 3% (더 넓게)
         
         println("계산된 여백:")
-        println("  horizontalMargin: $horizontalMargin (${frameWidth * 0.08f})")
-        println("  verticalMargin: $verticalMargin (${frameHeight * 0.12f})")
-        println("  photoSpacing: $photoSpacing (${frameWidth * 0.02f})")
+        println("  horizontalMargin: $horizontalMargin (${frameWidth * 0.12f})")
+        println("  verticalMargin: $verticalMargin (${frameHeight * 0.15f})")
+        println("  photoSpacing: $photoSpacing (${frameWidth * 0.03f})")
         
         // 사진 영역 크기 계산
         val totalPhotoAreaWidth = frameWidth - (horizontalMargin * 2) - photoSpacing
@@ -472,9 +472,9 @@ class ImageComposer(private val context: Context) {
         println("  photoWidth: $photoWidth")
         println("  photoHeight: $photoHeight")
         
-        // 세로로 약간 더 긴 사각형을 위해 높이를 1.2배로 조정
-        val adjustedPhotoHeight = photoHeight * 1.2f
-        println("  adjustedPhotoHeight: $adjustedPhotoHeight (1.2배 적용)")
+        // PNG 프레임에 맞게 정사각형에 가까운 비율로 조정
+        val adjustedPhotoHeight = photoHeight * 1.05f  // 1.05배로 조정 (거의 정사각형)
+        println("  adjustedPhotoHeight: $adjustedPhotoHeight (1.05배 적용)")
         
         // 각 사진의 위치 계산 (2x2 그리드, 세로로 약간 더 긴 사각형)
         val positions = listOf(
