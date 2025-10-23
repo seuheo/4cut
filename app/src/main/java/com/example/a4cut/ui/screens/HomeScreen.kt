@@ -50,12 +50,12 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    homeViewModel: HomeViewModel,
     onNavigateToPhotoDetail: (String) -> Unit,
     onNavigateToFrame: () -> Unit,
     onNavigateToSearch: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val homeViewModel: HomeViewModel = viewModel()
     val context = LocalContext.current
     
     // ViewModel의 상태들을 수집
@@ -65,9 +65,11 @@ fun HomeScreen(
     val isTestMode by homeViewModel.isTestMode.collectAsState()
     val selectedKtxStation by homeViewModel.selectedKtxStation.collectAsState()
     
-    // Context 설정
+    // Context 설정 (AppNavigation에서 이미 설정됨)
     LaunchedEffect(Unit) {
-        homeViewModel.setContext(context)
+        if (!homeViewModel.isDatabaseReady()) {
+            homeViewModel.setContext(context)
+        }
     }
 
     Column(

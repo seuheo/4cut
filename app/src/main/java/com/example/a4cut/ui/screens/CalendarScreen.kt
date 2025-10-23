@@ -49,10 +49,10 @@ import android.util.Log
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
+    homeViewModel: HomeViewModel,
     onNavigateToPhotoDetail: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val homeViewModel: HomeViewModel = viewModel()
     val context = LocalContext.current
     
     // 현재 날짜 상태 관리
@@ -60,10 +60,12 @@ fun CalendarScreen(
     var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var selectedDate by remember { mutableStateOf<Calendar?>(null) }
     
-    // ViewModel 초기화 - 안전한 초기화
+    // ViewModel 초기화 - 안전한 초기화 (AppNavigation에서 이미 설정됨)
     LaunchedEffect(Unit) {
         try {
-            homeViewModel.setContext(context)
+            if (!homeViewModel.isDatabaseReady()) {
+                homeViewModel.setContext(context)
+            }
         } catch (e: Exception) {
             // 초기화 실패 시 기본 상태 유지
             e.printStackTrace()
@@ -77,6 +79,14 @@ fun CalendarScreen(
     val selectedStation by homeViewModel.selectedStation.collectAsState()
     // 선택된 날짜의 사진 목록 구독 (지도 표시용)
     val photosForSelectedDate by homeViewModel.photosForSelectedDate.collectAsState()
+    
+    // 디버깅을 위한 로그
+    androidx.compose.runtime.LaunchedEffect(photosForSelectedDate) {
+        Log.d("CalendarTest", "UI: photosForSelectedDate 변경됨 - 개수: ${photosForSelectedDate.size}")
+        photosForSelectedDate.forEach { photo ->
+            Log.d("CalendarTest", "UI: 사진 정보 - 위치: ${photo.location}, 위도: ${photo.latitude}, 경도: ${photo.longitude}")
+        }
+    }
     
     // KTX 역 선택을 위한 상태 변수 및 리포지토리
     val ktxStationRepository = remember { KTXStationRepository() }
@@ -307,6 +317,7 @@ fun CalendarScreen(
             }
             
             // 캘린더 하단에 지도 표시 (위치 정보가 있는 사진이 있을 때만)
+            Log.d("CalendarTest", "UI: photosForSelectedDate 상태 확인 - 개수: ${photosForSelectedDate.size}")
             if (photosForSelectedDate.isNotEmpty()) {
                 Log.d("CalendarTest", "UI: 선택된 날짜의 사진 개수: ${photosForSelectedDate.size}")
                 

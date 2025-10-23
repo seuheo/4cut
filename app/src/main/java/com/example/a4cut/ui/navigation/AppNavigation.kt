@@ -148,6 +148,14 @@ fun AppNavigation(
     
     // ViewModel을 네비게이션 그래프 레벨에서 공유 (전달받은 것이 있으면 사용, 없으면 새로 생성)
     val sharedFrameViewModel: FrameViewModel = frameViewModel ?: viewModel()
+    
+    // HomeViewModel을 네비게이션 그래프 레벨에서 공유
+    val sharedHomeViewModel: com.example.a4cut.ui.viewmodel.HomeViewModel = viewModel()
+    
+    // HomeViewModel 초기화
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        sharedHomeViewModel.setContext(context)
+    }
 
     Scaffold(
         modifier = modifier,
@@ -245,6 +253,7 @@ fun AppNavigation(
                 }
             ) {
                 HomeScreen(
+                    homeViewModel = sharedHomeViewModel,
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
                     },
@@ -387,6 +396,7 @@ fun AppNavigation(
                 }
             ) {
                 CalendarScreen(
+                    homeViewModel = sharedHomeViewModel,
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
                     }

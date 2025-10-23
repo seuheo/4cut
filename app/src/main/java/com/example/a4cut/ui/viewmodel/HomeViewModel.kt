@@ -122,7 +122,7 @@ class HomeViewModel : ViewModel() {
             val database = AppDatabase.getDatabase(context)
             photoRepository = PhotoRepository(database.photoDao())
             
-            // 데이터베이스 초기화 성공 후 Flow 구독 시작
+            // Flow 구독 시작
             startFlowSubscriptions()
             
             // 초기화 성공 시 에러 메시지 제거
@@ -176,8 +176,8 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.toggleFavorite(photo)
-                // 즐겨찾기 변경 후 카운트 새로고침
-                refreshFavoriteCount()
+                // Flow 구독 재시작
+        startFlowSubscriptions()
             } catch (e: Exception) {
                 _errorMessage.value = "즐겨찾기 변경 실패: ${e.message}"
                 e.printStackTrace()
@@ -198,8 +198,8 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.deletePhoto(photo)
-                // 삭제 후 Flow 구독 재시작
-                startFlowSubscriptions()
+                // Flow 구독 재시작
+        startFlowSubscriptions()
             } catch (e: Exception) {
                 _errorMessage.value = "사진 삭제 실패: ${e.message}"
                 e.printStackTrace()
@@ -216,8 +216,8 @@ class HomeViewModel : ViewModel() {
                 try {
                     _isLoading.value = true
                     repository.deleteAllPhotos()
-                    // 삭제 후 Flow 구독 재시작
-                    startFlowSubscriptions()
+                    // Flow 구독 재시작
+        startFlowSubscriptions()
                     println("모든 사진이 삭제되었습니다.")
                 } catch (e: Exception) {
                     _errorMessage.value = "모든 사진 삭제 실패: ${e.message}"
@@ -283,7 +283,7 @@ class HomeViewModel : ViewModel() {
             photoRepository = PhotoRepository(database.photoDao())
             
             // Flow 구독 재시작
-            startFlowSubscriptions()
+        startFlowSubscriptions()
             
             clearError()
         } catch (e: Exception) {
@@ -292,24 +292,6 @@ class HomeViewModel : ViewModel() {
         }
     }
     
-    /**
-     * 즐겨찾기 개수만 새로고침
-     */
-    private fun refreshFavoriteCount() {
-        val repository = photoRepository
-        if (repository == null) return
-        
-        viewModelScope.launch {
-            try {
-                repository.getFavoritePhotoCount().collect { count ->
-                    _favoritePhotoCount.value = count
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "즐겨찾기 개수 새로고침 실패: ${e.message}"
-                e.printStackTrace()
-            }
-        }
-    }
     
     /**
      * 데이터 새로고침
@@ -333,7 +315,7 @@ class HomeViewModel : ViewModel() {
         } else {
             clearTestData()
         }
-        // 테스트 모드 변경 후 데이터 새로고침
+        // Flow 구독 재시작
         startFlowSubscriptions()
     }
     
@@ -462,7 +444,7 @@ class HomeViewModel : ViewModel() {
                     }
                     
                     // Flow 구독 재시작
-                    startFlowSubscriptions()
+        startFlowSubscriptions()
                     
                     // 테스트 데이터 삭제 후 성공 메시지
                     _errorMessage.value = "테스트 데이터가 삭제되었습니다."
@@ -593,7 +575,7 @@ class HomeViewModel : ViewModel() {
                 Log.d("CalendarTest", "테스트 데이터 추가 완료 - ID: $photoId")
                 
                 // Flow 구독 재시작
-                startFlowSubscriptions()
+        startFlowSubscriptions()
                 
                 _errorMessage.value = "테스트 위치 데이터가 추가되었습니다. (서울역)"
                 
