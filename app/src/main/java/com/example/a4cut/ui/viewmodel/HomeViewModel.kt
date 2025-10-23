@@ -54,7 +54,7 @@ class HomeViewModel : ViewModel() {
     private val _photosForSelectedDate = MutableStateFlow<List<PhotoEntity>>(emptyList())
     val photosForSelectedDate: StateFlow<List<PhotoEntity>> = _photosForSelectedDate.asStateFlow()
     
-    // 포토로그 데이터
+    // 포토로그 데이터 - Repository의 Flow를 직접 구독하여 자동 업데이트
     private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
     val photoLogs: StateFlow<List<PhotoEntity>> = _photoLogs.asStateFlow()
     
@@ -122,8 +122,8 @@ class HomeViewModel : ViewModel() {
             val database = AppDatabase.getDatabase(context)
             photoRepository = PhotoRepository(database.photoDao())
             
-            // 데이터베이스 초기화 성공 후 데이터 로드 (재시도 포함)
-            loadPhotoLogsWithRetry()
+            // 데이터베이스 초기화 성공 후 Flow 구독 시작
+            startFlowSubscriptions()
             
             // 초기화 성공 시 에러 메시지 제거
             clearError()
@@ -135,135 +135,33 @@ class HomeViewModel : ViewModel() {
     }
     
     /**
-     * 포토로그 데이터 로드 (재시도 메커니즘 포함)
+     * Flow 구독 시작
      */
-    private fun loadPhotoLogsWithRetry(maxRetries: Int = 3) {
-        val repository = photoRepository
-        if (repository == null) {
-            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
-            return
+    private fun startFlowSubscriptions() {
+        val repository = photoRepository ?: return
+        
+        viewModelScope.launch {
+            // 사진 목록 Flow 구독
+            repository.getAllPhotos().collect { photos ->
+                _photoLogs.value = photos
+            }
         }
         
         viewModelScope.launch {
-            var retryCount = 0
-            var success = false
-            
-            while (retryCount < maxRetries && !success) {
-                try {
-                    _isLoading.value = true
-                    
-                    // 사진 목록과 개수 동시 로드
-                    launch {
-                        try {
-                            repository.getAllPhotos().collect { photos ->
-                                _photoLogs.value = photos
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "사진 목록 로드 실패: ${e.message}"
-                            e.printStackTrace()
-                        }
-                    }
-                    
-                    launch {
-                        try {
-                            repository.getPhotoCount().collect { count ->
-                                _photoCount.value = count
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "사진 개수 로드 실패: ${e.message}"
-                            e.printStackTrace()
-                        }
-                    }
-                    
-                    launch {
-                        try {
-                            repository.getFavoritePhotoCount().collect { count ->
-                                _favoritePhotoCount.value = count
-                            }
-                        } catch (e: Exception) {
-                            _errorMessage.value = "즐겨찾기 개수 로드 실패: ${e.message}"
-                            e.printStackTrace()
-                        }
-                    }
-                    
-                    // 성공적으로 로드되면 에러 메시지 자동 제거
-                    clearError()
-                    success = true
-                    
-                } catch (e: Exception) {
-                    retryCount++
-                    if (retryCount < maxRetries) {
-                        _errorMessage.value = "데이터 로드 실패 (재시도 ${retryCount}/${maxRetries}): ${e.message}"
-                        // 재시도 전 잠시 대기
-                        delay((1000 * retryCount).toLong())
-                    } else {
-                        _errorMessage.value = "데이터 로드 실패: ${e.message}. 앱을 다시 시작해주세요."
-                    }
-                    e.printStackTrace()
-                } finally {
-                    _isLoading.value = false
-                }
+            // 사진 개수 Flow 구독
+            repository.getPhotoCount().collect { count ->
+                _photoCount.value = count
+            }
+        }
+        
+        viewModelScope.launch {
+            // 즐겨찾기 개수 Flow 구독
+            repository.getFavoritePhotoCount().collect { count ->
+                _favoritePhotoCount.value = count
             }
         }
     }
     
-    /**
-     * 포토로그 데이터 로드 (기본 버전)
-     */
-    private fun loadPhotoLogs() {
-        val repository = photoRepository
-        if (repository == null) {
-            _errorMessage.value = "데이터베이스가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
-            return
-        }
-        
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                // 사진 목록과 개수 동시 로드
-                launch {
-                    try {
-                        repository.getAllPhotos().collect { photos ->
-                            _photoLogs.value = photos
-                        }
-                    } catch (e: Exception) {
-                        _errorMessage.value = "사진 목록 로드 실패: ${e.message}"
-                        e.printStackTrace()
-                    }
-                }
-                
-                launch {
-                    try {
-                        repository.getPhotoCount().collect { count ->
-                            _photoCount.value = count
-                        }
-                    } catch (e: Exception) {
-                        _errorMessage.value = "사진 개수 로드 실패: ${e.message}"
-                        e.printStackTrace()
-                    }
-                }
-                
-                launch {
-                    try {
-                        repository.getFavoritePhotoCount().collect { count ->
-                            _favoritePhotoCount.value = count
-                        }
-                    } catch (e: Exception) {
-                        _errorMessage.value = "즐겨찾기 개수 로드 실패: ${e.message}"
-                        e.printStackTrace()
-                    }
-                }
-                
-                // 성공적으로 로드되면 에러 메시지 자동 제거
-                clearError()
-            } catch (e: Exception) {
-                _errorMessage.value = "포토로그 로드 실패: ${e.message}"
-                e.printStackTrace()
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
     
     /**
      * 즐겨찾기 토글
@@ -300,8 +198,8 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.deletePhoto(photo)
-                // 삭제 후 목록 새로고침
-                loadPhotoLogs()
+                // 삭제 후 Flow 구독 재시작
+                startFlowSubscriptions()
             } catch (e: Exception) {
                 _errorMessage.value = "사진 삭제 실패: ${e.message}"
                 e.printStackTrace()
@@ -318,8 +216,8 @@ class HomeViewModel : ViewModel() {
                 try {
                     _isLoading.value = true
                     repository.deleteAllPhotos()
-                    // 삭제 후 목록 새로고침
-                    loadPhotoLogs()
+                    // 삭제 후 Flow 구독 재시작
+                    startFlowSubscriptions()
                     println("모든 사진이 삭제되었습니다.")
                 } catch (e: Exception) {
                     _errorMessage.value = "모든 사진 삭제 실패: ${e.message}"
@@ -332,14 +230,17 @@ class HomeViewModel : ViewModel() {
     }
     
     /**
-     * 검색 기능
+     * 검색 기능 (검색 결과는 별도 StateFlow로 관리)
      */
+    private val _searchResults = MutableStateFlow<List<PhotoEntity>>(emptyList())
+    val searchResults: StateFlow<List<PhotoEntity>> = _searchResults.asStateFlow()
+    
     fun searchPhotos(query: String) {
         photoRepository?.let { repository ->
             viewModelScope.launch {
                 try {
                     repository.searchPhotos(query).collect { photos ->
-                        _photoLogs.value = photos
+                        _searchResults.value = photos
                     }
                 } catch (e: Exception) {
                     _errorMessage.value = "검색 실패: ${e.message}"
@@ -381,8 +282,8 @@ class HomeViewModel : ViewModel() {
             val database = AppDatabase.getDatabase(context)
             photoRepository = PhotoRepository(database.photoDao())
             
-            // 데이터 로드 재시도
-            loadPhotoLogsWithRetry()
+            // Flow 구독 재시작
+            startFlowSubscriptions()
             
             clearError()
         } catch (e: Exception) {
@@ -414,7 +315,7 @@ class HomeViewModel : ViewModel() {
      * 데이터 새로고침
      */
     fun refreshData() {
-        loadPhotoLogsWithRetry()
+        startFlowSubscriptions()
     }
     
     /**
@@ -433,7 +334,7 @@ class HomeViewModel : ViewModel() {
             clearTestData()
         }
         // 테스트 모드 변경 후 데이터 새로고침
-        loadPhotoLogs()
+        startFlowSubscriptions()
     }
     
     // TEST CODE START: 테스트 데이터를 생성하고 삽입하는 함수
@@ -550,14 +451,18 @@ class HomeViewModel : ViewModel() {
                         "강릉 커피거리"
                     )
                     
-                    _photoLogs.value.forEach { photo ->
+                    // 현재 로드된 사진 목록에서 테스트 데이터 삭제
+                    val currentPhotos = _photoLogs.value
+                    currentPhotos.forEach { photo ->
                         if (testTitles.contains(photo.title)) {
-                            repository.deletePhoto(photo)
+                            viewModelScope.launch {
+                                repository.deletePhoto(photo)
+                            }
                         }
                     }
                     
-                    // 목록 새로고침
-                    loadPhotoLogs()
+                    // Flow 구독 재시작
+                    startFlowSubscriptions()
                     
                     // 테스트 데이터 삭제 후 성공 메시지
                     _errorMessage.value = "테스트 데이터가 삭제되었습니다."
@@ -687,8 +592,8 @@ class HomeViewModel : ViewModel() {
                 val photoId = repository.insertPhoto(testPhoto)
                 Log.d("CalendarTest", "테스트 데이터 추가 완료 - ID: $photoId")
                 
-                // 데이터 새로고침
-                loadPhotoLogsWithRetry()
+                // Flow 구독 재시작
+                startFlowSubscriptions()
                 
                 _errorMessage.value = "테스트 위치 데이터가 추가되었습니다. (서울역)"
                 

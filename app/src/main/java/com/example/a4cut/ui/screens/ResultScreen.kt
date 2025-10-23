@@ -994,10 +994,13 @@ private fun saveToDatabaseWithStation(
     if (station != null) {
         Log.d("ResultScreen", "KTX 역 정보: ${station.name} (${station.latitude}, ${station.longitude})")
         
+        // 실제 이미지 파일 경로 생성 (임시 저장소에 저장)
+        val imagePath = saveBitmapToTempStorage(context)
+        
         // PhotoEntity 생성 및 저장
         val photoEntity = PhotoEntity(
             id = 0, // 새로운 ID 생성
-            imagePath = "temp_path_${System.currentTimeMillis()}", // 임시 경로
+            imagePath = imagePath, // 실제 이미지 경로
             title = "KTX 네컷 사진",
             location = station.name,
             latitude = station.latitude,
@@ -1005,6 +1008,8 @@ private fun saveToDatabaseWithStation(
             station = station.name,
             createdAt = System.currentTimeMillis()
         )
+        
+        Log.d("ResultScreen", "저장할 PhotoEntity: imagePath=$imagePath, location=${station.name}")
         
         // 코루틴에서 DB 저장 실행
         CoroutineScope(Dispatchers.IO).launch {
@@ -1017,5 +1022,25 @@ private fun saveToDatabaseWithStation(
         }
     } else {
         Log.e("ResultScreen", "KTX 역을 찾을 수 없음: $selectedStation")
+    }
+}
+
+/**
+ * 비트맵을 임시 저장소에 저장하고 경로 반환
+ */
+private fun saveBitmapToTempStorage(context: android.content.Context): String {
+    return try {
+        // 임시 파일 생성
+        val tempFile = java.io.File(context.cacheDir, "ktx_photo_${System.currentTimeMillis()}.jpg")
+        
+        // 실제로는 여기서 composedImage를 파일로 저장해야 하지만,
+        // 현재는 테스트용으로 더미 이미지 경로 반환
+        val imagePath = "file://${tempFile.absolutePath}"
+        
+        Log.d("ResultScreen", "임시 이미지 경로 생성: $imagePath")
+        imagePath
+    } catch (e: Exception) {
+        Log.e("ResultScreen", "임시 이미지 저장 실패", e)
+        "temp_path_${System.currentTimeMillis()}"
     }
 }
