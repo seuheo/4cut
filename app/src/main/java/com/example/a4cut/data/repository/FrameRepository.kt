@@ -26,13 +26,13 @@ class FrameRepository {
     private fun loadInitialFrames() {
         val initialFrames = listOf(
             Frame(
-                id = "life_4cut_frame",
-                name = "인생네컷 프레임",
+                id = "single_frame",
+                name = "기본 프레임",
                 date = "25.01.13",
-                station = "인생네컷",
-                title = "인생네컷 프레임",
+                station = "KTX",
+                title = "기본 프레임",
                 isPremium = false,
-                drawableId = R.drawable.life_4cut_frame
+                drawableId = R.drawable.single_frame
             )
         )
         

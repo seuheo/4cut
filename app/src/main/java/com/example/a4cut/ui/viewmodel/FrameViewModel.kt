@@ -1487,7 +1487,7 @@ class FrameViewModel : ViewModel() {
                     // 기본 프레임 사용
                     imageComposer?.loadDrawableAsBitmap(
                         context = ctx,
-                        drawableId = R.drawable.ktx_frame_signature,
+                        drawableId = R.drawable.single_frame,
                         width = ImageComposer.OUTPUT_WIDTH,
                         height = ImageComposer.OUTPUT_HEIGHT
                     ) ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)

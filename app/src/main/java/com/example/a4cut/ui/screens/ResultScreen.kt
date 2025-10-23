@@ -42,6 +42,7 @@ import com.example.a4cut.data.repository.PhotoRepository
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
+import com.example.a4cut.ui.utils.ImageComposer
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -213,7 +214,7 @@ fun ResultScreen(
                     isShared = false, // 임시로 false
                     onSave = { 
                         // KTX 역 정보와 함께 DB에 자동 저장
-                        saveToDatabaseWithStation(selectedStation, photoRepository, context)
+                        saveToDatabaseWithStation(selectedStation, photoRepository, context, composedImage)
                         frameViewModel.saveImage()
                         showSaveSnackbar = true
                     },
@@ -973,7 +974,8 @@ private fun KtxStationSelectionSection(
 private fun saveToDatabaseWithStation(
     selectedStation: String?,
     photoRepository: PhotoRepository?,
-    context: android.content.Context
+    context: android.content.Context,
+    composedImage: Bitmap?
 ) {
     if (photoRepository == null) {
         Log.e("ResultScreen", "PhotoRepository가 null입니다!")
@@ -994,8 +996,8 @@ private fun saveToDatabaseWithStation(
     if (station != null) {
         Log.d("ResultScreen", "KTX 역 정보: ${station.name} (${station.latitude}, ${station.longitude})")
         
-        // 실제 이미지 파일 경로 생성 (임시 저장소에 저장)
-        val imagePath = saveBitmapToTempStorage(context)
+        // 갤러리에 이미지 저장
+        val imagePath = saveBitmapToGallery(context, composedImage)
         
         // PhotoEntity 생성 및 저장
         val photoEntity = PhotoEntity(
@@ -1031,19 +1033,43 @@ private fun saveToDatabaseWithStation(
 /**
  * 비트맵을 임시 저장소에 저장하고 경로 반환
  */
-private fun saveBitmapToTempStorage(context: android.content.Context): String {
+private fun saveBitmapToGallery(context: android.content.Context, composedImage: Bitmap?): String {
     return try {
-        // 임시 파일 생성
-        val tempFile = java.io.File(context.cacheDir, "ktx_photo_${System.currentTimeMillis()}.jpg")
+        if (composedImage == null) {
+            Log.e("ResultScreen", "composedImage가 null입니다!")
+            return "error_no_image"
+        }
         
-        // 실제로는 여기서 composedImage를 파일로 저장해야 하지만,
-        // 현재는 테스트용으로 더미 이미지 경로 반환
-        val imagePath = "file://${tempFile.absolutePath}"
+        // ImageComposer를 사용하여 갤러리에 저장
+        val imageComposer = ImageComposer(context)
+        val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
         
-        Log.d("ResultScreen", "임시 이미지 경로 생성: $imagePath")
-        imagePath
+        Log.d("ResultScreen", "갤러리 저장 시작: $fileName")
+        
+        // 코루틴에서 갤러리 저장 실행
+        var savedUri: android.net.Uri? = null
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                savedUri = imageComposer.saveBitmapToGallery(composedImage, fileName)
+                Log.d("ResultScreen", "갤러리 저장 완료: $savedUri")
+            } catch (e: Exception) {
+                Log.e("ResultScreen", "갤러리 저장 실패", e)
+            }
+        }
+        
+        // 동기적으로 결과 대기 (실제로는 비동기 처리가 필요하지만 테스트용)
+        // TODO: 실제로는 비동기 처리를 위해 함수를 suspend로 만들어야 함
+        Thread.sleep(1000) // 임시로 1초 대기
+        
+        if (savedUri != null) {
+            Log.d("ResultScreen", "갤러리 저장 성공: $savedUri")
+            savedUri.toString()
+        } else {
+            Log.e("ResultScreen", "갤러리 저장 실패 - Uri가 null")
+            "error_save_failed"
+        }
     } catch (e: Exception) {
-        Log.e("ResultScreen", "임시 이미지 저장 실패", e)
-        "temp_path_${System.currentTimeMillis()}"
+        Log.e("ResultScreen", "갤러리 저장 실패", e)
+        "error_${System.currentTimeMillis()}"
     }
 }
