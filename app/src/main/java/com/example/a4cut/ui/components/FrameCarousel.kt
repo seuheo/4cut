@@ -204,6 +204,7 @@ private fun FrameCard(
                     .height(120.dp)
                     .clip(RoundedCornerShape(12.dp))
             ) {
+                // PNG 파일을 위한 painterResource 사용
                 Image(
                     painter = painterResource(id = frame.drawableId),
                     contentDescription = frame.name,

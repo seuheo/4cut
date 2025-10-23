@@ -81,7 +81,8 @@ class ImageComposer(private val context: Context) {
                 
                 // 스케일된 비트맵이 원본과 다른 경우에만 메모리 해제
                 if (scaledPhoto != bitmap && !scaledPhoto.isRecycled) {
-                    scaledPhoto.recycle()
+                    // UI에서 사용 중인 Bitmap은 재활용하지 않음
+                    // scaledPhoto.recycle() // 주석 처리
                 }
             } ?: run {
                 println("${index + 1}번째 사진이 null이므로 건너뜀")
@@ -573,10 +574,10 @@ class ImageComposer(private val context: Context) {
         println("원본 크기: ${originalWidth}x${originalHeight}")
         println("목표 크기: ${targetWidth}x${targetHeight}")
         
-        // 원본 비트맵이 이미 목표 크기와 같으면 복사본 반환 (원본 보호)
+        // 원본 비트맵이 이미 목표 크기와 같으면 원본 반환 (재활용 방지)
         if (originalWidth == targetWidth && originalHeight == targetHeight) {
-            println("크기가 동일하므로 복사본 생성")
-            return bitmap.copy(bitmap.config, false)
+            println("크기가 동일하므로 원본 반환")
+            return bitmap
         }
         
         // 프레임의 사각형 모양에 정확히 맞게 스케일링 (비율 무시)

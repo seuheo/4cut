@@ -1328,8 +1328,30 @@ class FrameViewModel : ViewModel() {
                 val savedUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
                 
                 if (savedUri != null) {
-                    // 갤러리 저장 성공 (DB 저장은 ResultScreen에서 처리)
-                    _successMessage.value = "이미지가 갤러리에 성공적으로 저장되었습니다!"
+                    // 갤러리 저장 성공 후 DB에도 저장
+                    try {
+                        // 자동 위치 태깅 수행
+                        val locationMetadata = locationTaggingService?.generateLocationMetadata()
+                        
+                        photoRepository?.createKTXPhoto(
+                            imagePath = savedUri.toString(),
+                            title = "KTX 네컷 사진",
+                            location = locationMetadata?.stationName ?: "KTX 역",
+                            latitude = locationMetadata?.latitude,
+                            longitude = locationMetadata?.longitude
+                        )
+                        
+                        // 성공 메시지에 위치 정보 포함
+                        val successMessage = if (locationMetadata != null) {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${locationMetadata.stationName}에서 촬영)"
+                        } else {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
+                        }
+                        _successMessage.value = successMessage
+                    } catch (dbException: Exception) {
+                        // 데이터베이스 저장 실패해도 갤러리 저장은 성공했으므로 부분 성공 메시지
+                        _successMessage.value = "이미지는 갤러리에 저장되었지만 앱 저장에 실패했습니다."
+                    }
                     clearError()
                 } else {
                     _errorMessage.value = "이미지 저장에 실패했습니다."
@@ -1602,13 +1624,14 @@ class FrameViewModel : ViewModel() {
         super.onCleared()
         // ViewModel이 정리될 때만 안전하게 메모리 해제
         // UI에서 사용 중인 bitmap은 가비지 컬렉터가 처리하도록 함
-        _photos.value.forEach { bitmap ->
-            bitmap?.let { 
-                if (!it.isRecycled) {
-                    it.recycle()
-                }
-            }
-        }
+        // Bitmap 재활용을 방지하여 크래시 방지
+        // _photos.value.forEach { bitmap ->
+        //     bitmap?.let { 
+        //         if (!it.isRecycled) {
+        //             it.recycle()
+        //         }
+        //     }
+        // }
         // 합성된 이미지도 메모리 해제
         _composedImage.value?.let { bitmap ->
             if (!bitmap.isRecycled) {
