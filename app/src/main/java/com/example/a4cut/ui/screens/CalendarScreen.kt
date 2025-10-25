@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -694,10 +695,9 @@ private fun PhotoGridItem(
             
             // 위치 정보 오버레이 (KTX 역인 경우에만)
             if (photo.location.isNotBlank() && photo.location.contains("역")) {
-                Box(
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .clickable { onLocationClick(photo.location) }
                         .background(
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                             shape = RoundedCornerShape(bottomStart = 8.dp)
@@ -709,8 +709,22 @@ private fun PhotoGridItem(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
+                    
+                    // 지도 아이콘 버튼
+                    IconButton(
+                        onClick = { onLocationClick(photo.location) },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "지도에서 보기",
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
         }
