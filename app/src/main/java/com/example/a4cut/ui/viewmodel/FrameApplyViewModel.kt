@@ -28,7 +28,8 @@ import kotlinx.coroutines.launch
 class FrameApplyViewModel(
     private val photoRepository: PhotoRepository? = null,
     private val frameRepository: FrameRepository? = null,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val frameViewModel: com.example.a4cut.ui.viewmodel.FrameViewModel? = null
 ) : ViewModel() {
 
     private val imageComposer = context?.let { ImageComposer(it) }
@@ -395,6 +396,10 @@ class FrameApplyViewModel(
                                 successMessage = "사진이 갤러리에 저장되었습니다."
                             )
                         }
+                        
+                        // 저장 성공 후 FrameViewModel 상태 초기화
+                        frameViewModel?.resetState()
+                        Log.d("FrameApplyViewModel", "사진 저장 성공 후 상태 초기화 완료")
                     } else {
                         _uiState.update { 
                             it.copy(

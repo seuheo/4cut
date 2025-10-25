@@ -565,7 +565,7 @@ fun AppNavigation(
                     factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                         @Suppress("UNCHECKED_CAST")
                         override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                            return com.example.a4cut.ui.viewmodel.FrameApplyViewModel(photoRepository, frameRepository, context) as T
+                            return com.example.a4cut.ui.viewmodel.FrameApplyViewModel(photoRepository, frameRepository, context, sharedFrameViewModel) as T
                         }
                     }
                 )
@@ -577,6 +577,7 @@ fun AppNavigation(
                 
                 com.example.a4cut.ui.screens.FrameApplyScreen(
                     viewModel = frameApplyViewModel,
+                    frameViewModel = sharedFrameViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

@@ -36,6 +36,7 @@ import android.util.Log
 @Composable
 fun FrameApplyScreen(
     viewModel: FrameApplyViewModel,
+    frameViewModel: com.example.a4cut.ui.viewmodel.FrameViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {

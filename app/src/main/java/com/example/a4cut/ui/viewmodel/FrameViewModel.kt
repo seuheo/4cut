@@ -1669,12 +1669,12 @@ class FrameViewModel : ViewModel() {
         //         }
         //     }
         // }
-        // 합성된 이미지도 메모리 해제
-        _composedImage.value?.let { bitmap ->
-            if (!bitmap.isRecycled) {
-                bitmap.recycle()
-            }
-        }
+        // 합성된 이미지는 UI에서 사용 중이므로 재활용하지 않음
+        // _composedImage.value?.let { bitmap ->
+        //     if (!bitmap.isRecycled) {
+        //         bitmap.recycle()
+        //     }
+        // }
     }
     
     
@@ -1684,6 +1684,34 @@ class FrameViewModel : ViewModel() {
     fun clearKtxStationSelection() {
         _selectedKtxStation.value = null
         println("KTX역 선택 해제됨")
+    }
+    
+    /**
+     * 상태 초기화 함수
+     * 사진 저장 완료 후 모든 선택 상태를 초기값으로 되돌림
+     */
+    fun resetState() {
+        // 1. 선택된 사진 목록 초기화
+        _photos.value = MutableList(4) { null }
+        _photoStates.clear()
+        _photoStates.addAll(MutableList(4) { PhotoState(null) })
+        
+        // 2. 선택된 프레임 초기화
+        _selectedFrame.value = null
+        
+        // 3. 합성된 이미지 비트맵 초기화
+        _composedImage.value = null
+        _composedImageUri.value = null
+        
+        // 4. 로딩 및 오류 상태 초기화
+        _isLoading.value = false
+        _isProcessing.value = false
+        _errorMessage.value = null
+        
+        // 5. KTX 역 선택 초기화
+        _selectedKtxStation.value = null
+        
+        println("=== FrameViewModel 상태 초기화 완료 ===")
     }
     
     
