@@ -424,7 +424,8 @@ fun CalendarScreen(
                                     // 기존 마커 제거
                                     mapView.overlays.clear()
                                     
-                                    var mapCenterSet = false
+                                    // 모든 마커를 먼저 추가
+                                    val validMarkers = mutableListOf<Marker>()
                                     testPhotosWithLocation.forEach { (geoPoint, title, _) ->
                                         try {
                                             // GeoPoint 유효성 검사
@@ -435,19 +436,77 @@ fun CalendarScreen(
                                                 marker.title = title.ifBlank { "사진 위치" }
                                                 marker.snippet = "이곳에서 사진을 찍었습니다."
                                                 
-                                                mapView.overlays.add(marker)
-                                                Log.d("CalendarTest", "UI: 마커 추가됨 - ${title} (${geoPoint.latitude})")
-                                                
-                                                // 첫 번째 마커 위치로 카메라 이동 (한 번만)
-                                                if (!mapCenterSet) {
-                                                    mapView.controller.animateTo(geoPoint, initialZoom, 1000L)
-                                                    mapCenterSet = true
+                                                // 마커 클릭 이벤트 설정
+                                                marker.setOnMarkerClickListener { clickedMarker, mapView ->
+                                                    try {
+                                                        Log.d("CalendarTest", "UI: 마커 클릭됨 - ${clickedMarker.title}")
+                                                        
+                                                        // 클릭된 마커의 위치로 지도 이동 및 확대
+                                                        mapView.controller.animateTo(clickedMarker.position, 17.0, 1000L)
+                                                        
+                                                        // 마커 정보 표시 (선택사항)
+                                                        clickedMarker.showInfoWindow()
+                                                        
+                                                        true // 이벤트 처리됨
+                                                    } catch (e: Exception) {
+                                                        Log.e("CalendarTest", "UI: 마커 클릭 처리 중 오류", e)
+                                                        false
+                                                    }
                                                 }
+                                                
+                                                mapView.overlays.add(marker)
+                                                validMarkers.add(marker)
+                                                Log.d("CalendarTest", "UI: 마커 추가됨 - ${title} (${geoPoint.latitude})")
                                             } else {
                                                 Log.e("CalendarTest", "UI: 유효하지 않은 GeoPoint - ${title} (${geoPoint.latitude}, ${geoPoint.longitude})")
                                             }
                                         } catch (e: Exception) {
                                             Log.e("CalendarTest", "UI: 마커 생성 중 오류 - ${title}", e)
+                                        }
+                                    }
+                                    
+                                    // 동적 지도 중심점 설정
+                                    if (validMarkers.isNotEmpty()) {
+                                        try {
+                                            if (validMarkers.size == 1) {
+                                                // 마커가 1개인 경우: 해당 위치로 이동
+                                                val singleMarker = validMarkers.first()
+                                                mapView.controller.animateTo(singleMarker.position, 17.0, 1000L)
+                                                Log.d("CalendarTest", "UI: 단일 마커 위치로 지도 이동")
+                                            } else {
+                                                // 마커가 여러 개인 경우: 모든 마커를 포함하는 범위로 설정
+                                                val latitudes = validMarkers.map { it.position.latitude }
+                                                val longitudes = validMarkers.map { it.position.longitude }
+                                                
+                                                val minLat = latitudes.minOrNull() ?: 0.0
+                                                val maxLat = latitudes.maxOrNull() ?: 0.0
+                                                val minLon = longitudes.minOrNull() ?: 0.0
+                                                val maxLon = longitudes.maxOrNull() ?: 0.0
+                                                
+                                                // 중심점 계산
+                                                val centerLat = (minLat + maxLat) / 2
+                                                val centerLon = (minLon + maxLon) / 2
+                                                val centerPoint = GeoPoint(centerLat, centerLon)
+                                                
+                                                // 줌 레벨 계산 (마커들 간의 거리에 따라 조정)
+                                                val latSpan = maxLat - minLat
+                                                val lonSpan = maxLon - minLon
+                                                val maxSpan = maxOf(latSpan, lonSpan)
+                                                
+                                                val zoomLevel = when {
+                                                    maxSpan > 0.1 -> 10.0  // 매우 넓은 범위
+                                                    maxSpan > 0.05 -> 12.0 // 넓은 범위
+                                                    maxSpan > 0.01 -> 14.0 // 중간 범위
+                                                    else -> 16.0          // 좁은 범위
+                                                }
+                                                
+                                                mapView.controller.animateTo(centerPoint, zoomLevel, 1000L)
+                                                Log.d("CalendarTest", "UI: 다중 마커 범위로 지도 설정 - 중심: ($centerLat, $centerLon), 줌: $zoomLevel")
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("CalendarTest", "UI: 지도 중심점 설정 중 오류", e)
+                                            // 오류 발생 시 첫 번째 마커로 이동
+                                            mapView.controller.animateTo(validMarkers.first().position, initialZoom, 1000L)
                                         }
                                     }
                                     mapView.invalidate() // 마커 추가 후 지도 갱신

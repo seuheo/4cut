@@ -91,6 +91,15 @@ fun ResultScreen(
         selectedStation = null // 노선 변경 시 역 선택 초기화
     }
     
+    // 선택된 역이 변경될 때 FrameViewModel에 전달
+    LaunchedEffect(selectedStation) {
+        selectedStation?.let { stationName ->
+            val station = ktxStationRepository.findStationByName(stationName)
+            frameViewModel.selectKtxStation(station)
+            Log.d("ResultScreen", "FrameViewModel에 역 정보 전달: ${station?.name}")
+        }
+    }
+    
     // 로컬 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
     var isLiked by remember { mutableStateOf(false) }
@@ -996,35 +1005,11 @@ private fun saveToDatabaseWithStation(
     if (station != null) {
         Log.d("ResultScreen", "KTX 역 정보: ${station.name} (${station.latitude}, ${station.longitude})")
         
-        // 갤러리에 이미지 저장
+        // 갤러리에 이미지 저장 (DB 저장은 FrameViewModel에서 처리됨)
         val imagePath = saveBitmapToGallery(context, composedImage)
         
-        // PhotoEntity 생성 및 저장
-        val photoEntity = PhotoEntity(
-            id = 0, // 새로운 ID 생성
-            imagePath = imagePath, // 실제 이미지 경로
-            title = "KTX 네컷 사진",
-            location = station.name,
-            latitude = station.latitude,
-            longitude = station.longitude,
-            station = station.name,
-            createdAt = System.currentTimeMillis()
-        )
-        
-        Log.d("ResultScreen", "저장할 PhotoEntity: imagePath=$imagePath, location=${station.name}")
-        
-        // 코루틴에서 DB 저장 실행
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val photoId = photoRepository.insertPhoto(photoEntity)
-                Log.d("ResultScreen", "DB 저장 성공! Photo ID: $photoId")
-                
-                // 저장 성공 후 HomeViewModel 새로고침을 위한 시그널
-                // (HomeViewModel의 Flow가 자동으로 감지하므로 별도 작업 불필요)
-            } catch (e: Exception) {
-                Log.e("ResultScreen", "DB 저장 실패", e)
-            }
-        }
+        Log.d("ResultScreen", "갤러리 저장 완료: $imagePath")
+        Log.d("ResultScreen", "DB 저장은 FrameViewModel에서 처리됨")
     } else {
         Log.e("ResultScreen", "KTX 역을 찾을 수 없음: $selectedStation")
     }

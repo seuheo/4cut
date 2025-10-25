@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
@@ -106,9 +107,13 @@ class FrameViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
-    // 합성된 최종 이미지를 저장할 상태
+    // 합성된 최종 이미지를 저장할 상태 (Uri 방식으로 변경)
     private val _composedImage = MutableStateFlow<Bitmap?>(null)
     val composedImage: StateFlow<Bitmap?> = _composedImage.asStateFlow()
+    
+    // 합성된 이미지의 Uri 저장 (Bitmap 생명주기 문제 해결)
+    private val _composedImageUri = MutableStateFlow<Uri?>(null)
+    val composedImageUri: StateFlow<Uri?> = _composedImageUri.asStateFlow()
     
     // KTX역 선택 상태
     private val _selectedKtxStation = MutableStateFlow<KtxStation?>(null)
@@ -128,6 +133,14 @@ class FrameViewModel : ViewModel() {
     
     init {
         loadFrames()
+    }
+    
+    /**
+     * KTX 역 선택
+     */
+    fun selectKtxStation(station: KtxStation?) {
+        _selectedKtxStation.value = station
+        Log.d("FrameViewModel", "KTX 역 선택됨: ${station?.name}")
     }
     
     /**
@@ -1294,7 +1307,12 @@ class FrameViewModel : ViewModel() {
                         }
                     }
                     println("=== FrameViewModel: 프레임 분기 처리 완료 ===")
-                    _composedImage.value = result // 합성 결과 저장
+                    
+                    // Bitmap을 임시 파일로 저장하고 Uri 저장
+                    val tempUri = saveComposedImageToTemp(result)
+                    _composedImageUri.value = tempUri
+                    _composedImage.value = result // 기존 호환성을 위해 유지
+                    
                     clearError()
                 } ?: run {
                     _errorMessage.value = "이미지 합성기를 초기화할 수 없습니다"
@@ -1308,6 +1326,25 @@ class FrameViewModel : ViewModel() {
             } finally {
                 _isProcessing.value = false
             }
+        }
+    }
+    
+    /**
+     * 합성된 이미지를 임시 파일로 저장하고 Uri 반환
+     */
+    private fun saveComposedImageToTemp(bitmap: Bitmap): Uri? {
+        return try {
+            val tempFile = java.io.File(context?.cacheDir, "composed_temp_${System.currentTimeMillis()}.jpg")
+            val outputStream = java.io.FileOutputStream(tempFile)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+            outputStream.close()
+            
+            val uri = Uri.fromFile(tempFile)
+            println("임시 파일 저장 완료: $uri")
+            uri
+        } catch (e: Exception) {
+            println("임시 파일 저장 실패: ${e.message}")
+            null
         }
     }
     
@@ -1330,20 +1367,20 @@ class FrameViewModel : ViewModel() {
                 if (savedUri != null) {
                     // 갤러리 저장 성공 후 DB에도 저장
                     try {
-                        // 자동 위치 태깅 수행
-                        val locationMetadata = locationTaggingService?.generateLocationMetadata()
+                        // 선택된 KTX 역 정보 사용
+                        val selectedStation = _selectedKtxStation.value
                         
                         photoRepository?.createKTXPhoto(
                             imagePath = savedUri.toString(),
                             title = "KTX 네컷 사진",
-                            location = locationMetadata?.stationName ?: "KTX 역",
-                            latitude = locationMetadata?.latitude,
-                            longitude = locationMetadata?.longitude
+                            location = selectedStation?.name ?: "KTX 역",
+                            latitude = selectedStation?.latitude,
+                            longitude = selectedStation?.longitude
                         )
                         
                         // 성공 메시지에 위치 정보 포함
-                        val successMessage = if (locationMetadata != null) {
-                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${locationMetadata.stationName}에서 촬영)"
+                        val successMessage = if (selectedStation != null) {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.name}에서 촬영)"
                         } else {
                             "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
                         }
@@ -1640,13 +1677,6 @@ class FrameViewModel : ViewModel() {
         }
     }
     
-    /**
-     * KTX역 선택
-     */
-    fun selectKtxStation(station: KtxStation) {
-        _selectedKtxStation.value = station
-        println("KTX역 선택됨: ${station.name} (${station.line})")
-    }
     
     /**
      * KTX역 선택 해제
