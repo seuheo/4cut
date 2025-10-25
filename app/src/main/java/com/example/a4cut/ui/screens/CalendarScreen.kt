@@ -1,6 +1,7 @@
 package com.example.a4cut.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -51,6 +52,7 @@ import android.util.Log
 fun CalendarScreen(
     homeViewModel: HomeViewModel,
     onNavigateToPhotoDetail: (String) -> Unit,
+    onNavigateToHomeWithLocation: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -59,6 +61,9 @@ fun CalendarScreen(
     var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var selectedDate by remember { mutableStateOf<Calendar?>(null) }
+    
+    // 마커 클릭 시 사진 미리보기 상태
+    var selectedPhotoForPreview by remember { mutableStateOf<PhotoEntity?>(null) }
     
     // ViewModel 초기화 - 안전한 초기화 (AppNavigation에서 이미 설정됨)
     LaunchedEffect(Unit) {
@@ -325,7 +330,10 @@ fun CalendarScreen(
                     items(photosForSelectedDate) { photo ->
                         PhotoGridItem(
                             photo = photo,
-                            onClick = { onNavigateToPhotoDetail(photo.id.toString()) }
+                            onClick = { onNavigateToPhotoDetail(photo.id.toString()) },
+                            onLocationClick = { location ->
+                                onNavigateToHomeWithLocation(location)
+                            }
                         )
                     }
                 }
@@ -344,44 +352,26 @@ fun CalendarScreen(
             if (selectedDate != null || allPhotos.isNotEmpty()) {
                 Log.d("CalendarTest", "UI: 선택된 날짜의 사진 개수: ${photosForSelectedDate.size}")
                 
-                // 지도에 표시할 사진 데이터 준비
-                val testPhotosWithLocation = if (photosForSelectedDate.isNotEmpty()) {
-                    // 선택된 날짜의 사진이 있으면 해당 사진 사용
-                    photosForSelectedDate.mapNotNull { photo ->
-                        try {
-                            val latitude = photo.latitude ?: 37.5547
-                            val longitude = photo.longitude ?: 126.9706
-                            
-                            Log.d("CalendarTest", "UI: 선택된 날짜 사진 위치 정보 - ${photo.location} (${latitude}, ${longitude})")
-                            Triple(GeoPoint(latitude, longitude), photo.location ?: "사진 위치", photo)
-                        } catch (e: Exception) {
-                            Log.e("CalendarTest", "UI: 사진 위치 정보 처리 중 오류", e)
-                            null
-                        }
-                    }
-                } else if (allPhotos.isNotEmpty()) {
-                    // 선택된 날짜에 사진이 없으면 전체 사진 중 최근 사진 사용
-                    val latestPhoto = allPhotos.maxByOrNull { it.createdAt }
-                    if (latestPhoto != null) {
-                        try {
-                            val latitude = latestPhoto.latitude ?: 37.5547
-                            val longitude = latestPhoto.longitude ?: 126.9706
-                            
-                            Log.d("CalendarTest", "UI: 최근 사진 위치 정보 - ${latestPhoto.location} (${latitude}, ${longitude})")
-                            listOf(Triple(GeoPoint(latitude, longitude), latestPhoto.location ?: "최근 사진", latestPhoto))
-                        } catch (e: Exception) {
-                            Log.e("CalendarTest", "UI: 최근 사진 위치 정보 처리 중 오류", e)
-                            listOf(Triple(GeoPoint(37.5547, 126.9706), "서울역", null))
-                        }
-                    } else {
-                        listOf(Triple(GeoPoint(37.5547, 126.9706), "서울역", null))
-                    }
+                // 지도에 표시할 사진 데이터 준비 - 필터링된 사진 표시
+                val photosForMap = if (selectedStation != null) {
+                    // 특정 역이 선택된 경우 해당 역의 사진만 표시
+                    allPhotos.filter { it.location == selectedStation }
                 } else {
-                    // 사진이 전혀 없으면 테스트용 서울역 좌표 사용
-                    Log.d("CalendarTest", "UI: 테스트용 서울역 좌표 사용")
-                    listOf(
-                        Triple(GeoPoint(37.5547, 126.9706), "서울역", null)
-                    )
+                    // 선택된 역이 없으면 모든 사진 표시
+                    allPhotos
+                }
+                
+                val testPhotosWithLocation = photosForMap.mapNotNull { photo ->
+                    try {
+                        val latitude = photo.latitude ?: 37.5547
+                        val longitude = photo.longitude ?: 126.9706
+                        
+                        Log.d("CalendarTest", "UI: 필터링된 사진 위치 정보 - ${photo.location} (${latitude}, ${longitude})")
+                        Triple(GeoPoint(latitude, longitude), photo.location ?: "사진 위치", photo)
+                    } catch (e: Exception) {
+                        Log.e("CalendarTest", "UI: 사진 위치 정보 처리 중 오류", e)
+                        null
+                    }
                 }
                 
                 Log.d("CalendarTest", "UI: 지도에 표시할 사진 개수: ${testPhotosWithLocation.size}")
@@ -446,6 +436,19 @@ fun CalendarScreen(
                                                         
                                                         // 마커 정보 표시 (선택사항)
                                                         clickedMarker.showInfoWindow()
+                                                        
+                                                        // 해당 위치의 사진 찾기
+                                                        val clickedLocation = clickedMarker.title
+                                                        val photoAtLocation = allPhotos.find { photo ->
+                                                            photo.location == clickedLocation
+                                                        }
+                                                        
+                                                        if (photoAtLocation != null) {
+                                                            selectedPhotoForPreview = photoAtLocation
+                                                            Log.d("CalendarTest", "UI: 해당 위치의 사진 찾음: ${photoAtLocation.title}")
+                                                        } else {
+                                                            Log.d("CalendarTest", "UI: 해당 위치의 사진을 찾을 수 없음: $clickedLocation")
+                                                        }
                                                         
                                                         true // 이벤트 처리됨
                                                     } catch (e: Exception) {
@@ -551,6 +554,73 @@ fun CalendarScreen(
                 ErrorMessageSection(message = message)
             }
         }
+        
+        // 마커 클릭 시 사진 미리보기 다이얼로그
+        selectedPhotoForPreview?.let { photo ->
+            // 간단한 사진 미리보기 다이얼로그 (ImagePreviewDialog 대신 기본 다이얼로그 사용)
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { selectedPhotoForPreview = null }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = photo.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        if (photo.location.isNotBlank()) {
+                            Text(
+                                text = "📍 ${photo.location}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        AsyncImage(
+                            model = photo.imagePath,
+                            contentDescription = photo.title,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { 
+                                    selectedPhotoForPreview = null
+                                    onNavigateToPhotoDetail(photo.id.toString())
+                                }
+                            ) {
+                                Text("상세 보기")
+                            }
+                            
+                            OutlinedButton(
+                                onClick = { selectedPhotoForPreview = null }
+                            ) {
+                                Text("닫기")
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -605,6 +675,7 @@ private fun EmptyCalendarDate() {
 private fun PhotoGridItem(
     photo: PhotoEntity,
     onClick: () -> Unit,
+    onLocationClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -626,6 +697,7 @@ private fun PhotoGridItem(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
+                        .clickable { onLocationClick(photo.location) }
                         .background(
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                             shape = RoundedCornerShape(bottomStart = 8.dp)

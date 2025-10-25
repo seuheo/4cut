@@ -239,6 +239,13 @@ fun AppNavigation(
             
             composable(
                 route = Screen.Home.route,
+                arguments = listOf(
+                    navArgument("location") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                ),
                 enterTransition = {
                     slideInHorizontally(
                         initialOffsetX = { it },
@@ -251,9 +258,11 @@ fun AppNavigation(
                         animationSpec = tween(300)
                     )
                 }
-            ) {
+            ) { backStackEntry ->
+                val location = backStackEntry.arguments?.getString("location")
                 HomeScreen(
                     homeViewModel = sharedHomeViewModel,
+                    selectedLocation = location,
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
                     },
@@ -399,6 +408,9 @@ fun AppNavigation(
                     homeViewModel = sharedHomeViewModel,
                     onNavigateToPhotoDetail = { photoId ->
                         navController.navigate("photo_detail/$photoId")
+                    },
+                    onNavigateToHomeWithLocation = { location ->
+                        navController.navigate("home?location=$location")
                     }
                 )
             }

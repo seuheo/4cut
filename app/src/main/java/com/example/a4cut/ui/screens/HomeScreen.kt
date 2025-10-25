@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.util.Log
 import coil.compose.AsyncImage
 import com.example.a4cut.ui.components.InstagramStoryCircle
 import com.example.a4cut.ui.components.KtxStationSelector
@@ -51,6 +52,7 @@ import java.util.Calendar
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
+    selectedLocation: String? = null,
     onNavigateToPhotoDetail: (String) -> Unit,
     onNavigateToFrame: () -> Unit,
     onNavigateToSearch: () -> Unit,
@@ -62,6 +64,8 @@ fun HomeScreen(
     val latestPhoto by homeViewModel.latestPhoto.collectAsState()
     val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
     val allPhotos by homeViewModel.allPhotos.collectAsState()
+    val filteredPhotosForMap by homeViewModel.filteredPhotosForMap.collectAsState()
+    val mapLocationFilter by homeViewModel.mapLocationFilter.collectAsState()
     val isTestMode by homeViewModel.isTestMode.collectAsState()
     val selectedKtxStation by homeViewModel.selectedKtxStation.collectAsState()
     
@@ -69,6 +73,24 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         if (!homeViewModel.isDatabaseReady()) {
             homeViewModel.setContext(context)
+        }
+    }
+    
+    // 선택된 위치가 있으면 해당 위치로 이동, 없으면 모든 사진 표시
+    LaunchedEffect(selectedLocation) {
+        if (selectedLocation != null) {
+            homeViewModel.setMapLocationFilter(selectedLocation)
+            Log.d("HomeScreen", "특정 위치 필터 설정: $selectedLocation")
+        } else {
+            homeViewModel.clearMapLocationFilter() // 필터 해제하여 모든 사진 표시
+            Log.d("HomeScreen", "모든 위치 표시")
+        }
+    }
+    
+    // 화면이 사라질 때 (다른 탭으로 이동 시) 필터를 초기화
+    DisposableEffect(Unit) {
+        onDispose {
+            homeViewModel.clearMapLocationFilter()
         }
     }
 

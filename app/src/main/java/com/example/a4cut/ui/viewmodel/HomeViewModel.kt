@@ -54,6 +54,10 @@ class HomeViewModel : ViewModel() {
     private val _photosForSelectedDate = MutableStateFlow<List<PhotoEntity>>(emptyList())
     val photosForSelectedDate: StateFlow<List<PhotoEntity>> = _photosForSelectedDate.asStateFlow()
     
+    // 지도에 표시할 위치 필터 상태 (캘린더에서 위치 클릭 시 사용)
+    private val _mapLocationFilter = MutableStateFlow<String?>(null)
+    val mapLocationFilter: StateFlow<String?> = _mapLocationFilter.asStateFlow()
+    
     // 포토로그 데이터 - Repository의 Flow를 직접 구독하여 자동 업데이트
     private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
     val photoLogs: StateFlow<List<PhotoEntity>> = _photoLogs.asStateFlow()
@@ -73,14 +77,25 @@ class HomeViewModel : ViewModel() {
         initialValue = null
     )
     
-    // 모든 사진 (피드용) - 역 선택에 따라 필터링
-    val allPhotos: StateFlow<List<PhotoEntity>> = combine(photoLogs, _selectedStation) { photos, station ->
-        val filteredPhotos = if (station == null) {
-            photos
+    // 모든 사진 (피드용) - 모든 사진 표시
+    val allPhotos: StateFlow<List<PhotoEntity>> = photoLogs.map { photos ->
+        photos.sortedByDescending { it.createdAt }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+    
+    // 필터가 적용된 사진 목록 (지도가 사용할 목록)
+    val filteredPhotosForMap: StateFlow<List<PhotoEntity>> = combine(
+        allPhotos,
+        _mapLocationFilter
+    ) { photos, filter ->
+        if (filter != null) {
+            photos.filter { it.location == filter }
         } else {
-            photos.filter { it.station == station }
+            photos // 필터가 없으면 전체 목록
         }
-        filteredPhotos.sortedByDescending { it.createdAt }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -486,6 +501,22 @@ class HomeViewModel : ViewModel() {
      */
     fun selectStation(stationName: String?) {
         _selectedStation.value = stationName
+    }
+    
+    /**
+     * 지도 위치 필터 설정 (캘린더에서 위치 클릭 시 사용)
+     */
+    fun setMapLocationFilter(location: String?) {
+        _mapLocationFilter.value = location
+        Log.d("HomeViewModel", "지도 위치 필터 설정: $location")
+    }
+    
+    /**
+     * 지도 위치 필터 해제 (지도를 벗어날 때 호출)
+     */
+    fun clearMapLocationFilter() {
+        _mapLocationFilter.value = null
+        Log.d("HomeViewModel", "지도 위치 필터 해제")
     }
     
     /**
