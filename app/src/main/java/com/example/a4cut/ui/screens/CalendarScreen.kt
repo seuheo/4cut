@@ -82,7 +82,7 @@ fun CalendarScreen(
     val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
-    val selectedStation by homeViewModel.selectedStation.collectAsState()
+    val mapLocationFilter by homeViewModel.mapLocationFilter.collectAsState()
     // 선택된 날짜의 사진 목록 구독 (지도 표시용)
     val photosForSelectedDate by homeViewModel.photosForSelectedDate.collectAsState()
     
@@ -160,9 +160,9 @@ fun CalendarScreen(
 
                 KtxStationSelector(
                     stations = stations,
-                    selectedStation = selectedStation,
+                    selectedStation = mapLocationFilter,
                     onStationSelected = { stationName ->
-                        homeViewModel.selectStation(stationName)
+                        homeViewModel.setMapLocationFilter(stationName)
                     }
                 )
             }
@@ -354,11 +354,11 @@ fun CalendarScreen(
                 Log.d("CalendarTest", "UI: 선택된 날짜의 사진 개수: ${photosForSelectedDate.size}")
                 
                 // 지도에 표시할 사진 데이터 준비 - 필터링된 사진 표시
-                val photosForMap = if (selectedStation != null) {
-                    // 특정 역이 선택된 경우 해당 역의 사진만 표시
-                    allPhotos.filter { it.location == selectedStation }
+                val photosForMap = if (mapLocationFilter != null) {
+                    // 특정 위치가 필터링된 경우 해당 위치의 사진만 표시
+                    allPhotos.filter { it.location == mapLocationFilter }
                 } else {
-                    // 선택된 역이 없으면 모든 사진 표시
+                    // 필터가 없으면 모든 사진 표시
                     allPhotos
                 }
                 

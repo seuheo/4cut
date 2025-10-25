@@ -62,12 +62,9 @@ fun HomeScreen(
     
     // ViewModel의 상태들을 수집
     val latestPhoto by homeViewModel.latestPhoto.collectAsState()
-    val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val filteredPhotosForMap by homeViewModel.filteredPhotosForMap.collectAsState()
     val mapLocationFilter by homeViewModel.mapLocationFilter.collectAsState()
-    val isTestMode by homeViewModel.isTestMode.collectAsState()
-    val selectedKtxStation by homeViewModel.selectedKtxStation.collectAsState()
     
     // Context 설정 (AppNavigation에서 이미 설정됨)
     LaunchedEffect(Unit) {

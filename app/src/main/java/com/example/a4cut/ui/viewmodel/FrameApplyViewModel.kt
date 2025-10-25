@@ -273,6 +273,20 @@ class FrameApplyViewModel(
     }
 
     /**
+     * ViewModel 정리 시 Bitmap 메모리 해제
+     */
+    override fun onCleared() {
+        super.onCleared()
+        // ViewModel이 정리될 때만 안전하게 메모리 해제
+        // UI에서 사용 중인 bitmap은 가비지 컬렉터가 처리하도록 함
+        _uiState.value.previewBitmap?.let { bitmap ->
+            if (!bitmap.isRecycled) {
+                bitmap.recycle()
+            }
+        }
+    }
+
+    /**
      * 사진 메타데이터를 DB에 자동 저장 (미리보기 생성 시)
      */
     private fun savePhotoMetadataToDatabase(photo: PhotoEntity, selectedFrame: Frame, previewBitmap: Bitmap?) {
@@ -390,10 +404,10 @@ class FrameApplyViewModel(
                         }
                     }
                     
-                    // 메모리 정리
+                    // 메모리 정리 (중간 단계 Bitmap만 재활용, 최종 결과는 UI에서 사용 중이므로 재활용하지 않음)
                     imageComposer.recycleBitmap(photoBitmap)
                     imageComposer.recycleBitmap(frameBitmap)
-                    imageComposer.recycleBitmap(resultBitmap)
+                    // resultBitmap은 UI에서 사용 중이므로 재활용하지 않음
                     
                 } catch (e: Exception) {
                     _uiState.update { 
