@@ -291,9 +291,12 @@ fun AppNavigation(
                     )
                 }
             ) {
-                FrameScreen(
-                    navController = navController,
-                    frameViewModel = sharedFrameViewModel
+                PhotoSelectionScreen(
+                    frameViewModel = sharedFrameViewModel,
+                    onNext = {
+                        navController.navigate("frame_selection")
+                    },
+                    openGallery = openGallery
                 )
             }
             
@@ -313,14 +316,9 @@ fun AppNavigation(
                     )
                 }
             ) {
-                FrameSelectionScreen(
-                    frameViewModel = sharedFrameViewModel,
-                    onNext = {
-                        navController.navigate("result")
-                    },
-                    onBack = {
-                        navController.popBackStack()
-                    }
+                FramePickerScreen(
+                    navController = navController,
+                    viewModel = sharedFrameViewModel
                 )
             }
             

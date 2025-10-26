@@ -98,8 +98,8 @@ fun FramePickerScreen(
                     onClick = {
                         // 프레임 선택 시 ViewModel 상태 업데이트
                         viewModel.selectFrame(frame)
-                        // 이전 화면(FrameScreen)으로 돌아가기
-                        navController.popBackStack()
+                        // 결과 화면으로 이동
+                        navController.navigate("result")
                     }
                 )
             }
@@ -107,7 +107,7 @@ fun FramePickerScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 3. 취소 버튼 ---
+        // --- 3. 뒤로 가기 버튼 ---
         Button(
             onClick = { navController.popBackStack() },
             modifier = Modifier
@@ -117,7 +117,7 @@ fun FramePickerScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         ) {
-            Text("선택 취소")
+            Text("뒤로 가기")
         }
     }
 }
