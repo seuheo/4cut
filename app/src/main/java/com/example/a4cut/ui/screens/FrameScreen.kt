@@ -48,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.navigation.NavController
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -88,6 +89,7 @@ import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
 import com.example.a4cut.ui.viewmodel.PhotoState
 import com.example.a4cut.data.model.KtxStation
+import com.example.a4cut.ui.navigation.Screen
 
 /**
  * iOS 스타일 프레임 선택 화면 - 예시 이미지와 동일한 깔끔한 디자인
@@ -95,6 +97,7 @@ import com.example.a4cut.data.model.KtxStation
  */
 @Composable
 fun FrameScreen(
+    navController: NavController,
     modifier: Modifier = Modifier,
     frameViewModel: FrameViewModel = viewModel()
 ) {
@@ -156,27 +159,31 @@ fun FrameScreen(
         
         Spacer(modifier = Modifier.height(40.dp))
         
-        // 2. 포맷 선택 UI
-        FormatSelectionSection(
-            selectedFormat = selectedFormat,
-            formats = formats,
-            onFormatSelect = { format ->
-                frameViewModel.selectFormat(format)
-            }
+        // 2. 선택된 프레임 정보 표시
+        SelectedFrameInfoSection(
+            selectedFrame = selectedFrame
         )
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // 3. iOS 스타일 하단 프레임 캐러셀
-        IOSFrameCarouselSection(
-            frames = framesByFormat, // 포맷별 필터링된 프레임 사용
-            selectedFrame = selectedFrame,
-            isLoading = isLoading,
-            onFrameSelect = { frame ->
-                println("FrameScreen: 프레임 선택됨 - ${frame.name} (ID: ${frame.id})")
-                frameViewModel.selectFrame(frame)
-            }
-        )
+        // 3. 프레임 선택 버튼
+        Button(
+            onClick = {
+                navController.navigate(Screen.FramePicker.route)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Text(
+                text = "프레임 선택 / 변경",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
         
         Spacer(modifier = Modifier.height(32.dp))
         
@@ -809,6 +816,60 @@ fun FramePreviewWithSlots(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * 선택된 프레임 정보 표시 섹션
+ */
+@Composable
+private fun SelectedFrameInfoSection(
+    selectedFrame: Frame?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "선택된 프레임",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = selectedFrame?.name ?: "프레임을 선택해주세요",
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (selectedFrame != null) 
+                    MaterialTheme.colorScheme.primary 
+                else 
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
+            )
+            
+            if (selectedFrame != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = selectedFrame.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

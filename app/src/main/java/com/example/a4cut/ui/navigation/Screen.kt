@@ -47,4 +47,10 @@ sealed class Screen(
         title = R.string.nav_onboarding,
         icon = R.drawable.ic_home
     )
+    
+    object FramePicker : Screen(
+        route = "frame_picker",
+        title = R.string.nav_frame,
+        icon = R.drawable.ic_frame
+    )
 }

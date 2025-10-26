@@ -48,6 +48,7 @@ import androidx.navigation.navArgument
 import com.example.a4cut.ui.screens.CalendarScreen
 import com.example.a4cut.ui.screens.EmptyScreen
 import com.example.a4cut.ui.screens.FrameScreen
+import com.example.a4cut.ui.screens.FramePickerScreen
 import com.example.a4cut.ui.screens.OnboardingScreen
 import com.example.a4cut.ui.screens.HomeScreen
 import com.example.a4cut.ui.screens.PhotoDetailScreen
@@ -290,12 +291,9 @@ fun AppNavigation(
                     )
                 }
             ) {
-                PhotoSelectionScreen(
-                    frameViewModel = sharedFrameViewModel,
-                    onNext = {
-                        navController.navigate("frame_selection")
-                    },
-                    openGallery = openGallery
+                FrameScreen(
+                    navController = navController,
+                    frameViewModel = sharedFrameViewModel
                 )
             }
             
@@ -579,6 +577,28 @@ fun AppNavigation(
                     viewModel = frameApplyViewModel,
                     frameViewModel = sharedFrameViewModel,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // 프레임 선택 화면
+            composable(
+                route = Screen.FramePicker.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
+                FramePickerScreen(
+                    navController = navController,
+                    viewModel = sharedFrameViewModel
                 )
             }
         }

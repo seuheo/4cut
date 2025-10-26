@@ -132,6 +132,7 @@ fun FrameApplyScreen(
             // 2. KTX 역 선택 UI
             Log.d("FrameApplyScreen", "KTX 역 선택 섹션 렌더링 - 역 개수: ${stationsByLine.size}")
             KtxStationSelectionSection(
+                ktxLines = ktxLines,
                 selectedLine = selectedLine,
                 onLineSelected = { selectedLine = it },
                 stations = stationsByLine,
@@ -318,6 +319,7 @@ private fun FrameSelectionCard(
  */
 @Composable
 private fun KtxStationSelectionSection(
+    ktxLines: List<String>,
     selectedLine: String,
     onLineSelected: (String) -> Unit,
     stations: List<com.example.a4cut.data.model.KtxStation>,
@@ -333,25 +335,20 @@ private fun KtxStationSelectionSection(
             .padding(16.dp)
     ) {
         Text(
-            text = "KTX 역 선택",
+            text = "KTX 역 선택 (선택 사항)",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        // 노선 선택 탭 (동적 생성)
-        val lines = listOf("Gyeongbu", "Honam", "Gyeongjeon", "Jungang", "Jeolla", "Donghae")
+        // 노선 선택 탭 (ViewModel에서 제공하는 ktxLines 사용)
         val lineNames = mapOf(
             "Gyeongbu" to "경부선",
-            "Honam" to "호남선", 
-            "Gyeongjeon" to "경전선",
-            "Jungang" to "중앙선",
-            "Jeolla" to "전라선",
-            "Donghae" to "동해선"
+            "Honam" to "호남선"
         )
         
-        TabRow(selectedTabIndex = lines.indexOf(selectedLine).coerceAtLeast(0)) {
-            lines.forEach { line ->
+        TabRow(selectedTabIndex = ktxLines.indexOf(selectedLine).coerceAtLeast(0)) {
+            ktxLines.forEach { line ->
                 Tab(
                     selected = selectedLine == line,
                     onClick = { onLineSelected(line) },
