@@ -70,6 +70,16 @@ class FrameViewModel : ViewModel() {
     private val _selectedFrame = MutableStateFlow<Frame?>(null)
     val selectedFrame: StateFlow<Frame?> = _selectedFrame.asStateFlow()
     
+    // 카테고리 관련 상태
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
+    
+    private val _framesByCategory = MutableStateFlow<List<Frame>>(emptyList())
+    val framesByCategory: StateFlow<List<Frame>> = _framesByCategory.asStateFlow()
+    
+    private val _categories = MutableStateFlow<List<String>>(emptyList())
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+    
     // 사진 관련 상태 (Bitmap 기반)
     private val _photos = MutableStateFlow<List<Bitmap?>>(List(4) { null })
     val photos: StateFlow<List<Bitmap?>> = _photos.asStateFlow()
@@ -783,6 +793,15 @@ class FrameViewModel : ViewModel() {
                 // StateFlow에서 한 번만 값을 가져오기
                 val frameList = frameRepository.getFrames()
                 _frames.value = frameList
+                
+                // 카테고리 목록 로드
+                val categoryList = frameRepository.getCategories()
+                _categories.value = categoryList
+                
+                // 첫 번째 카테고리 자동 선택
+                if (categoryList.isNotEmpty()) {
+                    selectCategory(categoryList.first())
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "프레임 로드 실패: ${e.message}"
             } finally {
@@ -800,6 +819,24 @@ class FrameViewModel : ViewModel() {
         clearError()
         // 햅틱 피드백 추가
         triggerHapticFeedback()
+    }
+    
+    /**
+     * 카테고리 선택
+     */
+    fun selectCategory(category: String) {
+        _selectedCategory.value = category
+        val framesInCategory = frameRepository.getFramesByCategory(category)
+        _framesByCategory.value = framesInCategory
+        Log.d("FrameViewModel", "카테고리 선택: $category, 프레임 수: ${framesInCategory.size}")
+    }
+    
+    /**
+     * 카테고리 선택 해제
+     */
+    fun clearCategorySelection() {
+        _selectedCategory.value = null
+        _framesByCategory.value = emptyList()
     }
     
     /**
@@ -1278,7 +1315,7 @@ class FrameViewModel : ViewModel() {
                     println("사진 상태: ${_photoStates.map { it.bitmap != null }}")
                     
                     val result = when (selectedFrame?.id) {
-                        "life_4cut_frame" -> {
+                        "life_4cut_frame", "image_e15024", "long_form_white", "long_form_black" -> {
                             println("인생네컷 프레임 감지! composeLife4CutFrame 호출")
                             // 인생네컷 프레임 전용 합성 함수 사용
                             val photos = _photoStates.map { it.bitmap }
@@ -1295,7 +1332,7 @@ class FrameViewModel : ViewModel() {
                                 return@launch
                             }
                             
-                            composer.composeLife4CutFrame(frameBitmap, photos)
+                            composer.composeLife4CutFrame(frameBitmap, photos, selectedFrame.id)
                         }
                         else -> {
                             println("기존 프레임 감지! composeImageWithPhotoStates 호출")

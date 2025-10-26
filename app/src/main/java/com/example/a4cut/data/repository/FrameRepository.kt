@@ -32,7 +32,38 @@ class FrameRepository {
                 station = "KTX",
                 title = "기본 프레임",
                 isPremium = false,
-                drawableId = R.drawable.single_frame
+                drawableId = R.drawable.single_frame,
+                category = "basic"
+            ),
+            Frame(
+                id = "image_e15024",
+                name = "인생 네컷 프레임",
+                date = "25.01.13",
+                station = "KTX",
+                title = "인생 네컷 프레임",
+                isPremium = false,
+                drawableId = R.drawable.image_e15024,
+                category = "ktx"
+            ),
+            Frame(
+                id = "long_form_white",
+                name = "Long Form White",
+                date = "25.01.13",
+                station = "KTX",
+                title = "Long Form White",
+                isPremium = false,
+                drawableId = R.drawable.long_form_white,
+                category = "long form"
+            ),
+            Frame(
+                id = "long_form_black",
+                name = "Long Form Black",
+                date = "25.01.13",
+                station = "KTX",
+                title = "Long Form Black",
+                isPremium = false,
+                drawableId = R.drawable.long_form_black,
+                category = "long form"
             )
         )
         
@@ -51,6 +82,20 @@ class FrameRepository {
      */
     fun getFrameById(id: String): Frame? {
         return _frames.value.find { it.id == id }
+    }
+    
+    /**
+     * 카테고리별 프레임 목록 가져오기
+     */
+    fun getFramesByCategory(category: String): List<Frame> {
+        return _frames.value.filter { it.category == category }
+    }
+    
+    /**
+     * 모든 카테고리 목록 가져오기
+     */
+    fun getCategories(): List<String> {
+        return _frames.value.mapNotNull { it.category }.distinct()
     }
     
     /**

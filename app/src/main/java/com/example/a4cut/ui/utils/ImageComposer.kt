@@ -38,11 +38,13 @@ class ImageComposer(private val context: Context) {
      * 인생네컷 프레임 전용 합성 함수
      * @param frameBitmap 인생네컷 프레임 Bitmap
      * @param photos 합성할 Bitmap 사진 목록 (4개)
+     * @param frameId 프레임 ID (선택사항, 프레임별 맞춤형 위치 계산용)
      * @return 합성된 최종 Bitmap
      */
     suspend fun composeLife4CutFrame(
         frameBitmap: Bitmap,
-        photos: List<Bitmap?>
+        photos: List<Bitmap?>,
+        frameId: String? = null
     ): Bitmap = withContext(Dispatchers.Default) {
         println("=== ImageComposer: composeLife4CutFrame 시작 ===")
         println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
@@ -58,7 +60,7 @@ class ImageComposer(private val context: Context) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
         // ✨ 중요: 프레임 위에 세로로 약간 더 긴 4개의 사각형 안에 사진 배치
-        val photoRects = calculateLife4CutPhotoPositions(frameBitmap.width, frameBitmap.height)
+        val photoRects = calculateLife4CutPhotoPositions(frameBitmap.width, frameBitmap.height, frameId)
         println("계산된 사진 위치들:")
         photoRects.forEachIndexed { index, rect ->
             println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom}) 크기: ${rect.width()}x${rect.height()}")
@@ -440,82 +442,174 @@ class ImageComposer(private val context: Context) {
     }
 
     /**
-     * 인생네컷 프레임용 4개 사진의 배치 위치를 계산 (세로로 약간 더 긴 사각형)
-     * @param frameWidth 프레임 너비
-     * @param frameHeight 프레임 높이
-     * @return 각 사진의 RectF 좌표 목록
+     * 프레임별 사진 위치 정의
      */
-    private fun calculateLife4CutPhotoPositions(frameWidth: Int, frameHeight: Int): List<RectF> {
-        println("=== calculateLife4CutPhotoPositions 시작 ===")
-        println("입력 프레임 크기: ${frameWidth}x${frameHeight}")
-        
-        // 여백 계산 (PNG 프레임에 맞게 조정)
-        val horizontalMargin = frameWidth * 0.12f  // 좌우 여백 12% (더 넓게)
-        val verticalMargin = frameHeight * 0.15f   // 상하 여백 15% (더 넓게)
-        val photoSpacing = frameWidth * 0.03f       // 사진 간 간격 3% (더 넓게)
-        
-        println("계산된 여백:")
-        println("  horizontalMargin: $horizontalMargin (${frameWidth * 0.12f})")
-        println("  verticalMargin: $verticalMargin (${frameHeight * 0.15f})")
-        println("  photoSpacing: $photoSpacing (${frameWidth * 0.03f})")
-        
-        // 사진 영역 크기 계산
-        val totalPhotoAreaWidth = frameWidth - (horizontalMargin * 2) - photoSpacing
-        val totalPhotoAreaHeight = frameHeight - (verticalMargin * 2) - photoSpacing
-        
-        val photoWidth = totalPhotoAreaWidth / 2
-        val photoHeight = totalPhotoAreaHeight / 2
-        
-        println("사진 영역 계산:")
-        println("  totalPhotoAreaWidth: $totalPhotoAreaWidth")
-        println("  totalPhotoAreaHeight: $totalPhotoAreaHeight")
-        println("  photoWidth: $photoWidth")
-        println("  photoHeight: $photoHeight")
-        
-        // PNG 프레임에 맞게 정사각형에 가까운 비율로 조정
-        val adjustedPhotoHeight = photoHeight * 1.05f  // 1.05배로 조정 (거의 정사각형)
-        println("  adjustedPhotoHeight: $adjustedPhotoHeight (1.05배 적용)")
-        
-        // 각 사진의 위치 계산 (2x2 그리드, 세로로 약간 더 긴 사각형)
-        val positions = listOf(
-            // 1번 사진 (좌상단)
-            RectF(
-                horizontalMargin,
-                verticalMargin,
-                horizontalMargin + photoWidth,
-                verticalMargin + adjustedPhotoHeight
-            ),
-            // 2번 사진 (우상단)
-            RectF(
-                horizontalMargin + photoWidth + photoSpacing,
-                verticalMargin,
-                frameWidth - horizontalMargin,
-                verticalMargin + adjustedPhotoHeight
-            ),
-            // 3번 사진 (좌하단)
-            RectF(
-                horizontalMargin,
-                verticalMargin + adjustedPhotoHeight + photoSpacing,
-                horizontalMargin + photoWidth,
-                frameHeight - verticalMargin
-            ),
-            // 4번 사진 (우하단)
-            RectF(
-                horizontalMargin + photoWidth + photoSpacing,
-                verticalMargin + adjustedPhotoHeight + photoSpacing,
-                frameWidth - horizontalMargin,
-                frameHeight - verticalMargin
+    data class FramePhotoLayout(
+        val frameId: String,
+        val photoPositions: List<RectF> // 정규화된 좌표 (0.0 ~ 1.0)
+    )
+    
+    /**
+     * 프레임별 사진 위치 데이터
+     */
+    private val frameLayouts = mapOf(
+        "ktx_frame_signature" to FramePhotoLayout(
+            frameId = "ktx_frame_signature",
+            photoPositions = listOf(
+                // 1번 사진 (좌상단) - 정규화된 좌표
+                RectF(0.12f, 0.15f, 0.47f, 0.50f),
+                // 2번 사진 (우상단)
+                RectF(0.53f, 0.15f, 0.88f, 0.50f),
+                // 3번 사진 (좌하단)
+                RectF(0.12f, 0.55f, 0.47f, 0.85f),
+                // 4번 사진 (우하단)
+                RectF(0.53f, 0.55f, 0.88f, 0.85f)
+            )
+        ),
+        "ktx_frame_busan" to FramePhotoLayout(
+            frameId = "ktx_frame_busan",
+            photoPositions = listOf(
+                RectF(0.12f, 0.15f, 0.47f, 0.50f),
+                RectF(0.53f, 0.15f, 0.88f, 0.50f),
+                RectF(0.12f, 0.55f, 0.47f, 0.85f),
+                RectF(0.53f, 0.55f, 0.88f, 0.85f)
+            )
+        ),
+        "ktx_frame_jeonju" to FramePhotoLayout(
+            frameId = "ktx_frame_jeonju",
+            photoPositions = listOf(
+                RectF(0.12f, 0.15f, 0.47f, 0.50f),
+                RectF(0.53f, 0.15f, 0.88f, 0.50f),
+                RectF(0.12f, 0.55f, 0.47f, 0.85f),
+                RectF(0.53f, 0.55f, 0.88f, 0.85f)
+            )
+        ),
+        "ktx_frame_seoul" to FramePhotoLayout(
+            frameId = "ktx_frame_seoul",
+            photoPositions = listOf(
+                RectF(0.12f, 0.15f, 0.47f, 0.50f),
+                RectF(0.53f, 0.15f, 0.88f, 0.50f),
+                RectF(0.12f, 0.55f, 0.47f, 0.85f),
+                RectF(0.53f, 0.55f, 0.88f, 0.85f)
+            )
+        ),
+        "ktx_frame_gyeongju" to FramePhotoLayout(
+            frameId = "ktx_frame_gyeongju",
+            photoPositions = listOf(
+                RectF(0.12f, 0.15f, 0.47f, 0.50f),
+                RectF(0.53f, 0.15f, 0.88f, 0.50f),
+                RectF(0.12f, 0.55f, 0.47f, 0.85f),
+                RectF(0.53f, 0.55f, 0.88f, 0.85f)
+            )
+        ),
+        "image_e15024" to FramePhotoLayout(
+            frameId = "image_e15024",
+            photoPositions = listOf(
+                // 제공해주신 픽셀 좌표를 정규화된 좌표로 변환
+                // 프레임 크기 가정: 1080x1920 (9:16 비율)
+                // 첫 번째 칸 (맨 위): Rect(75, 140, 480, 520)
+                RectF(0.069f, 0.073f, 0.444f, 0.271f),
+                // 두 번째 칸: Rect(75, 545, 480, 925)
+                RectF(0.069f, 0.284f, 0.444f, 0.482f),
+                // 세 번째 칸: Rect(75, 950, 480, 1330)
+                RectF(0.069f, 0.495f, 0.444f, 0.693f),
+                // 네 번째 칸 (맨 아래): Rect(75, 1355, 480, 1735)
+                RectF(0.069f, 0.706f, 0.444f, 0.904f)
+            )
+        ),
+        "long_form_white" to FramePhotoLayout(
+            frameId = "long_form_white",
+            photoPositions = listOf(
+                // Long Form White 프레임용 위치 (세로형 레이아웃)
+                RectF(0.10f, 0.15f, 0.45f, 0.40f),  // 첫 번째 칸 (상단)
+                RectF(0.10f, 0.45f, 0.45f, 0.70f),  // 두 번째 칸 (중상단)
+                RectF(0.10f, 0.75f, 0.45f, 1.00f),  // 세 번째 칸 (중하단)
+                RectF(0.55f, 0.15f, 0.90f, 0.40f)   // 네 번째 칸 (우상단)
+            )
+        ),
+        "long_form_black" to FramePhotoLayout(
+            frameId = "long_form_black",
+            photoPositions = listOf(
+                // Long Form Black 프레임용 위치 (세로형 레이아웃)
+                RectF(0.10f, 0.15f, 0.45f, 0.40f),  // 첫 번째 칸 (상단)
+                RectF(0.10f, 0.45f, 0.45f, 0.70f),  // 두 번째 칸 (중상단)
+                RectF(0.10f, 0.75f, 0.45f, 1.00f),  // 세 번째 칸 (중하단)
+                RectF(0.55f, 0.15f, 0.90f, 0.40f)   // 네 번째 칸 (우상단)
             )
         )
+    )
+    
+    /**
+     * 인생네컷 프레임용 4개 사진의 배치 위치를 계산 (프레임별 맞춤형)
+     * @param frameWidth 프레임 너비
+     * @param frameHeight 프레임 높이
+     * @param frameId 프레임 ID (선택사항, 기본값은 기본 레이아웃 사용)
+     * @return 각 사진의 RectF 좌표 목록
+     */
+    private fun calculateLife4CutPhotoPositions(
+        frameWidth: Int, 
+        frameHeight: Int, 
+        frameId: String? = null
+    ): List<RectF> {
+        println("=== calculateLife4CutPhotoPositions 시작 ===")
+        println("입력 프레임 크기: ${frameWidth}x${frameHeight}")
+        println("프레임 ID: $frameId")
         
-        println("최종 계산된 위치들:")
-        positions.forEachIndexed { index, rect ->
-            println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})")
-            println("    크기: ${rect.width()}x${rect.height()}")
+        // 프레임별 맞춤형 레이아웃 사용 또는 기본 레이아웃 사용
+        val layout = frameId?.let { frameLayouts[it] } ?: frameLayouts["ktx_frame_signature"]
+        
+        if (layout != null) {
+            println("프레임별 맞춤형 레이아웃 사용: ${layout.frameId}")
+            
+            // 정규화된 좌표를 실제 픽셀 좌표로 변환
+            val positions = layout.photoPositions.map { normalizedRect ->
+                RectF(
+                    normalizedRect.left * frameWidth,
+                    normalizedRect.top * frameHeight,
+                    normalizedRect.right * frameWidth,
+                    normalizedRect.bottom * frameHeight
+                )
+            }
+            
+            println("최종 계산된 위치들 (프레임별 맞춤형):")
+            positions.forEachIndexed { index, rect ->
+                println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})")
+                println("    크기: ${rect.width()}x${rect.height()}")
+            }
+            println("=== calculateLife4CutPhotoPositions 완료 ===")
+            
+            return positions
+        } else {
+            println("프레임별 레이아웃을 찾을 수 없어 기본 계산 방식 사용")
+            
+            // 기존 방식으로 폴백 (하드코딩된 비율 사용)
+            val horizontalMargin = frameWidth * 0.12f
+            val verticalMargin = frameHeight * 0.15f
+            val photoSpacing = frameWidth * 0.03f
+            
+            val totalPhotoAreaWidth = frameWidth - (horizontalMargin * 2) - photoSpacing
+            val totalPhotoAreaHeight = frameHeight - (verticalMargin * 2) - photoSpacing
+            
+            val photoWidth = totalPhotoAreaWidth / 2
+            val photoHeight = totalPhotoAreaHeight / 2
+            val adjustedPhotoHeight = photoHeight * 1.05f
+            
+            val positions = listOf(
+                RectF(horizontalMargin, verticalMargin, horizontalMargin + photoWidth, verticalMargin + adjustedPhotoHeight),
+                RectF(horizontalMargin + photoWidth + photoSpacing, verticalMargin, frameWidth - horizontalMargin, verticalMargin + adjustedPhotoHeight),
+                RectF(horizontalMargin, verticalMargin + adjustedPhotoHeight + photoSpacing, horizontalMargin + photoWidth, frameHeight - verticalMargin),
+                RectF(horizontalMargin + photoWidth + photoSpacing, verticalMargin + adjustedPhotoHeight + photoSpacing, frameWidth - horizontalMargin, frameHeight - verticalMargin)
+            )
+            
+            println("최종 계산된 위치들 (기본 방식):")
+            positions.forEachIndexed { index, rect ->
+                println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom})")
+                println("    크기: ${rect.width()}x${rect.height()}")
+            }
+            println("=== calculateLife4CutPhotoPositions 완료 ===")
+            
+            return positions
         }
-        println("=== calculateLife4CutPhotoPositions 완료 ===")
-        
-        return positions
     }
 
     /**
@@ -560,7 +654,8 @@ class ImageComposer(private val context: Context) {
     }
     
     /**
-     * Bitmap을 지정된 사각형 크기에 정확히 맞게 조절 (비율 무시, 프레임 완전 채움)
+     * Bitmap을 지정된 사각형 크기에 정확히 맞게 조절 (ContentScale.Crop 방식)
+     * 비율을 유지하면서 목표 영역을 완전히 채우도록 크롭
      * @param bitmap 원본 Bitmap
      * @param targetWidth 목표 너비
      * @param targetHeight 목표 높이
@@ -580,12 +675,108 @@ class ImageComposer(private val context: Context) {
             return bitmap
         }
         
-        // 프레임의 사각형 모양에 정확히 맞게 스케일링 (비율 무시)
-        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+        // ContentScale.Crop 방식으로 비율을 유지하면서 크롭
+        val scaledBitmap = scaleBitmapWithCrop(bitmap, targetWidth, targetHeight)
         
         println("최종 스케일 크기: ${scaledBitmap.width}x${scaledBitmap.height}")
         println("=== scaleBitmapToFill 완료 ===")
         
         return scaledBitmap
+    }
+    
+    /**
+     * 크롭 방향을 나타내는 열거형
+     */
+    enum class CropAlignment {
+        CENTER,     // 중앙 크롭 (기본값)
+        TOP,        // 상단 크롭
+        BOTTOM,     // 하단 크롭
+        LEFT,       // 좌측 크롭
+        RIGHT       // 우측 크롭
+    }
+    
+    /**
+     * 비트맵을 비율을 유지하면서 목표 크기에 맞게 크롭
+     * ContentScale.Crop과 동일한 동작
+     * @param bitmap 원본 Bitmap
+     * @param targetWidth 목표 너비
+     * @param targetHeight 목표 높이
+     * @param alignment 크롭 정렬 방식 (기본값: CENTER)
+     * @return 크롭된 Bitmap
+     */
+    private fun scaleBitmapWithCrop(
+        bitmap: Bitmap, 
+        targetWidth: Int, 
+        targetHeight: Int,
+        alignment: CropAlignment = CropAlignment.CENTER
+    ): Bitmap {
+        val originalWidth = bitmap.width.toFloat()
+        val originalHeight = bitmap.height.toFloat()
+        val targetWidthFloat = targetWidth.toFloat()
+        val targetHeightFloat = targetHeight.toFloat()
+        
+        // 원본과 목표 비율 계산
+        val originalRatio = originalWidth / originalHeight
+        val targetRatio = targetWidthFloat / targetHeightFloat
+        
+        val scale: Float
+        val srcLeft: Float
+        val srcTop: Float
+        val srcRight: Float
+        val srcBottom: Float
+        
+        if (originalRatio > targetRatio) {
+            // 원본이 더 넓음 (세로를 기준으로 스케일, 가로 크롭)
+            scale = targetHeightFloat / originalHeight
+            val scaledWidth = originalWidth * scale
+            val cropWidth = scaledWidth - targetWidthFloat
+            val cropLeft = when (alignment) {
+                CropAlignment.LEFT -> 0f
+                CropAlignment.RIGHT -> cropWidth / scale
+                else -> cropWidth / 2f / scale // CENTER, TOP, BOTTOM는 중앙 크롭
+            }
+            
+            srcLeft = cropLeft
+            srcTop = 0f
+            srcRight = originalWidth - cropLeft
+            srcBottom = originalHeight
+        } else {
+            // 원본이 더 높음 (가로를 기준으로 스케일, 세로 크롭)
+            scale = targetWidthFloat / originalWidth
+            val scaledHeight = originalHeight * scale
+            val cropHeight = scaledHeight - targetHeightFloat
+            val cropTop = when (alignment) {
+                CropAlignment.TOP -> 0f
+                CropAlignment.BOTTOM -> cropHeight / scale
+                else -> cropHeight / 2f / scale // CENTER, LEFT, RIGHT는 중앙 크롭
+            }
+            
+            srcLeft = 0f
+            srcTop = cropTop
+            srcRight = originalWidth
+            srcBottom = originalHeight - cropTop
+        }
+        
+        println("크롭 계산:")
+        println("  스케일 비율: $scale")
+        println("  소스 영역: ($srcLeft, $srcTop, $srcRight, $srcBottom)")
+        
+        // 크롭된 영역을 목표 크기로 스케일링
+        val croppedBitmap = Bitmap.createBitmap(
+            bitmap,
+            srcLeft.toInt(),
+            srcTop.toInt(),
+            (srcRight - srcLeft).toInt(),
+            (srcBottom - srcTop).toInt()
+        )
+        
+        val finalBitmap = Bitmap.createScaledBitmap(croppedBitmap, targetWidth, targetHeight, true)
+        
+        // 중간 비트맵 메모리 해제
+        if (croppedBitmap != bitmap && !croppedBitmap.isRecycled) {
+            croppedBitmap.recycle()
+        }
+        
+        return finalBitmap
     }
 }

@@ -13,7 +13,7 @@ import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.data.repository.PhotoRepository
 import com.example.a4cut.data.service.LocationTaggingService
 import com.example.a4cut.ui.utils.ImageComposer
-import com.example.a4cut.data.repository.KTXStationRepository
+import com.example.a4cut.data.model.KtxStationData
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +38,6 @@ class FrameApplyViewModel(
         com.example.a4cut.AppApplication.imageLoader
     }
     private val locationTaggingService = context?.let { LocationTaggingService(it) }
-    private val ktxStationRepository = KTXStationRepository()
 
     private val _uiState = MutableStateFlow(FrameApplyUiState())
     val uiState: StateFlow<FrameApplyUiState> = _uiState.asStateFlow()
@@ -57,7 +56,7 @@ class FrameApplyViewModel(
     }
     
     private fun loadKtxLines() {
-        _ktxLines.value = ktxStationRepository.getLines()
+        _ktxLines.value = listOf("Gyeongbu", "Honam")
         // 첫 노선 자동으로 선택
         _ktxLines.value.firstOrNull()?.let {
             loadStationsForLine(it)
@@ -65,7 +64,7 @@ class FrameApplyViewModel(
     }
     
     fun loadStationsForLine(line: String) {
-        _stationsByLine.value = ktxStationRepository.getStationsByLine(line)
+        _stationsByLine.value = KtxStationData.stationsByLine[line] ?: emptyList()
         Log.d("FrameApplyVM", "노선 [$line]의 역 로드: ${_stationsByLine.value.map { it.stationName }}")
     }
     
@@ -295,7 +294,7 @@ class FrameApplyViewModel(
             try {
                 // 선택된 역 정보 가져오기
                 val stationName = _selectedStationName.value
-                val station = stationName?.let { ktxStationRepository.findStationByName(it) }
+                val station = stationName?.let { KtxStationData.findStationByName(it) }
                 
                 // 임시 파일로 저장하여 URI 얻기 (DB 저장을 위해)
                 val tempUri = saveBitmapToTempStorage(previewBitmap, "temp_${System.currentTimeMillis()}.jpg")
@@ -433,7 +432,7 @@ class FrameApplyViewModel(
         }
         
         // 모든 KTX 역 목록에서 해당 역 찾기
-        val allStations = ktxStationRepository.getAllStations()
+        val allStations = KtxStationData.allStations
         Log.d("FrameApplyViewModel", "전체 KTX 역 개수: ${allStations.size}")
         Log.d("FrameApplyViewModel", "찾는 역 이름: $stationName")
         Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.stationName }}")

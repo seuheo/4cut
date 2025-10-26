@@ -12,6 +12,7 @@ data class Frame(
     val title: String,
     val previewImage: String? = null,
     val isPremium: Boolean = false,
-    val drawableId: Int = com.example.a4cut.R.drawable.single_frame // 기본값으로 단일 프레임
+    val drawableId: Int = com.example.a4cut.R.drawable.single_frame, // 기본값으로 단일 프레임
+    val category: String? = null // 프레임 카테고리 (예: "long form", "ktx", "basic")
 )
 
