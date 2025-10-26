@@ -84,10 +84,11 @@ fun HomeScreen(
         }
     }
     
-    // 화면이 사라질 때 (다른 탭으로 이동 시) 필터를 초기화
+    // HomeScreen이 사라질 때 필터 해제
     DisposableEffect(Unit) {
         onDispose {
             homeViewModel.clearMapLocationFilter()
+            Log.d("HomeScreen", "화면 종료 시 필터 해제")
         }
     }
 

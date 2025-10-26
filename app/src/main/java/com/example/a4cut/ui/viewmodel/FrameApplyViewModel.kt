@@ -396,10 +396,7 @@ class FrameApplyViewModel(
                                 successMessage = "사진이 갤러리에 저장되었습니다."
                             )
                         }
-                        
-                        // 저장 성공 후 FrameViewModel 상태 초기화
-                        frameViewModel?.resetState()
-                        Log.d("FrameApplyViewModel", "사진 저장 성공 후 상태 초기화 완료")
+                        Log.d("FrameApplyViewModel", "사진 저장 성공")
                     } else {
                         _uiState.update { 
                             it.copy(

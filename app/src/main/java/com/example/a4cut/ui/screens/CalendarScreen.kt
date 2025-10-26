@@ -333,6 +333,11 @@ fun CalendarScreen(
                             photo = photo,
                             onClick = { onNavigateToPhotoDetail(photo.id.toString()) },
                             onLocationClick = { location ->
+                                // HomeViewModel에 지도 필터 설정
+                                homeViewModel.setMapLocationFilter(location)
+                                Log.d("CalendarScreen", "지도 필터 설정: $location")
+                                
+                                // 지도 탭으로 이동
                                 onNavigateToHomeWithLocation(location)
                             }
                         )
@@ -704,14 +709,22 @@ private fun PhotoGridItem(
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
-                    Text(
-                        text = "🚉 ${photo.location}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
+                    // 역 이름과 역 아이콘 클릭 가능 영역
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onLocationClick(photo.location) }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🚉 ${photo.location}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                     
                     // 지도 아이콘 버튼
                     IconButton(

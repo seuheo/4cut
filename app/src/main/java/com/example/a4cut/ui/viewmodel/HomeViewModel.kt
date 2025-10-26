@@ -50,13 +50,13 @@ class HomeViewModel : ViewModel() {
     private val _selectedStation = MutableStateFlow<String?>(null)
     val selectedStation: StateFlow<String?> = _selectedStation.asStateFlow()
     
-    // 선택된 날짜의 사진 목록 상태 (지도 표시용)
-    private val _photosForSelectedDate = MutableStateFlow<List<PhotoEntity>>(emptyList())
-    val photosForSelectedDate: StateFlow<List<PhotoEntity>> = _photosForSelectedDate.asStateFlow()
-    
     // 지도에 표시할 위치 필터 상태 (캘린더에서 위치 클릭 시 사용)
     private val _mapLocationFilter = MutableStateFlow<String?>(null)
     val mapLocationFilter: StateFlow<String?> = _mapLocationFilter.asStateFlow()
+    
+    // 선택된 날짜의 사진 목록 상태 (지도 표시용)
+    private val _photosForSelectedDate = MutableStateFlow<List<PhotoEntity>>(emptyList())
+    val photosForSelectedDate: StateFlow<List<PhotoEntity>> = _photosForSelectedDate.asStateFlow()
     
     // 포토로그 데이터 - Repository의 Flow를 직접 구독하여 자동 업데이트
     private val _photoLogs = MutableStateFlow<List<PhotoEntity>>(emptyList())
@@ -88,7 +88,7 @@ class HomeViewModel : ViewModel() {
     
     // 필터가 적용된 사진 목록 (지도가 사용할 목록)
     val filteredPhotosForMap: StateFlow<List<PhotoEntity>> = combine(
-        allPhotos,
+        photoLogs,
         _mapLocationFilter
     ) { photos, filter ->
         if (filter != null) {

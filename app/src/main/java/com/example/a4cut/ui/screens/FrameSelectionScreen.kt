@@ -166,6 +166,10 @@ fun FrameSelectionScreen(
                         // 이미지 합성 시작
                         frameViewModel.startImageComposition()
                         
+                        // 다음 화면으로 이동하기 전에 상태 초기화
+                        frameViewModel.resetState()
+                        println("FrameSelectionScreen: 상태 초기화 완료")
+                        
                         println("FrameSelectionScreen: ResultScreen으로 이동")
                         onNext()
                     },
