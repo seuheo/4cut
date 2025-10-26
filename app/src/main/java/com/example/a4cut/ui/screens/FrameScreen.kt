@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.a4cut.data.model.Frame
+import com.example.a4cut.data.model.FrameFormat
 import com.example.a4cut.ui.components.PhotoGrid
 import com.example.a4cut.ui.components.ImagePreviewDialog
 import com.example.a4cut.ui.components.TossPrimaryButton
@@ -102,6 +103,11 @@ fun FrameScreen(
     val successMessage by frameViewModel.successMessage.collectAsState()
     val composedImage by frameViewModel.composedImage.collectAsState()
     val selectedKtxStation by frameViewModel.selectedKtxStation.collectAsState()
+    
+    // 포맷 관련 상태
+    val selectedFormat by frameViewModel.selectedFormat.collectAsState()
+    val framesByFormat by frameViewModel.framesByFormat.collectAsState()
+    val formats by frameViewModel.formats.collectAsState()
 
     // 미리보기 다이얼로그 상태
     var showPreviewDialog by remember { mutableStateOf(false) }
@@ -142,9 +148,20 @@ fun FrameScreen(
         
         Spacer(modifier = Modifier.height(40.dp))
         
-        // 2. iOS 스타일 하단 프레임 캐러셀
+        // 2. 포맷 선택 UI
+        FormatSelectionSection(
+            selectedFormat = selectedFormat,
+            formats = formats,
+            onFormatSelect = { format ->
+                frameViewModel.selectFormat(format)
+            }
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // 3. iOS 스타일 하단 프레임 캐러셀
         IOSFrameCarouselSection(
-            frames = frames,
+            frames = framesByFormat, // 포맷별 필터링된 프레임 사용
             selectedFrame = selectedFrame,
             isLoading = isLoading,
             onFrameSelect = { frame ->
@@ -587,6 +604,74 @@ private fun IOSMessageCard(
                 ),
                 color = if (isError) Color(0xFFFF3B30) else Color(0xFF34C759) // iOS 스타일 색상
             )
+        }
+    }
+}
+
+/**
+ * 포맷 선택 섹션 - iOS 스타일 세그먼트 컨트롤
+ */
+@Composable
+fun FormatSelectionSection(
+    modifier: Modifier = Modifier,
+    selectedFormat: FrameFormat,
+    formats: List<FrameFormat>,
+    onFormatSelect: (FrameFormat) -> Unit
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "프레임 포맷 선택",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = Color(0xFF1C1C1E), // iOS 스타일 다크 그레이
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // iOS 스타일 세그먼트 컨트롤
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+                .background(
+                    color = Color(0xFFF2F2F7), // iOS 스타일 라이트 그레이
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            formats.forEach { format ->
+                val isSelected = format == selectedFormat
+                
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = if (isSelected) Color.White else Color.Transparent,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .clickable { onFormatSelect(format) }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = when (format) {
+                            FrameFormat.STANDARD -> "Standard"
+                            FrameFormat.LONG_FORM -> "Long Form"
+                        },
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        ),
+                        color = if (isSelected) Color(0xFF007AFF) else Color(0xFF8E8E93), // iOS 스타일 색상
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
 }

@@ -47,7 +47,9 @@ class ImageComposer(private val context: Context) {
         frameId: String? = null
     ): Bitmap = withContext(Dispatchers.Default) {
         println("=== ImageComposer: composeLife4CutFrame 시작 ===")
+        println("프레임 ID: $frameId")
         println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
+        println("프레임 비율: ${frameBitmap.width.toFloat() / frameBitmap.height.toFloat()}")
         println("입력 사진 개수: ${photos.size}")
         println("사진 null 체크: ${photos.map { it != null }}")
         println("사진 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
@@ -520,23 +522,25 @@ class ImageComposer(private val context: Context) {
         "long_form_white" to FramePhotoLayout(
             frameId = "long_form_white",
             photoPositions = listOf(
-                // Long Form White 프레임용 위치 (2x6 인치 스타일, 세로형 레이아웃)
-                // 프레임 크기 가정: 600x1800 (2:6 비율)
-                RectF(0.10f, 0.05f, 0.90f, 0.25f),  // 첫 번째 칸 (상단)
-                RectF(0.10f, 0.30f, 0.90f, 0.50f),  // 두 번째 칸 (중상단)
-                RectF(0.10f, 0.55f, 0.90f, 0.75f),  // 세 번째 칸 (중하단)
-                RectF(0.10f, 0.80f, 0.90f, 1.00f)   // 네 번째 칸 (하단)
+                // Long Form White 프레임용 위치 (2:6 인치 스타일, 세로형 레이아웃)
+                // 프레임 비율: 1:3 (가로:세로)
+                // 각 칸은 프레임의 20% 너비, 20% 높이를 차지하며 5% 간격
+                RectF(0.15f, 0.05f, 0.85f, 0.20f),  // 첫 번째 칸 (상단)
+                RectF(0.15f, 0.30f, 0.85f, 0.45f),  // 두 번째 칸 (중상단)
+                RectF(0.15f, 0.55f, 0.85f, 0.70f),  // 세 번째 칸 (중하단)
+                RectF(0.15f, 0.80f, 0.85f, 0.95f)   // 네 번째 칸 (하단)
             )
         ),
         "long_form_black" to FramePhotoLayout(
             frameId = "long_form_black",
             photoPositions = listOf(
-                // Long Form Black 프레임용 위치 (2x6 인치 스타일, 세로형 레이아웃)
-                // 프레임 크기 가정: 600x1800 (2:6 비율)
-                RectF(0.10f, 0.05f, 0.90f, 0.25f),  // 첫 번째 칸 (상단)
-                RectF(0.10f, 0.30f, 0.90f, 0.50f),  // 두 번째 칸 (중상단)
-                RectF(0.10f, 0.55f, 0.90f, 0.75f),  // 세 번째 칸 (중하단)
-                RectF(0.10f, 0.80f, 0.90f, 1.00f)   // 네 번째 칸 (하단)
+                // Long Form Black 프레임용 위치 (2:6 인치 스타일, 세로형 레이아웃)
+                // 프레임 비율: 1:3 (가로:세로)
+                // 각 칸은 프레임의 20% 너비, 20% 높이를 차지하며 5% 간격
+                RectF(0.15f, 0.05f, 0.85f, 0.20f),  // 첫 번째 칸 (상단)
+                RectF(0.15f, 0.30f, 0.85f, 0.45f),  // 두 번째 칸 (중상단)
+                RectF(0.15f, 0.55f, 0.85f, 0.70f),  // 세 번째 칸 (중하단)
+                RectF(0.15f, 0.80f, 0.85f, 0.95f)   // 네 번째 칸 (하단)
             )
         )
     )
