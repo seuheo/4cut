@@ -18,6 +18,7 @@ import java.io.FileOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.model.Frame
+import com.example.a4cut.data.model.FrameFormat
 import com.example.a4cut.data.model.KtxStation
 import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.data.repository.PhotoRepository
@@ -79,6 +80,16 @@ class FrameViewModel : ViewModel() {
     
     private val _categories = MutableStateFlow<List<String>>(emptyList())
     val categories: StateFlow<List<String>> = _categories.asStateFlow()
+    
+    // 포맷 관련 상태
+    private val _selectedFormat = MutableStateFlow(FrameFormat.STANDARD)
+    val selectedFormat: StateFlow<FrameFormat> = _selectedFormat.asStateFlow()
+    
+    private val _framesByFormat = MutableStateFlow<List<Frame>>(emptyList())
+    val framesByFormat: StateFlow<List<Frame>> = _framesByFormat.asStateFlow()
+    
+    private val _formats = MutableStateFlow<List<FrameFormat>>(emptyList())
+    val formats: StateFlow<List<FrameFormat>> = _formats.asStateFlow()
     
     // 사진 관련 상태 (Bitmap 기반)
     private val _photos = MutableStateFlow<List<Bitmap?>>(List(4) { null })
@@ -798,6 +809,15 @@ class FrameViewModel : ViewModel() {
                 val categoryList = frameRepository.getCategories()
                 _categories.value = categoryList
                 
+                // 포맷 목록 로드
+                val formatList = frameRepository.getFormats()
+                _formats.value = formatList
+                
+                // 첫 번째 포맷 자동 선택
+                if (formatList.isNotEmpty()) {
+                    selectFormat(formatList.first())
+                }
+                
                 // 첫 번째 카테고리 자동 선택
                 if (categoryList.isNotEmpty()) {
                     selectCategory(categoryList.first())
@@ -837,6 +857,25 @@ class FrameViewModel : ViewModel() {
     fun clearCategorySelection() {
         _selectedCategory.value = null
         _framesByCategory.value = emptyList()
+    }
+    
+    /**
+     * 포맷 선택
+     */
+    fun selectFormat(format: FrameFormat) {
+        _selectedFormat.value = format
+        val framesInFormat = frameRepository.getFramesByFormat(format)
+        _framesByFormat.value = framesInFormat
+        _selectedFrame.value = null // 포맷 변경 시 프레임 선택 해제
+        Log.d("FrameViewModel", "포맷 선택: $format, 프레임 수: ${framesInFormat.size}")
+    }
+    
+    /**
+     * 포맷 선택 해제
+     */
+    fun clearFormatSelection() {
+        _selectedFormat.value = FrameFormat.STANDARD
+        _framesByFormat.value = emptyList()
     }
     
     /**

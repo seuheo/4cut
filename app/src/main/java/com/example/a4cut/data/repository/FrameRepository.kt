@@ -2,6 +2,7 @@ package com.example.a4cut.data.repository
 
 import com.example.a4cut.R
 import com.example.a4cut.data.model.Frame
+import com.example.a4cut.data.model.FrameFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +34,8 @@ class FrameRepository {
                 title = "기본 프레임",
                 isPremium = false,
                 drawableId = R.drawable.single_frame,
-                category = "basic"
+                category = "basic",
+                format = FrameFormat.STANDARD
             ),
             Frame(
                 id = "image_e15024",
@@ -43,7 +45,8 @@ class FrameRepository {
                 title = "인생 네컷 프레임",
                 isPremium = false,
                 drawableId = R.drawable.image_e15024,
-                category = "ktx"
+                category = "ktx",
+                format = FrameFormat.STANDARD
             ),
             Frame(
                 id = "long_form_white",
@@ -53,7 +56,8 @@ class FrameRepository {
                 title = "Long Form White",
                 isPremium = false,
                 drawableId = R.drawable.long_form_white,
-                category = "long form"
+                category = "long form",
+                format = FrameFormat.LONG_FORM
             ),
             Frame(
                 id = "long_form_black",
@@ -63,7 +67,8 @@ class FrameRepository {
                 title = "Long Form Black",
                 isPremium = false,
                 drawableId = R.drawable.long_form_black,
-                category = "long form"
+                category = "long form",
+                format = FrameFormat.LONG_FORM
             )
         )
         
@@ -92,10 +97,24 @@ class FrameRepository {
     }
     
     /**
+     * 포맷별 프레임 목록 가져오기
+     */
+    fun getFramesByFormat(format: FrameFormat): List<Frame> {
+        return _frames.value.filter { it.format == format }
+    }
+    
+    /**
      * 모든 카테고리 목록 가져오기
      */
     fun getCategories(): List<String> {
         return _frames.value.mapNotNull { it.category }.distinct()
+    }
+    
+    /**
+     * 모든 포맷 목록 가져오기
+     */
+    fun getFormats(): List<FrameFormat> {
+        return _frames.value.map { it.format }.distinct()
     }
     
     /**

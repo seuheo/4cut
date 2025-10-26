@@ -520,21 +520,23 @@ class ImageComposer(private val context: Context) {
         "long_form_white" to FramePhotoLayout(
             frameId = "long_form_white",
             photoPositions = listOf(
-                // Long Form White 프레임용 위치 (세로형 레이아웃)
-                RectF(0.10f, 0.15f, 0.45f, 0.40f),  // 첫 번째 칸 (상단)
-                RectF(0.10f, 0.45f, 0.45f, 0.70f),  // 두 번째 칸 (중상단)
-                RectF(0.10f, 0.75f, 0.45f, 1.00f),  // 세 번째 칸 (중하단)
-                RectF(0.55f, 0.15f, 0.90f, 0.40f)   // 네 번째 칸 (우상단)
+                // Long Form White 프레임용 위치 (2x6 인치 스타일, 세로형 레이아웃)
+                // 프레임 크기 가정: 600x1800 (2:6 비율)
+                RectF(0.10f, 0.05f, 0.90f, 0.25f),  // 첫 번째 칸 (상단)
+                RectF(0.10f, 0.30f, 0.90f, 0.50f),  // 두 번째 칸 (중상단)
+                RectF(0.10f, 0.55f, 0.90f, 0.75f),  // 세 번째 칸 (중하단)
+                RectF(0.10f, 0.80f, 0.90f, 1.00f)   // 네 번째 칸 (하단)
             )
         ),
         "long_form_black" to FramePhotoLayout(
             frameId = "long_form_black",
             photoPositions = listOf(
-                // Long Form Black 프레임용 위치 (세로형 레이아웃)
-                RectF(0.10f, 0.15f, 0.45f, 0.40f),  // 첫 번째 칸 (상단)
-                RectF(0.10f, 0.45f, 0.45f, 0.70f),  // 두 번째 칸 (중상단)
-                RectF(0.10f, 0.75f, 0.45f, 1.00f),  // 세 번째 칸 (중하단)
-                RectF(0.55f, 0.15f, 0.90f, 0.40f)   // 네 번째 칸 (우상단)
+                // Long Form Black 프레임용 위치 (2x6 인치 스타일, 세로형 레이아웃)
+                // 프레임 크기 가정: 600x1800 (2:6 비율)
+                RectF(0.10f, 0.05f, 0.90f, 0.25f),  // 첫 번째 칸 (상단)
+                RectF(0.10f, 0.30f, 0.90f, 0.50f),  // 두 번째 칸 (중상단)
+                RectF(0.10f, 0.55f, 0.90f, 0.75f),  // 세 번째 칸 (중하단)
+                RectF(0.10f, 0.80f, 0.90f, 1.00f)   // 네 번째 칸 (하단)
             )
         )
     )
