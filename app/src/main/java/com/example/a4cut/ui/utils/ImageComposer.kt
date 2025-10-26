@@ -28,10 +28,31 @@ class ImageComposer(private val context: Context) {
         const val OUTPUT_WIDTH = 1080
         const val OUTPUT_HEIGHT = 1920
         
+        // 롱 폼 프레임 실제 크기 (50x152mm)
+        private const val LONG_FORM_WIDTH_MM = 50f
+        private const val LONG_FORM_HEIGHT_MM = 152f
+        private const val DPI = 300f // 인쇄 품질을 위한 DPI
+        
         // 프레임 내 사진 배치 비율 (전체 해상도 대비)
         private const val HORIZONTAL_MARGIN_RATIO = 0.08f  // 좌우 여백 8%
         private const val VERTICAL_MARGIN_RATIO = 0.15f     // 상하 여백 15%
         private const val PHOTO_SPACING_RATIO = 0.02f       // 사진 간 간격 2%
+        
+        /**
+         * mm를 픽셀로 변환 (DPI 기준)
+         */
+        private fun mmToPixels(mm: Float): Int {
+            return (mm * DPI / 25.4f).toInt() // 1인치 = 25.4mm
+        }
+        
+        /**
+         * 롱 폼 프레임의 출력 크기 계산 (50x152mm)
+         */
+        fun getLongFormOutputSize(): Pair<Int, Int> {
+            val width = mmToPixels(LONG_FORM_WIDTH_MM)
+            val height = mmToPixels(LONG_FORM_HEIGHT_MM)
+            return Pair(width, height)
+        }
     }
 
     /**
@@ -54,15 +75,30 @@ class ImageComposer(private val context: Context) {
         println("사진 null 체크: ${photos.map { it != null }}")
         println("사진 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
         
+        // 롱 폼 프레임인 경우 실제 크기(50x152mm)로 출력 크기 결정
+        val (outputWidth, outputHeight) = if (frameId == "long_form_white" || frameId == "long_form_black") {
+            val size = getLongFormOutputSize()
+            println("롱 폼 프레임 감지! 실제 크기 사용: ${size.first}x${size.second} (50x152mm)")
+            size
+        } else {
+            println("일반 프레임 사용: ${frameBitmap.width}x${frameBitmap.height}")
+            Pair(frameBitmap.width, frameBitmap.height)
+        }
+        
         // 메모리 최적화된 Bitmap 생성
-        val resultBitmap = createSafeBitmap(frameBitmap.width, frameBitmap.height, Bitmap.Config.ARGB_8888)
+        val resultBitmap = createSafeBitmap(outputWidth, outputHeight, Bitmap.Config.ARGB_8888)
             ?: throw IllegalStateException("결과 Bitmap 생성 실패")
         
         val canvas = Canvas(resultBitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
+        // 1. 프레임을 배경으로 그리기 (출력 크기에 맞춤)
+        val frameRect = RectF(0f, 0f, outputWidth.toFloat(), outputHeight.toFloat())
+        canvas.drawBitmap(frameBitmap, null, frameRect, paint)
+        println("프레임 배경 그리기 완료: ${outputWidth}x${outputHeight}")
+
         // ✨ 중요: 프레임 위에 세로로 약간 더 긴 4개의 사각형 안에 사진 배치
-        val photoRects = calculateLife4CutPhotoPositions(frameBitmap.width, frameBitmap.height, frameId)
+        val photoRects = calculateLife4CutPhotoPositions(outputWidth, outputHeight, frameId)
         println("계산된 사진 위치들:")
         photoRects.forEachIndexed { index, rect ->
             println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom}) 크기: ${rect.width()}x${rect.height()}")
@@ -524,11 +560,11 @@ class ImageComposer(private val context: Context) {
             photoPositions = listOf(
                 // Long Form White 프레임용 위치 (2:6 인치 스타일, 세로형 레이아웃)
                 // 프레임 비율: 1:3 (가로:세로)
-                // 각 칸은 프레임의 20% 너비, 20% 높이를 차지하며 5% 간격
-                RectF(0.15f, 0.05f, 0.85f, 0.20f),  // 첫 번째 칸 (상단)
-                RectF(0.15f, 0.30f, 0.85f, 0.45f),  // 두 번째 칸 (중상단)
-                RectF(0.15f, 0.55f, 0.85f, 0.70f),  // 세 번째 칸 (중하단)
-                RectF(0.15f, 0.80f, 0.85f, 0.95f)   // 네 번째 칸 (하단)
+                // 각 칸은 프레임의 80% 너비, 17% 높이를 차지하며 사진을 위로 올려서 프레임에 맞춤
+                RectF(0.10f, 0.05f, 0.90f, 0.22f),  // 첫 번째 칸 (상단) - 위로 올림
+                RectF(0.10f, 0.27f, 0.90f, 0.44f),  // 두 번째 칸 (중상단) - 위로 올림
+                RectF(0.10f, 0.49f, 0.90f, 0.66f),  // 세 번째 칸 (중하단) - 위로 올림
+                RectF(0.10f, 0.71f, 0.90f, 0.88f)   // 네 번째 칸 (하단) - 위로 올림
             )
         ),
         "long_form_black" to FramePhotoLayout(
@@ -536,11 +572,11 @@ class ImageComposer(private val context: Context) {
             photoPositions = listOf(
                 // Long Form Black 프레임용 위치 (2:6 인치 스타일, 세로형 레이아웃)
                 // 프레임 비율: 1:3 (가로:세로)
-                // 각 칸은 프레임의 20% 너비, 20% 높이를 차지하며 5% 간격
-                RectF(0.15f, 0.05f, 0.85f, 0.20f),  // 첫 번째 칸 (상단)
-                RectF(0.15f, 0.30f, 0.85f, 0.45f),  // 두 번째 칸 (중상단)
-                RectF(0.15f, 0.55f, 0.85f, 0.70f),  // 세 번째 칸 (중하단)
-                RectF(0.15f, 0.80f, 0.85f, 0.95f)   // 네 번째 칸 (하단)
+                // 각 칸은 프레임의 80% 너비, 17% 높이를 차지하며 사진을 위로 올려서 프레임에 맞춤
+                RectF(0.10f, 0.05f, 0.90f, 0.22f),  // 첫 번째 칸 (상단) - 위로 올림
+                RectF(0.10f, 0.27f, 0.90f, 0.44f),  // 두 번째 칸 (중상단) - 위로 올림
+                RectF(0.10f, 0.49f, 0.90f, 0.66f),  // 세 번째 칸 (중하단) - 위로 올림
+                RectF(0.10f, 0.71f, 0.90f, 0.88f)   // 네 번째 칸 (하단) - 위로 올림
             )
         )
     )

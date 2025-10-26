@@ -1790,6 +1790,35 @@ class FrameViewModel : ViewModel() {
         println("=== FrameViewModel 상태 초기화 완료 ===")
     }
     
+    /**
+     * 프레임별 슬롯 좌표를 가져오는 함수 (미리보기용)
+     */
+    fun getSlotRectsForFrame(frame: Frame?): List<android.graphics.RectF>? {
+        return frame?.let { selectedFrame ->
+            when (selectedFrame.id) {
+                "life_4cut_frame", "image_e15024" -> {
+                    // 기본 인생네컷 프레임 레이아웃
+                    listOf(
+                        android.graphics.RectF(0.069f, 0.073f, 0.444f, 0.271f),  // 첫 번째 칸
+                        android.graphics.RectF(0.069f, 0.284f, 0.444f, 0.482f),  // 두 번째 칸
+                        android.graphics.RectF(0.069f, 0.495f, 0.444f, 0.693f),  // 세 번째 칸
+                        android.graphics.RectF(0.069f, 0.706f, 0.444f, 0.904f)   // 네 번째 칸
+                    )
+                }
+                "long_form_white", "long_form_black" -> {
+                    // 롱 폼 프레임 레이아웃 - 사진을 위로 올려서 프레임에 맞춤
+                    listOf(
+                        android.graphics.RectF(0.10f, 0.05f, 0.90f, 0.22f),  // 첫 번째 칸 (상단) - 위로 올림
+                        android.graphics.RectF(0.10f, 0.27f, 0.90f, 0.44f),  // 두 번째 칸 (중상단) - 위로 올림
+                        android.graphics.RectF(0.10f, 0.49f, 0.90f, 0.66f),  // 세 번째 칸 (중하단) - 위로 올림
+                        android.graphics.RectF(0.10f, 0.71f, 0.90f, 0.88f)   // 네 번째 칸 (하단) - 위로 올림
+                    )
+                }
+                else -> null
+            }
+        }
+    }
+    
     
 }
 

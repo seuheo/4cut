@@ -62,7 +62,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -135,7 +142,7 @@ fun FrameScreen(
         Spacer(modifier = Modifier.height(20.dp))
         
         // 1. iOS 스타일 상단 미리보기 영역
-        IOSPhotoPreviewSection(
+        FramePreviewSection(
             photoStates = photoStates,
             selectedFrame = selectedFrame,
             onPhotoClick = { index -> 
@@ -143,7 +150,8 @@ fun FrameScreen(
             },
             onTransform = { index, scale, offsetX, offsetY ->
                 frameViewModel.updatePhotoState(index, scale, offsetX, offsetY)
-            }
+            },
+            frameViewModel = frameViewModel
         )
         
         Spacer(modifier = Modifier.height(40.dp))
@@ -670,6 +678,136 @@ fun FormatSelectionSection(
                         color = if (isSelected) Color(0xFF007AFF) else Color(0xFF8E8E93), // iOS 스타일 색상
                         textAlign = TextAlign.Center
                     )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 프레임별 슬롯 위치에 맞는 사진 미리보기 섹션
+ */
+@Composable
+fun FramePreviewSection(
+    photoStates: List<PhotoState>,
+    selectedFrame: Frame?,
+    onPhotoClick: (Int) -> Unit,
+    onTransform: (Int, Float, Float, Float) -> Unit,
+    frameViewModel: FrameViewModel
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(0.9f)
+            .aspectRatio(0.75f) // iOS 스타일 비율
+            .background(
+                Color(0xFFF8F9FA), // iOS 스타일 연한 회색 배경
+                RoundedCornerShape(24.dp) // iOS 스타일 둥근 모서리
+            )
+            .padding(16.dp), // iOS 스타일 내부 여백
+        contentAlignment = Alignment.Center
+    ) {
+        if (selectedFrame != null && photoStates.any { it.bitmap != null }) {
+            // 프레임별 슬롯 위치에 맞는 미리보기
+            FramePreviewWithSlots(
+                frame = selectedFrame,
+                photoStates = photoStates,
+                onPhotoClick = onPhotoClick,
+                onTransform = onTransform,
+                frameViewModel = frameViewModel,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // 프레임이 선택되지 않았거나 사진이 없을 때 기본 표시
+            Text(
+                text = "프레임을 선택하고 사진을 추가하세요",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF8E8E93), // iOS 스타일 회색
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * 프레임별 슬롯 위치에 맞는 사진 배치 미리보기
+ */
+@Composable
+fun FramePreviewWithSlots(
+    frame: Frame,
+    photoStates: List<PhotoState>,
+    onPhotoClick: (Int) -> Unit,
+    onTransform: (Int, Float, Float, Float) -> Unit,
+    frameViewModel: FrameViewModel,
+    modifier: Modifier = Modifier
+) {
+    val slotRects = frameViewModel.getSlotRectsForFrame(frame)
+    
+    Box(modifier = modifier.clipToBounds()) {
+        // 1. 프레임 이미지 (배경)
+        Image(
+            painter = painterResource(id = frame.drawableId),
+            contentDescription = frame.name,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit // 프레임 전체가 보이도록
+        )
+
+        // 2. 사진들을 슬롯 위치에 배치
+        if (slotRects != null) {
+            Layout(
+                modifier = Modifier.fillMaxSize(),
+                content = {
+                    photoStates.forEachIndexed { index, photoState ->
+                        photoState.bitmap?.let { bitmap ->
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Photo ${index + 1}",
+                                contentScale = ContentScale.Crop, // 칸에 맞게 크롭
+                                modifier = Modifier
+                                    .clipToBounds()
+                                    .pointerInput(index) {
+                                        detectTapGestures {
+                                            onPhotoClick(index)
+                                        }
+                                    }
+                            )
+                        }
+                    }
+                }
+            ) { measurables, constraints ->
+                val placeables = mutableListOf<Placeable>()
+                val parentWidth = constraints.maxWidth
+                val parentHeight = constraints.maxHeight
+
+                measurables.forEachIndexed { index, measurable ->
+                    if (index < slotRects.size) {
+                        val rectF = slotRects[index]
+                        // RectF 비율 좌표를 절대 픽셀 좌표/크기로 변환
+                        val slotLeft = (rectF.left * parentWidth).toInt()
+                        val slotTop = (rectF.top * parentHeight).toInt()
+                        val slotRight = (rectF.right * parentWidth).toInt()
+                        val slotBottom = (rectF.bottom * parentHeight).toInt()
+                        val slotWidth = slotRight - slotLeft
+                        val slotHeight = slotBottom - slotTop
+
+                        // 해당 크기로 자식 측정
+                        val placeable = measurable.measure(
+                            androidx.compose.ui.unit.Constraints.fixed(slotWidth, slotHeight)
+                        )
+                        placeables.add(placeable)
+                    }
+                }
+
+                // 부모 레이아웃 크기 설정 및 자식 배치
+                layout(parentWidth, parentHeight) {
+                    placeables.forEachIndexed { index, placeable ->
+                        if (index < slotRects.size) {
+                            val rectF = slotRects[index]
+                            val slotLeft = (rectF.left * parentWidth).toInt()
+                            val slotTop = (rectF.top * parentHeight).toInt()
+                            // 계산된 위치에 자식 배치
+                            placeable.placeRelative(x = slotLeft, y = slotTop)
+                        }
+                    }
                 }
             }
         }

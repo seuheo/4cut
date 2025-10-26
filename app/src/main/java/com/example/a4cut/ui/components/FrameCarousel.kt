@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 import com.example.a4cut.data.model.Frame
 import kotlin.math.abs
 
@@ -208,7 +209,8 @@ private fun FrameCard(
                 Image(
                     painter = painterResource(id = frame.drawableId),
                     contentDescription = frame.name,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit // 프레임 전체가 보이도록 Fit 사용
                 )
             }
             
