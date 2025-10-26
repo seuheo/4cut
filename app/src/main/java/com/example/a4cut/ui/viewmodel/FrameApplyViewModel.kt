@@ -66,7 +66,7 @@ class FrameApplyViewModel(
     
     fun loadStationsForLine(line: String) {
         _stationsByLine.value = ktxStationRepository.getStationsByLine(line)
-        Log.d("FrameApplyVM", "노선 [$line]의 역 로드: ${_stationsByLine.value.map { it.name }}")
+        Log.d("FrameApplyVM", "노선 [$line]의 역 로드: ${_stationsByLine.value.map { it.stationName }}")
     }
     
     fun updateSelectedStation(stationName: String?) {
@@ -305,7 +305,7 @@ class FrameApplyViewModel(
                     imagePath = tempUri?.toString() ?: "",
                     title = "${photo.title} (${selectedFrame.name} 프레임)",
                     frameType = selectedFrame.name,
-                    location = station?.name ?: photo.location,
+                    location = station?.stationName ?: photo.location,
                     latitude = station?.latitude ?: photo.latitude,
                     longitude = station?.longitude ?: photo.longitude,
                     station = stationName,
@@ -436,16 +436,16 @@ class FrameApplyViewModel(
         val allStations = ktxStationRepository.getAllStations()
         Log.d("FrameApplyViewModel", "전체 KTX 역 개수: ${allStations.size}")
         Log.d("FrameApplyViewModel", "찾는 역 이름: $stationName")
-        Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
+        Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.stationName }}")
         
-        val station = allStations.find { it.name == stationName }
+        val station = allStations.find { it.stationName == stationName }
         
         return if (station != null) {
-            Log.d("FrameApplyViewModel", "역 찾음: ${station.name} (${station.latitude}, ${station.longitude})")
+            Log.d("FrameApplyViewModel", "역 찾음: ${station.stationName} (${station.latitude}, ${station.longitude})")
             Pair(station.latitude, station.longitude)
         } else {
             Log.e("FrameApplyViewModel", "역을 찾을 수 없음: $stationName")
-            Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.name }}")
+            Log.d("FrameApplyViewModel", "사용 가능한 역들: ${allStations.map { it.stationName }}")
             null
         }
     }

@@ -29,6 +29,7 @@ import com.example.a4cut.ui.components.KtxStationSelector
 import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.ui.theme.IosColors
 import com.example.a4cut.ui.viewmodel.HomeViewModel
+import com.example.a4cut.data.model.KtxStationData
 import java.util.Calendar
 // OpenStreetMap (osmdroid) 관련 import
 import androidx.compose.ui.viewinterop.AndroidView
@@ -109,11 +110,10 @@ fun CalendarScreen(
         }
     }
     
-    // KTX 역 선택을 위한 상태 변수 및 리포지토리
-    val ktxStationRepository = remember { KTXStationRepository() }
+    // KTX 역 선택을 위한 상태 변수
     var selectedLine by remember { mutableStateOf("Gyeongbu") }
     val stations by remember(selectedLine) {
-        mutableStateOf(ktxStationRepository.getStationsByLine(selectedLine))
+        mutableStateOf(KtxStationData.getStationNamesByLine(selectedLine))
     }
     
     Scaffold(
@@ -159,7 +159,7 @@ fun CalendarScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 KtxStationSelector(
-                    stations = stations,
+                    stations = KtxStationData.stationsByLine[selectedLine] ?: emptyList(),
                     selectedStation = mapLocationFilter,
                     onStationSelected = { stationName ->
                         homeViewModel.setMapLocationFilter(stationName)
@@ -333,12 +333,9 @@ fun CalendarScreen(
                             photo = photo,
                             onClick = { onNavigateToPhotoDetail(photo.id.toString()) },
                             onLocationClick = { location ->
-                                // HomeViewModel에 지도 필터 설정
+                                // 현재 캘린더 탭의 지도에서 해당 역만 표시
                                 homeViewModel.setMapLocationFilter(location)
                                 Log.d("CalendarScreen", "지도 필터 설정: $location")
-                                
-                                // 지도 탭으로 이동
-                                onNavigateToHomeWithLocation(location)
                             }
                         )
                     }
@@ -369,8 +366,19 @@ fun CalendarScreen(
                 
                 val testPhotosWithLocation = photosForMap.mapNotNull { photo ->
                     try {
-                        val latitude = photo.latitude ?: 37.5547
-                        val longitude = photo.longitude ?: 126.9706
+                        // 사진에 좌표가 있으면 사용, 없으면 역 이름으로 실제 좌표 찾기
+                        val (latitude, longitude) = if (photo.latitude != null && photo.longitude != null) {
+                            Pair(photo.latitude, photo.longitude)
+                        } else {
+                            // 역 이름으로 실제 좌표 찾기
+                            val station = KtxStationData.findStationByName(photo.location ?: "")
+                            if (station != null) {
+                                Pair(station.latitude, station.longitude)
+                            } else {
+                                // 기본값 (서울역)
+                                Pair(37.5547, 126.9706)
+                            }
+                        }
                         
                         Log.d("CalendarTest", "UI: 필터링된 사진 위치 정보 - ${photo.location} (${latitude}, ${longitude})")
                         Triple(GeoPoint(latitude, longitude), photo.location ?: "사진 위치", photo)
@@ -397,32 +405,77 @@ fun CalendarScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp)
+                            .height(350.dp)
                             .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = IosColors.White),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
-                        // AndroidView를 사용하여 osmdroid MapView 통합
-                        AndroidView(
-                            factory = { context ->
-                                MapView(context).apply {
-                                    setTileSource(TileSourceFactory.MAPNIK) // OSM 기본 타일 소스
-                                    setMultiTouchControls(true)
-                                    controller.setZoom(initialZoom)
-                                    controller.setCenter(initialCenter)
+                        Column {
+                            // 지도 제목 및 필터 해제 버튼
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (mapLocationFilter != null) {
+                                        "📍 $mapLocationFilter"
+                                    } else {
+                                        "🗺️ 사진 위치"
+                                    },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = IosColors.label
+                                )
+                                
+                                if (mapLocationFilter != null) {
+                                    TextButton(
+                                        onClick = { 
+                                            homeViewModel.clearMapLocationFilter()
+                                            Log.d("CalendarScreen", "지도 필터 해제")
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "전체 보기",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
-                            },
-                            update = { mapView ->
+                            }
+                            
+                            // AndroidView를 사용하여 osmdroid MapView 통합
+                            AndroidView(
+                                factory = { context ->
+                                    MapView(context).apply {
+                                        setTileSource(TileSourceFactory.MAPNIK) // OSM 기본 타일 소스
+                                        setMultiTouchControls(true)
+                                        controller.setZoom(initialZoom)
+                                        controller.setCenter(initialCenter)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(280.dp)
+                            ) { mapView ->
                                 try {
                                     Log.d("CalendarTest", "UI: MapView 업데이트. 마커 ${testPhotosWithLocation.size}개 추가 시도")
                                     
                                     // 기존 마커 제거
                                     mapView.overlays.clear()
                                     
-                                    // 모든 마커를 먼저 추가
+                                    // 필터링된 마커만 추가
                                     val validMarkers = mutableListOf<Marker>()
-                                    testPhotosWithLocation.forEach { (geoPoint, title, _) ->
+                                    val filteredPhotos = if (mapLocationFilter != null) {
+                                        testPhotosWithLocation.filter { (_, title, _) -> title == mapLocationFilter }
+                                    } else {
+                                        testPhotosWithLocation
+                                    }
+                                    
+                                    filteredPhotos.forEach { (geoPoint, title, _) ->
                                         try {
                                             // GeoPoint 유효성 검사
                                             if (geoPoint.latitude.isFinite() && geoPoint.longitude.isFinite()) {
@@ -478,10 +531,11 @@ fun CalendarScreen(
                                     if (validMarkers.isNotEmpty()) {
                                         try {
                                             if (validMarkers.size == 1) {
-                                                // 마커가 1개인 경우: 해당 위치로 이동
+                                                // 마커가 1개인 경우: 해당 위치로 이동 (필터링된 경우 확대)
                                                 val singleMarker = validMarkers.first()
-                                                mapView.controller.animateTo(singleMarker.position, 17.0, 1000L)
-                                                Log.d("CalendarTest", "UI: 단일 마커 위치로 지도 이동")
+                                                val zoomLevel = if (mapLocationFilter != null) 18.0 else 17.0
+                                                mapView.controller.animateTo(singleMarker.position, zoomLevel, 1000L)
+                                                Log.d("CalendarTest", "UI: 단일 마커 위치로 지도 이동 (필터: $mapLocationFilter)")
                                             } else {
                                                 // 마커가 여러 개인 경우: 모든 마커를 포함하는 범위로 설정
                                                 val latitudes = validMarkers.map { it.position.latitude }
@@ -522,9 +576,8 @@ fun CalendarScreen(
                                 } catch (e: Exception) {
                                     Log.e("CalendarTest", "UI: MapView 업데이트 중 오류", e)
                                 }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
+                            }
+                        }
 
                         // MapView 라이프사이클 관리
                         val lifecycleOwner = LocalLifecycleOwner.current

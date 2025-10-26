@@ -96,7 +96,7 @@ fun ResultScreen(
         selectedStation?.let { stationName ->
             val station = ktxStationRepository.findStationByName(stationName)
             frameViewModel.selectKtxStation(station)
-            Log.d("ResultScreen", "FrameViewModel에 역 정보 전달: ${station?.name}")
+            Log.d("ResultScreen", "FrameViewModel에 역 정보 전달: ${station?.stationName}")
         }
     }
     
@@ -1003,7 +1003,7 @@ private fun saveToDatabaseWithStation(
     val station = ktxStationRepository.findStationByName(selectedStation)
     
     if (station != null) {
-        Log.d("ResultScreen", "KTX 역 정보: ${station.name} (${station.latitude}, ${station.longitude})")
+        Log.d("ResultScreen", "KTX 역 정보: ${station.stationName} (${station.latitude}, ${station.longitude})")
         
         // 갤러리에 이미지 저장 (DB 저장은 FrameViewModel에서 처리됨)
         val imagePath = saveBitmapToGallery(context, composedImage)

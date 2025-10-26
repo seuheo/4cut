@@ -140,7 +140,7 @@ class FrameViewModel : ViewModel() {
      */
     fun selectKtxStation(station: KtxStation?) {
         _selectedKtxStation.value = station
-        Log.d("FrameViewModel", "KTX 역 선택됨: ${station?.name}")
+        Log.d("FrameViewModel", "KTX 역 선택됨: ${station?.stationName}")
     }
     
     /**
@@ -1373,14 +1373,14 @@ class FrameViewModel : ViewModel() {
                         photoRepository?.createKTXPhoto(
                             imagePath = savedUri.toString(),
                             title = "KTX 네컷 사진",
-                            location = selectedStation?.name ?: "KTX 역",
+                            location = selectedStation?.stationName ?: "KTX 역",
                             latitude = selectedStation?.latitude,
                             longitude = selectedStation?.longitude
                         )
                         
                         // 성공 메시지에 위치 정보 포함
                         val successMessage = if (selectedStation != null) {
-                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.name}에서 촬영)"
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.stationName}에서 촬영)"
                         } else {
                             "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
                         }

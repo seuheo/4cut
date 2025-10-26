@@ -86,7 +86,7 @@ class LocationTaggingService(private val context: Context) {
         )
         
         return LocationMetadata(
-            stationName = ktxStation.name,
+            stationName = ktxStation.stationName,
             latitude = currentLocation.latitude,
             longitude = currentLocation.longitude,
             stationLatitude = ktxStation.latitude,

@@ -22,19 +22,19 @@ fun KtxStationSelector(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(stations) { station ->
-            val isSelected = station.name == selectedStation
+            val isSelected = station.stationName == selectedStation
             FilterChip(
                 selected = isSelected,
                 onClick = {
                     if (isSelected) {
-                        Log.d("KtxStationSelector", "역 선택 해제: ${station.name}")
+                        Log.d("KtxStationSelector", "역 선택 해제: ${station.stationName}")
                         onStationSelected(null) // 다시 누르면 선택 해제
                     } else {
-                        Log.d("KtxStationSelector", "역 선택: ${station.name}")
-                        onStationSelected(station.name)
+                        Log.d("KtxStationSelector", "역 선택: ${station.stationName}")
+                        onStationSelected(station.stationName)
                     }
                 },
-                label = { Text(station.name) }
+                label = { Text(station.stationName) }
             )
         }
     }

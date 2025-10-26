@@ -116,7 +116,7 @@ class KTXStationRepository {
      */
     fun findStationByName(stationName: String): KtxStation? {
         return ktxStations.find { 
-            it.name.contains(stationName) || stationName.contains(it.name)
+            it.stationName.contains(stationName) || stationName.contains(it.stationName)
         }
     }
     
