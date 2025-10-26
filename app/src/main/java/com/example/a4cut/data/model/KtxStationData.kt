@@ -43,11 +43,15 @@ object KtxStationData {
         KtxStation("익산", "Honam", 35.9458, 126.9537, "IKS")
     )
 
-    // --- 전체 역 목록 (중복 제거) ---
-    val allStations: List<KtxStation> = run {
+    // --- 앱에서 주로 사용할 역 목록 (경부선 + 호남선, 중복 제거) ---
+    val availableStations: List<KtxStation> = run {
         val all = gyeongbuLineStations + honamLineStations
         all.distinctBy { it.stationName }
+            .sortedBy { it.stationName } // 이름순 정렬
     }
+
+    // --- 전체 역 목록 (중복 제거) - 하위 호환성을 위해 유지 ---
+    val allStations: List<KtxStation> = availableStations
 
     // --- 노선별 역 목록 맵 ---
     val stationsByLine: Map<String, List<KtxStation>> = mapOf(

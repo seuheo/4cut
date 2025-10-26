@@ -64,7 +64,13 @@ class FrameApplyViewModel(
     }
     
     fun loadStationsForLine(line: String) {
-        _stationsByLine.value = KtxStationData.stationsByLine[line] ?: emptyList()
+        // 경부선과 호남선 역만 필터링하여 로드 (KtxStationData.availableStations 사용)
+        val filteredStations = when (line) {
+            "Gyeongbu" -> KtxStationData.gyeongbuLineStations
+            "Honam" -> KtxStationData.honamLineStations
+            else -> emptyList()
+        }
+        _stationsByLine.value = filteredStations
         Log.d("FrameApplyVM", "노선 [$line]의 역 로드: ${_stationsByLine.value.map { it.stationName }}")
     }
     

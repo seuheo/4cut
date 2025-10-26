@@ -560,11 +560,11 @@ class ImageComposer(private val context: Context) {
             photoPositions = listOf(
                 // Long Form White 프레임용 위치 (2:6 인치 스타일, 세로형 레이아웃)
                 // 프레임 비율: 1:3 (가로:세로)
-                // 각 칸은 프레임의 80% 너비, 17% 높이를 차지하며 사진을 위로 올려서 프레임에 맞춤
-                RectF(0.10f, 0.05f, 0.90f, 0.22f),  // 첫 번째 칸 (상단) - 위로 올림
-                RectF(0.10f, 0.27f, 0.90f, 0.44f),  // 두 번째 칸 (중상단) - 위로 올림
-                RectF(0.10f, 0.49f, 0.90f, 0.66f),  // 세 번째 칸 (중하단) - 위로 올림
-                RectF(0.10f, 0.71f, 0.90f, 0.88f)   // 네 번째 칸 (하단) - 위로 올림
+                // 각 칸은 프레임의 84% 너비, 19% 높이를 차지하며 첫 번째 사진 위치 유지, 사진 간격만 살짝 줄임 (간격 1.5%)
+                RectF(0.08f, 0.03f, 0.92f, 0.22f),  // 첫 번째 칸 (Top: 3%, Bottom: 22%) Height: 19%
+                RectF(0.08f, 0.235f, 0.92f, 0.425f),  // 두 번째 칸 (Top: 23.5%, Bottom: 42.5%) Height: 19% / Gap: 1.5%
+                RectF(0.08f, 0.44f, 0.92f, 0.63f),  // 세 번째 칸 (Top: 44%, Bottom: 63%) Height: 19% / Gap: 1.5%
+                RectF(0.08f, 0.645f, 0.92f, 0.835f)   // 네 번째 칸 (Top: 64.5%, Bottom: 83.5%) Height: 19% / Gap: 1.5%
             )
         ),
         "long_form_black" to FramePhotoLayout(
@@ -572,11 +572,11 @@ class ImageComposer(private val context: Context) {
             photoPositions = listOf(
                 // Long Form Black 프레임용 위치 (2:6 인치 스타일, 세로형 레이아웃)
                 // 프레임 비율: 1:3 (가로:세로)
-                // 각 칸은 프레임의 80% 너비, 17% 높이를 차지하며 사진을 위로 올려서 프레임에 맞춤
-                RectF(0.10f, 0.05f, 0.90f, 0.22f),  // 첫 번째 칸 (상단) - 위로 올림
-                RectF(0.10f, 0.27f, 0.90f, 0.44f),  // 두 번째 칸 (중상단) - 위로 올림
-                RectF(0.10f, 0.49f, 0.90f, 0.66f),  // 세 번째 칸 (중하단) - 위로 올림
-                RectF(0.10f, 0.71f, 0.90f, 0.88f)   // 네 번째 칸 (하단) - 위로 올림
+                // 각 칸은 프레임의 84% 너비, 19% 높이를 차지하며 첫 번째 사진 위치 유지, 사진 간격만 살짝 줄임 (간격 1.5%)
+                RectF(0.08f, 0.03f, 0.92f, 0.22f),  // 첫 번째 칸 (Top: 3%, Bottom: 22%) Height: 19%
+                RectF(0.08f, 0.235f, 0.92f, 0.425f),  // 두 번째 칸 (Top: 23.5%, Bottom: 42.5%) Height: 19% / Gap: 1.5%
+                RectF(0.08f, 0.44f, 0.92f, 0.63f),  // 세 번째 칸 (Top: 44%, Bottom: 63%) Height: 19% / Gap: 1.5%
+                RectF(0.08f, 0.645f, 0.92f, 0.835f)   // 네 번째 칸 (Top: 64.5%, Bottom: 83.5%) Height: 19% / Gap: 1.5%
             )
         )
     )
