@@ -1,6 +1,8 @@
 package com.example.a4cut.ui.screens
 
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
@@ -74,6 +76,28 @@ fun ResultScreen(
     val composedImage by frameViewModel.composedImage.collectAsState()
     val isProcessing by frameViewModel.isProcessing.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
+    val instagramShareIntent by frameViewModel.instagramShareIntent.collectAsState()
+    
+    // Instagram Share Intent 실행
+    LaunchedEffect(instagramShareIntent) {
+        instagramShareIntent?.let { intent ->
+            try {
+                context.startActivity(intent)
+            } catch (e: android.content.ActivityNotFoundException) {
+                Log.e("ResultScreen", "Instagram 앱을 찾을 수 없습니다: ${e.message}")
+                // Instagram이 설치되지 않은 경우 일반 공유로 fallback
+                val uri = intent.getParcelableExtra<Uri>("interactive_asset_uri")
+                if (uri != null) {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "image/jpeg"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "공유하기"))
+                }
+            }
+        }
+    }
     // val isSaved by frameViewModel.isSaved.collectAsState()
     // val isShared by frameViewModel.isShared.collectAsState()
     
@@ -192,6 +216,10 @@ fun ResultScreen(
                         frame = selectedFrame,
                         isLiked = isLiked,
                         onLikeToggle = { isLiked = !isLiked },
+                        onShare = {
+                            // SNS 공유 기능 구현 (MVP Ver3)
+                            // frameViewModel.shareToInstagram()을 호출하면 LaunchedEffect에서 처리됨
+                        },
                         onImageClick = { showPreviewDialog = true },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -235,7 +263,8 @@ fun ResultScreen(
                         showSaveSnackbar = true
                     },
                     onShare = { 
-                        /* TODO: 공유 기능 */
+                        // SNS 공유 기능 구현 (MVP Ver3)
+                        frameViewModel.shareToInstagram()
                         showShareSnackbar = true
                     },
                     onRestart = { showRestartDialog = true },
@@ -250,7 +279,10 @@ fun ResultScreen(
         ImagePreviewDialog(
             bitmap = composedImage,
             onSave = { /* TODO: 저장 */ },
-            onShare = { /* TODO: 공유 */ },
+            onShare = { 
+                // SNS 공유 기능 구현 (MVP Ver3)
+                frameViewModel.shareToInstagram()
+            },
             onDismiss = { showPreviewDialog = false }
         )
     }
@@ -368,6 +400,7 @@ private fun InstagramPostCard(
     frame: Frame?,
     isLiked: Boolean,
     onLikeToggle: () -> Unit,
+    onShare: () -> Unit,
     onImageClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -401,6 +434,10 @@ private fun InstagramPostCard(
             PostActions(
                 isLiked = isLiked,
                 onLikeToggle = onLikeToggle,
+                onShare = {
+                    // SNS 공유 기능 구현 (MVP Ver3)
+                    // frameViewModel.shareToInstagram()은 ResultScreen에서 처리됨
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -508,6 +545,7 @@ private fun PostImage(
 private fun PostActions(
     isLiked: Boolean,
     onLikeToggle: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -546,7 +584,7 @@ private fun PostActions(
         }
 
         // 공유 버튼
-        IconButton(onClick = { /* TODO: 공유 기능 */ }) {
+        IconButton(onClick = onShare) {
             Icon(
                 imageVector = Icons.Default.Share,
                 contentDescription = "공유",
