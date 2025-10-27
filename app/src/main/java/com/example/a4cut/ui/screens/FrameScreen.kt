@@ -120,18 +120,11 @@ fun FrameScreen(
     val framesByFormat by frameViewModel.framesByFormat.collectAsState()
     val formats by frameViewModel.formats.collectAsState()
 
-    // 화면이 사라질 때 (뒤로 가기 포함) 사진 선택 초기화
-    DisposableEffect(navController) {
-        onDispose {
-            // PhotoSelectionScreen으로 돌아갈 때만 사진 초기화
-            // 네비게이션 스택을 확인하여 뒤로 가기인지 판별
-            val currentRoute = navController.currentBackStackEntry?.destination?.route
-            if (currentRoute == Screen.Frame.route) {
-                // FrameScreen에서 PhotoSelectionScreen으로 돌아가는 경우
-                frameViewModel.clearPhotoSelection()
-            }
-        }
-    }
+    // DisposableEffect 제거: FrameScreen에서는 사진 데이터를 초기화하지 않음
+    // 사진 선택 데이터는 PhotoSelectionScreen에서 관리되며,
+    // FrameScreen에서 뒤로 가면 PhotoSelectionScreen으로 돌아가므로
+    // PhotoSelectionScreen이 여전히 생존한 상태임
+    // 따라서 FrameScreen의 onDispose에서는 사진 데이터를 초기화하지 않아야 함
 
     // 미리보기 다이얼로그 상태
     var showPreviewDialog by remember { mutableStateOf(false) }

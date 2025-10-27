@@ -78,13 +78,11 @@ fun PhotoSelectionScreen(
         frameViewModel.setContext(context)
     }
     
-    // 화면이 사라질 때 (뒤로 가기 포함) 전체 상태 초기화
-    DisposableEffect(Unit) {
-        onDispose {
-            // 이 화면을 벗어날 때 모든 선택 상태 초기화
-            frameViewModel.clearAllSelections()
-        }
-    }
+    // 화면이 사라질 때 상태 초기화 제거
+    // DisposableEffect에서 clearAllSelections() 호출 시,
+    // FramePickerScreen으로 이동할 때도 사진 데이터가 사라지는 문제 발생
+    // 해결: PhotoSelectionScreen의 onDispose에서는 상태를 초기화하지 않음
+    // 대신 뒤로 가기 버튼에서만 초기화하도록 변경 필요
     
     Scaffold(
         topBar = {
