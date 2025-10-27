@@ -78,6 +78,14 @@ fun PhotoSelectionScreen(
         frameViewModel.setContext(context)
     }
     
+    // 화면이 사라질 때 (뒤로 가기 포함) 전체 상태 초기화
+    DisposableEffect(Unit) {
+        onDispose {
+            // 이 화면을 벗어날 때 모든 선택 상태 초기화
+            frameViewModel.clearAllSelections()
+        }
+    }
+    
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(

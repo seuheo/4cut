@@ -48,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
 import androidx.navigation.NavController
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -118,6 +119,19 @@ fun FrameScreen(
     val selectedFormat by frameViewModel.selectedFormat.collectAsState()
     val framesByFormat by frameViewModel.framesByFormat.collectAsState()
     val formats by frameViewModel.formats.collectAsState()
+
+    // 화면이 사라질 때 (뒤로 가기 포함) 사진 선택 초기화
+    DisposableEffect(navController) {
+        onDispose {
+            // PhotoSelectionScreen으로 돌아갈 때만 사진 초기화
+            // 네비게이션 스택을 확인하여 뒤로 가기인지 판별
+            val currentRoute = navController.currentBackStackEntry?.destination?.route
+            if (currentRoute == Screen.Frame.route) {
+                // FrameScreen에서 PhotoSelectionScreen으로 돌아가는 경우
+                frameViewModel.clearPhotoSelection()
+            }
+        }
+    }
 
     // 미리보기 다이얼로그 상태
     var showPreviewDialog by remember { mutableStateOf(false) }

@@ -1763,31 +1763,54 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 상태 초기화 함수
-     * 사진 저장 완료 후 모든 선택 상태를 초기값으로 되돌림
+     * 선택된 사진 관련 상태만 초기화합니다. (FrameScreen -> PhotoSelectionScreen)
      */
-    fun resetState() {
-        // 1. 선택된 사진 목록 초기화
+    fun clearPhotoSelection() {
         _photos.value = MutableList(4) { null }
         _photoStates.clear()
         _photoStates.addAll(MutableList(4) { PhotoState(null) })
-        
-        // 2. 선택된 프레임 초기화
+        _selectedImageUris.value = emptyList()
+        println("=== FrameViewModel: 사진 선택 초기화 완료 (뒤로가기) ===")
+    }
+
+    /**
+     * 선택된 프레임과 합성된 이미지 관련 상태만 초기화합니다. (FrameApplyScreen -> FrameScreen)
+     */
+    fun clearFrameSelectionAndComposition() {
         _selectedFrame.value = null
-        
-        // 3. 합성된 이미지 비트맵 초기화
+        // 이전 비트맵 메모리 해제 (주의해서 사용)
+        _composedImage.value?.let { bitmap ->
+            if (!bitmap.isRecycled) {
+                bitmap.recycle()
+            }
+        }
         _composedImage.value = null
         _composedImageUri.value = null
-        
-        // 4. 로딩 및 오류 상태 초기화
+        println("=== FrameViewModel: 프레임 선택 및 합성 결과 초기화 완료 (뒤로가기) ===")
+    }
+
+    /**
+     * 모든 선택 상태(사진, 프레임, 합성 결과)를 초기화합니다. (저장 후 또는 전체 취소 시)
+     */
+    fun clearAllSelections() {
+        clearPhotoSelection()
+        clearFrameSelectionAndComposition()
+        // 포맷은 초기화하지 않음 (사용자 선택 유지)
+        println("=== FrameViewModel: 모든 선택 상태 초기화 완료 ===")
+    }
+
+    /**
+     * 상태 초기화 함수 (기존 함수 유지 - 하위 호환성)
+     * 사진 저장 완료 후 모든 선택 상태를 초기값으로 되돌림
+     */
+    fun resetState() {
+        clearAllSelections()
+        // 추가 초기화 (로딩 상태, 에러 메시지 등)
         _isLoading.value = false
         _isProcessing.value = false
         _errorMessage.value = null
-        
-        // 5. KTX 역 선택 초기화
         _selectedKtxStation.value = null
-        
-        println("=== FrameViewModel 상태 초기화 완료 ===")
+        println("=== FrameViewModel 상태 초기화 완료 (resetState) ===")
     }
     
     /**

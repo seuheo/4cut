@@ -48,6 +48,14 @@ fun FrameApplyScreen(
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
     val successMessage = uiState.successMessage
+
+    // 화면이 사라질 때 (뒤로 가기 포함) 프레임 선택 및 합성 결과 초기화
+    DisposableEffect(Unit) {
+        onDispose {
+            // 이 화면을 벗어날 때 항상 호출됨
+            frameViewModel.clearFrameSelectionAndComposition()
+        }
+    }
     
     // KTX 역 선택을 위한 상태 변수
     val ktxLines by viewModel.ktxLines.collectAsState()
