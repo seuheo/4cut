@@ -117,6 +117,7 @@ class HomeViewModel : ViewModel() {
     )
     
     // ✅ 추가: 사진이 존재하는 날짜 목록을 가져옵니다. (displayedMonth 기준으로 필터링)
+    // 모든 날짜를 반환하여 달력에 점 표시 (월 단위 필터링만 적용)
     val datesWithPhotos: StateFlow<List<LocalDate>> = combine(
         photoLogs,
         _displayedMonth
@@ -129,7 +130,7 @@ class HomeViewModel : ViewModel() {
                 val photoYear = calendar.get(Calendar.YEAR)
                 val photoMonth = calendar.get(Calendar.MONTH) + 1
                 
-                // displayedMonth와 일치하는 사진만 필터링
+                // displayedMonth와 일치하는 사진만 필터링 (월만 확인)
                 photoYear == displayedMonth.year && photoMonth == displayedMonth.monthValue
             }
             .map { photo ->
