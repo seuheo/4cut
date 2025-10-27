@@ -39,6 +39,7 @@ import com.example.a4cut.ui.components.ImagePreviewDialog
 import com.example.a4cut.ui.components.KtxStationSelector
 import com.example.a4cut.data.repository.KTXStationRepository
 import com.example.a4cut.data.repository.PhotoRepository
+import com.example.a4cut.data.model.KtxStationData
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.theme.*
 import com.example.a4cut.ui.viewmodel.FrameViewModel
@@ -76,25 +77,28 @@ fun ResultScreen(
     // val isSaved by frameViewModel.isSaved.collectAsState()
     // val isShared by frameViewModel.isShared.collectAsState()
     
-    // KTX 역 선택을 위한 상태
-    val ktxStationRepository = remember { KTXStationRepository() }
-    val ktxLines by remember { MutableStateFlow(ktxStationRepository.getLines()) }.collectAsState()
-    val _stationsByLine = remember { MutableStateFlow(ktxStationRepository.getStationsByLine("Gyeongbu")) }
+    // KTX 역 선택을 위한 상태 (CalendarScreen과 동일한 데이터 소스 사용)
+    val ktxLines by remember { MutableStateFlow(listOf("Gyeongbu", "Honam")) }.collectAsState()
+    val _stationsByLine = remember { MutableStateFlow(KtxStationData.gyeongbuLineStations) }
     val stationsByLine by _stationsByLine.collectAsState()
     var selectedLine by remember { mutableStateOf("Gyeongbu") }
     var selectedStation by remember { mutableStateOf<String?>(null) }
     
-    // 노선 변경 시 역 목록 업데이트
+    // 노선 변경 시 역 목록 업데이트 (KtxStationData 사용)
     LaunchedEffect(selectedLine) {
-        val stations = ktxStationRepository.getStationsByLine(selectedLine)
+        val stations = when (selectedLine) {
+            "Gyeongbu" -> KtxStationData.gyeongbuLineStations
+            "Honam" -> KtxStationData.honamLineStations
+            else -> emptyList()
+        }
         _stationsByLine.value = stations
         selectedStation = null // 노선 변경 시 역 선택 초기화
     }
     
-    // 선택된 역이 변경될 때 FrameViewModel에 전달
+    // 선택된 역이 변경될 때 FrameViewModel에 전달 (KtxStationData 사용)
     LaunchedEffect(selectedStation) {
         selectedStation?.let { stationName ->
-            val station = ktxStationRepository.findStationByName(stationName)
+            val station = KtxStationData.findStationByName(stationName)
             frameViewModel.selectKtxStation(station)
             Log.d("ResultScreen", "FrameViewModel에 역 정보 전달: ${station?.stationName}")
         }
@@ -947,15 +951,11 @@ private fun KtxStationSelectionSection(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             
-            // 노선 선택 탭
-            val lines = listOf("Gyeongbu", "Honam", "Gyeongjeon", "Jungang", "Jeolla", "Donghae")
+            // 노선 선택 탭 (경부선, 호남선만 표시)
+            val lines = listOf("Gyeongbu", "Honam")
             val lineNames = mapOf(
                 "Gyeongbu" to "경부선",
-                "Honam" to "호남선", 
-                "Gyeongjeon" to "경전선",
-                "Jungang" to "중앙선",
-                "Jeolla" to "전라선",
-                "Donghae" to "동해선"
+                "Honam" to "호남선"
             )
             
             TabRow(selectedTabIndex = lines.indexOf(selectedLine).coerceAtLeast(0)) {
@@ -1001,9 +1001,8 @@ private fun saveToDatabaseWithStation(
     
     Log.d("ResultScreen", "선택된 KTX 역: $selectedStation")
     
-    // KTX 역 정보 조회
-    val ktxStationRepository = KTXStationRepository()
-    val station = ktxStationRepository.findStationByName(selectedStation)
+    // KTX 역 정보 조회 (KtxStationData 사용)
+    val station = KtxStationData.findStationByName(selectedStation)
     
     if (station != null) {
         Log.d("ResultScreen", "KTX 역 정보: ${station.stationName} (${station.latitude}, ${station.longitude})")
