@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.a4cut.ui.viewmodel.CampaignViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * ✅ MVP Ver2: 노선도(잇다) 캠페인 화면
@@ -26,6 +27,14 @@ fun CampaignScreen(
     viewModel: CampaignViewModel = viewModel(),
     onNavigateBack: () -> Unit
 ) {
+    // Context 가져오기
+    val context = LocalContext.current
+    
+    // ViewModel 초기화
+    LaunchedEffect(Unit) {
+        viewModel.setContext(context)
+    }
+    
     // ViewModel 상태 수집
     val selectedYear by viewModel.selectedYear.collectAsState()
     val visitedStations by viewModel.visitedStationsInYear.collectAsState()

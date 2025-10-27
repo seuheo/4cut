@@ -1,7 +1,9 @@
 package com.example.a4cut.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a4cut.data.database.AppDatabase
 import com.example.a4cut.data.repository.PhotoRepository
 import com.example.a4cut.data.model.KtxStationData
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,9 +20,9 @@ import java.util.Calendar
  * ✅ MVP Ver2: 노선도(잇다) 캠페인 기능 ViewModel
  * 사용자가 방문한 KTX 역을 추적하고, 모든 역을 방문했는지 확인하는 게이미피케이션 기능
  */
-class CampaignViewModel(
-    private val photoRepository: PhotoRepository
-) : ViewModel() {
+class CampaignViewModel : ViewModel() {
+    
+    private var photoRepository: PhotoRepository? = null
     
     // 선택된 연도 상태
     private val _selectedYear = MutableStateFlow("2025")
@@ -28,7 +30,7 @@ class CampaignViewModel(
     
     // 방문한 역 목록 (연도별)
     val visitedStationsInYear: StateFlow<List<String>> = combine(
-        photoRepository.getAllPhotos(),
+        getPhotoLogs(),
         _selectedYear
     ) { photos, year ->
         photos
@@ -91,6 +93,41 @@ class CampaignViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = false
     )
+    
+    // 사진 로그 데이터
+    private val _photoLogs = MutableStateFlow<List<com.example.a4cut.data.database.entity.PhotoEntity>>(emptyList())
+    
+    /**
+     * 사진 로그 Flow 반환
+     */
+    private fun getPhotoLogs(): StateFlow<List<com.example.a4cut.data.database.entity.PhotoEntity>> {
+        return if (photoRepository != null) {
+            photoRepository!!.getAllPhotos().stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+        } else {
+            _photoLogs.asStateFlow()
+        }
+    }
+    
+    /**
+     * Context 설정 및 Repository 초기화
+     */
+    fun setContext(context: Context) {
+        val database = AppDatabase.getDatabase(context)
+        photoRepository = PhotoRepository(database.photoDao())
+        
+        // Flow 구독 시작
+        photoRepository?.let { repo ->
+            viewModelScope.launch {
+                repo.getAllPhotos().collect { photos ->
+                    _photoLogs.value = photos
+                }
+            }
+        }
+    }
     
     /**
      * 연도 선택
