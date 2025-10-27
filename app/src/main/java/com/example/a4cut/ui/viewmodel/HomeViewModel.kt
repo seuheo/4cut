@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.YearMonth
 import java.util.Calendar
 import android.util.Log
 
@@ -53,6 +54,10 @@ class HomeViewModel : ViewModel() {
     // 지도에 표시할 위치 필터 상태 (캘린더에서 위치 클릭 시 사용)
     private val _mapLocationFilter = MutableStateFlow<String?>(null)
     val mapLocationFilter: StateFlow<String?> = _mapLocationFilter.asStateFlow()
+    
+    // ✅ 추가: 캘린더에서 표시할 월 상태 (MVP Ver2)
+    private val _displayedMonth = MutableStateFlow(YearMonth.now())
+    val displayedMonth: StateFlow<YearMonth> = _displayedMonth.asStateFlow()
     
     // 선택된 날짜의 사진 목록 상태 (지도 표시용)
     private val _photosForSelectedDate = MutableStateFlow<List<PhotoEntity>>(emptyList())
@@ -111,18 +116,33 @@ class HomeViewModel : ViewModel() {
         initialValue = emptyList()
     )
     
-    // ✅ 추가: 사진이 존재하는 모든 날짜 목록을 가져옵니다. (달력 표시용)
-    val datesWithPhotos: StateFlow<List<LocalDate>> = photoLogs.map { photos ->
-        photos.map { photo ->
-            // Calendar를 사용하여 API 호환성 확보
-            val calendar = Calendar.getInstance()
-            calendar.timeInMillis = photo.createdAt
-            LocalDate.of(
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH) + 1,
-                calendar.get(Calendar.DAY_OF_MONTH)
-            )
-        }.distinct().sorted()
+    // ✅ 추가: 사진이 존재하는 날짜 목록을 가져옵니다. (displayedMonth 기준으로 필터링)
+    val datesWithPhotos: StateFlow<List<LocalDate>> = combine(
+        photoLogs,
+        _displayedMonth
+    ) { photos, displayedMonth ->
+        photos
+            .filter { photo ->
+                // Calendar를 사용하여 API 호환성 확보
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = photo.createdAt
+                val photoYear = calendar.get(Calendar.YEAR)
+                val photoMonth = calendar.get(Calendar.MONTH) + 1
+                
+                // displayedMonth와 일치하는 사진만 필터링
+                photoYear == displayedMonth.year && photoMonth == displayedMonth.monthValue
+            }
+            .map { photo ->
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = photo.createdAt
+                LocalDate.of(
+                    calendar.get(Calendar.YEAR),
+                    calendar.get(Calendar.MONTH) + 1,
+                    calendar.get(Calendar.DAY_OF_MONTH)
+                )
+            }
+            .distinct()
+            .sorted()
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -630,6 +650,19 @@ class HomeViewModel : ViewModel() {
                 e.printStackTrace()
             }
         }
+    }
+    
+    /**
+     * ✅ 추가: 캘린더 월 이동 함수 (MVP Ver2)
+     */
+    fun goToNextMonth() {
+        _displayedMonth.value = _displayedMonth.value.plusMonths(1)
+        Log.d("HomeViewModel", "월 이동: ${_displayedMonth.value}")
+    }
+    
+    fun goToPreviousMonth() {
+        _displayedMonth.value = _displayedMonth.value.minusMonths(1)
+        Log.d("HomeViewModel", "월 이동: ${_displayedMonth.value}")
     }
     
 }

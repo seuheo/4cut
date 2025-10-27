@@ -12,6 +12,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,10 +61,13 @@ fun CalendarScreen(
 ) {
     val context = LocalContext.current
     
-    // 현재 날짜 상태 관리
-    var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
-    var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
+    // 현재 날짜 상태 관리 (주석 처리: HomeViewModel의 displayedMonth 사용)
+    // var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
+    // var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var selectedDate by remember { mutableStateOf<Calendar?>(null) }
+    
+    // ✅ 추가: ViewModel의 displayedMonth 상태 수집
+    val displayedMonth by homeViewModel.displayedMonth.collectAsState()
     
     // 마커 클릭 시 사진 미리보기 상태
     var selectedPhotoForPreview by remember { mutableStateOf<PhotoEntity?>(null) }
@@ -169,28 +174,49 @@ fun CalendarScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // ✅ 추가: 월 네비게이션 UI (MVP Ver2)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { homeViewModel.goToPreviousMonth() }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "이전 월"
+                    )
+                }
+                
+                Text(
+                    text = "${displayedMonth.year}년 ${displayedMonth.monthValue}월",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                IconButton(onClick = { homeViewModel.goToNextMonth() }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "다음 월"
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
             // 달력 뷰
             CalendarView(
-                currentMonth = currentMonth,
-                currentYear = currentYear,
+                currentMonth = displayedMonth.monthValue - 1, // YearMonth.monthValue는 1-12, Calendar.MONTH는 0-11
+                currentYear = displayedMonth.year,
                 selectedDate = selectedDate,
                 onPreviousMonth = { 
-                    if (currentMonth == 0) {
-                        currentMonth = 11
-                        currentYear--
-                    } else {
-                        currentMonth--
-                    }
+                    homeViewModel.goToPreviousMonth()
                     selectedDate = null // 월 변경 시 선택 해제
                     homeViewModel.clearPhotosForSelectedDate() // 월 변경 시 지도 숨기기
                 },
                 onNextMonth = { 
-                    if (currentMonth == 11) {
-                        currentMonth = 0
-                        currentYear++
-                    } else {
-                        currentMonth++
-                    }
+                    homeViewModel.goToNextMonth()
                     selectedDate = null // 월 변경 시 선택 해제
                     homeViewModel.clearPhotosForSelectedDate() // 월 변경 시 지도 숨기기
                 },
