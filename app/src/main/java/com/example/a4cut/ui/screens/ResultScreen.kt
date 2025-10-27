@@ -108,7 +108,7 @@ fun ResultScreen(
     var showRestartDialog by remember { mutableStateOf(false) }
     
     // 디버그 로그
-    LaunchedEffect(selectedFrame, photos) {
+    LaunchedEffect(selectedFrame, photos, composedImage, isProcessing) {
         val photoCount = photos.count { it != null }
         println("=== ResultScreen 디버그 ===")
         println("ResultScreen: selectedFrame = $selectedFrame")
@@ -127,6 +127,9 @@ fun ResultScreen(
             println("  - photoCount > 0: ${photoCount > 0}")
             println("  - composedImage == null: ${composedImage == null}")
             println("  - !isProcessing: ${!isProcessing}")
+            if (composedImage != null) {
+                println("ResultScreen: 이미지가 이미 합성되어 있어 재합성하지 않음")
+            }
         }
         println("=== ResultScreen 디버그 끝 ===")
     }

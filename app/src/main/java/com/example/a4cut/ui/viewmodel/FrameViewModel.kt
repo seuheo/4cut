@@ -1790,6 +1790,20 @@ class FrameViewModel : ViewModel() {
     }
 
     /**
+     * 합성된 이미지만 초기화합니다. (프레임 재선택 시)
+     */
+    fun clearComposedImage() {
+        _composedImage.value?.let { bitmap ->
+            if (!bitmap.isRecycled) {
+                bitmap.recycle()
+            }
+        }
+        _composedImage.value = null
+        _composedImageUri.value = null
+        println("=== FrameViewModel: 합성 결과만 초기화 완료 ===")
+    }
+
+    /**
      * 모든 선택 상태(사진, 프레임, 합성 결과)를 초기화합니다. (저장 후 또는 전체 취소 시)
      */
     fun clearAllSelections() {

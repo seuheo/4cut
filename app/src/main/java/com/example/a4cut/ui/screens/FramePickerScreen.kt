@@ -96,6 +96,8 @@ fun FramePickerScreen(
                     frame = frame,
                     isSelected = currentlySelectedFrame?.id == frame.id,
                     onClick = {
+                        // 이전 합성 결과 초기화
+                        viewModel.clearComposedImage()
                         // 프레임 선택 시 ViewModel 상태 업데이트
                         viewModel.selectFrame(frame)
                         // 결과 화면으로 이동
