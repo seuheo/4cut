@@ -247,7 +247,8 @@ fun FrameScreen(
                 showPreviewDialog = false
             },
             onShare = {
-                frameViewModel.shareToInstagram()
+                // Bug #6 수정: 범용 공유로 변경
+                frameViewModel.shareImage()
                 showPreviewDialog = false
             },
             isProcessing = isProcessing

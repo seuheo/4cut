@@ -777,45 +777,51 @@ private fun PhotoGridItem(
                 contentScale = ContentScale.Crop
             )
             
-            // 위치 정보 오버레이 (KTX 역인 경우에만)
-            if (photo.location.isNotBlank() && photo.location.contains("역")) {
-                Row(
+            // 위치 정보 오버레이 (KTX 역 정보가 있으면 항상 표시)
+            if (photo.location.isNotBlank()) {
+                Surface(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(bottomStart = 8.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                    shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
                 ) {
-                    // 역 이름과 역 아이콘 클릭 가능 영역
                     Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .clickable { onLocationClick(photo.location) }
-                            .padding(vertical = 2.dp),
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "🚉 ${photo.location}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                    }
-                    
-                    // 지도 아이콘 버튼
-                    IconButton(
-                        onClick = { onLocationClick(photo.location) },
-                        modifier = Modifier.size(20.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "지도에서 보기",
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                        // 역 이름과 역 아이콘 클릭 가능 영역
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onLocationClick(photo.location) }
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🚉 ${photo.location}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                        
+                        // 지도 아이콘 버튼
+                        IconButton(
+                            onClick = { onLocationClick(photo.location) },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "지도에서 보기",
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 }
             }

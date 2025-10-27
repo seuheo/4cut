@@ -78,23 +78,18 @@ fun ResultScreen(
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val instagramShareIntent by frameViewModel.instagramShareIntent.collectAsState()
     
-    // Instagram Share Intent 실행
+    // 이미지 공유 Intent 실행 (Bug #6 수정: 범용 공유로 변경)
     LaunchedEffect(instagramShareIntent) {
         instagramShareIntent?.let { intent ->
             try {
-                context.startActivity(intent)
-            } catch (e: android.content.ActivityNotFoundException) {
-                Log.e("ResultScreen", "Instagram 앱을 찾을 수 없습니다: ${e.message}")
-                // Instagram이 설치되지 않은 경우 일반 공유로 fallback
-                val uri = intent.getParcelableExtra<Uri>("interactive_asset_uri")
-                if (uri != null) {
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "image/jpeg"
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    context.startActivity(Intent.createChooser(shareIntent, "공유하기"))
-                }
+                Log.d("ResultScreen", "공유 Intent 실행 시작")
+                // Android Share Sheet 표시 (모든 공유 앱 목록)
+                val chooser = Intent.createChooser(intent, "공유하기")
+                Log.d("ResultScreen", "Share Chooser 생성 완료, 실행 시도")
+                context.startActivity(chooser)
+                Log.d("ResultScreen", "Share Chooser 실행 완료")
+            } catch (e: Exception) {
+                Log.e("ResultScreen", "공유 실패: ${e.message}", e)
             }
         }
     }
@@ -217,8 +212,9 @@ fun ResultScreen(
                         isLiked = isLiked,
                         onLikeToggle = { isLiked = !isLiked },
                         onShare = {
-                            // SNS 공유 기능 구현 (MVP Ver3)
-                            // frameViewModel.shareToInstagram()을 호출하면 LaunchedEffect에서 처리됨
+                            // SNS 공유 기능 구현 (MVP Ver3, Bug #6 수정)
+                            Log.d("ResultScreen", "공유 버튼 클릭됨")
+                            frameViewModel.shareImage()
                         },
                         onImageClick = { showPreviewDialog = true },
                         modifier = Modifier.fillMaxWidth()
@@ -263,8 +259,8 @@ fun ResultScreen(
                         showSaveSnackbar = true
                     },
                     onShare = { 
-                        // SNS 공유 기능 구현 (MVP Ver3)
-                        frameViewModel.shareToInstagram()
+                        // SNS 공유 기능 구현 (MVP Ver3, Bug #6 수정)
+                        frameViewModel.shareImage()
                         showShareSnackbar = true
                     },
                     onRestart = { showRestartDialog = true },
@@ -280,8 +276,8 @@ fun ResultScreen(
             bitmap = composedImage,
             onSave = { /* TODO: 저장 */ },
             onShare = { 
-                // SNS 공유 기능 구현 (MVP Ver3)
-                frameViewModel.shareToInstagram()
+                // SNS 공유 기능 구현 (MVP Ver3, Bug #6 수정)
+                frameViewModel.shareImage()
             },
             onDismiss = { showPreviewDialog = false }
         )
@@ -434,10 +430,7 @@ private fun InstagramPostCard(
             PostActions(
                 isLiked = isLiked,
                 onLikeToggle = onLikeToggle,
-                onShare = {
-                    // SNS 공유 기능 구현 (MVP Ver3)
-                    // frameViewModel.shareToInstagram()은 ResultScreen에서 처리됨
-                },
+                onShare = onShare,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)

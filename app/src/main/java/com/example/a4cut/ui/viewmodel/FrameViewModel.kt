@@ -1478,38 +1478,53 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 인스타그램 공유
+     * 범용 이미지 공유 기능 (Bug #6 수정)
+     * Android Share Sheet를 사용하여 모든 공유 앱 목록을 표시
      */
-    fun shareToInstagram() {
+    fun shareImage() {
+        Log.d("FrameViewModel", "shareImage() 호출됨")
         val imageToShare = _composedImage.value
         if (imageToShare == null) {
+            Log.e("FrameViewModel", "합성된 이미지가 없습니다")
             _errorMessage.value = "합성된 이미지가 없습니다. 먼저 이미지 합성을 해주세요."
             return
         }
 
+        Log.d("FrameViewModel", "이미지 공유 시작")
         viewModelScope.launch {
             _isProcessing.value = true
             try {
                 // 1. 합성된 이미지를 임시 파일로 저장
                 val sharedImageFile = saveImageToCache(imageToShare)
+                Log.d("FrameViewModel", "이미지 캐시 저장 완료: ${sharedImageFile.absolutePath}")
                 
-                // 2. Instagram Story Intent 생성 및 실행
+                // 2. 범용 공유 Intent 생성 (Instagram 전용이 아닌 Android Share Sheet)
                 context?.let { ctx ->
-                    val intent = createInstagramStoryIntent(ctx, sharedImageFile)
+                    val intent = createShareIntent(ctx, sharedImageFile)
+                    Log.d("FrameViewModel", "공유 Intent 생성 완료")
                     // Intent 실행은 UI에서 처리해야 하므로 콜백으로 전달
                     _instagramShareIntent.value = intent
                 } ?: run {
+                    Log.e("FrameViewModel", "Context를 찾을 수 없습니다")
                     _errorMessage.value = "공유를 위한 컨텍스트를 찾을 수 없습니다."
                 }
                 
                 clearError()
             } catch (e: Exception) {
+                Log.e("FrameViewModel", "공유 실패: ${e.message}", e)
                 _errorMessage.value = "공유 실패: ${e.message}"
             } finally {
                 _isProcessing.value = false
             }
         }
     }
+    
+    /**
+     * 인스타그램 공유 (하위 호환성 유지)
+     * @deprecated shareImage() 사용을 권장합니다
+     */
+    @Deprecated("shareImage() 사용을 권장합니다", ReplaceWith("shareImage()"))
+    fun shareToInstagram() = shareImage()
     
     // 성공 메시지 상태
     private val _successMessage = MutableStateFlow<String?>(null)
@@ -1651,18 +1666,28 @@ class FrameViewModel : ViewModel() {
     
     /**
      * 인스타그램 스토리 공유 Intent 생성
+     * @deprecated createShareIntent() 사용을 권장합니다
      */
+    @Deprecated("createShareIntent() 사용을 권장합니다")
     private fun createInstagramStoryIntent(context: Context, imageFile: File): Intent {
+        return createShareIntent(context, imageFile)
+    }
+    
+    /**
+     * 범용 이미지 공유 Intent 생성 (Bug #6 수정)
+     * Android Share Sheet를 사용하여 모든 공유 앱 목록을 표시
+     */
+    private fun createShareIntent(context: Context, imageFile: File): Intent {
         val imageUri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.provider",
             imageFile
         )
         
-        return Intent("com.instagram.share.ADD_TO_STORY").apply {
-            setDataAndType(imageUri, "image/jpeg")
+        return Intent(Intent.ACTION_SEND).apply {
+            type = "image/jpeg"
+            putExtra(Intent.EXTRA_STREAM, imageUri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            putExtra("interactive_asset_uri", imageUri)
         }
     }
     
