@@ -183,4 +183,10 @@ class PhotoRepository(private val photoDao: PhotoDao) {
      */
     fun getPhotosByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<PhotoEntity>> = 
         photoDao.getPhotosByDateRangeFlow(startTime, endTime)
+    
+    /**
+     * ✅ MVP Ver2: 특정 연도에 방문한 고유한 역 이름 목록 조회 (노선도 캠페인 기능용)
+     */
+    suspend fun getVisitedLocationsByYear(year: String): List<String> = 
+        photoDao.getVisitedLocationsByYear(year)
 }

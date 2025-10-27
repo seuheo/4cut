@@ -58,6 +58,7 @@ import com.example.a4cut.ui.screens.ResultScreen
 import com.example.a4cut.ui.screens.ProfileScreen
 import com.example.a4cut.ui.screens.SearchScreen
 import com.example.a4cut.ui.screens.SettingsScreen
+import com.example.a4cut.ui.screens.CampaignScreen
 import com.example.a4cut.R
 import com.example.a4cut.data.database.entity.PhotoEntity
 import com.example.a4cut.ui.viewmodel.FrameViewModel
@@ -442,7 +443,34 @@ fun AppNavigation(
                     )
                 }
             ) {
-                ProfileScreen()
+                ProfileScreen(
+                    onNavigateToCampaign = {
+                        navController.navigate(Screen.Campaign.route)
+                    }
+                )
+            }
+            
+            // ✅ MVP Ver2: 노선도(잇다) 캠페인 화면
+            composable(
+                route = Screen.Campaign.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
+                CampaignScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
             
             // 사진 상세 보기 화면 - 확대 전환 효과

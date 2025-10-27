@@ -1,6 +1,7 @@
 package com.example.a4cut.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +34,7 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    onNavigateToCampaign: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val homeViewModel: HomeViewModel = viewModel()
@@ -108,6 +110,11 @@ fun ProfileScreen(
             IOSActivitySection(
                 totalPhotos = totalPhotos,
                 thisMonthPhotos = thisMonthPhotos
+            )
+            
+            // ✅ MVP Ver2: 노선도 캠페인 섹션
+            CampaignSection(
+                onNavigateToCampaign = onNavigateToCampaign
             )
             
             // 앱 정보 섹션
@@ -367,6 +374,26 @@ private fun AppInfoSection(totalPhotos: Int) {
 }
 
 /**
+ * ✅ MVP Ver2: 노선도(잇다) 캠페인 섹션
+ */
+@Composable
+private fun CampaignSection(
+    onNavigateToCampaign: () -> Unit
+) {
+    ProfileSection(
+        title = "캠페인",
+        icon = Icons.Default.Star
+    ) {
+        ProfileItem(
+            icon = Icons.Default.Star,
+            title = "노선도(잇다)",
+            subtitle = "방문한 역을 추적하고 완주를 달성하세요!",
+            onClick = onNavigateToCampaign
+        )
+    }
+}
+
+/**
  * 프로필 섹션 컴포넌트
  */
 @Composable
@@ -416,12 +443,14 @@ private fun ProfileItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 2.dp)
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         )

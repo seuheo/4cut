@@ -53,4 +53,10 @@ sealed class Screen(
         title = R.string.nav_frame,
         icon = R.drawable.ic_frame
     )
+    
+    object Campaign : Screen(
+        route = "campaign",
+        title = R.string.nav_campaign,
+        icon = R.drawable.ic_campaign
+    )
 }

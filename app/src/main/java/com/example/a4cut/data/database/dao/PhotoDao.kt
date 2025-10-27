@@ -173,4 +173,10 @@ interface PhotoDao {
      */
     @Query("SELECT * FROM photos WHERE createdAt BETWEEN :startTime AND :endTime ORDER BY createdAt DESC")
     fun getPhotosByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<PhotoEntity>>
+    
+    /**
+     * ✅ MVP Ver2: 특정 연도에 방문한 고유한 역 이름 목록 조회 (노선도 캠페인 기능용)
+     */
+    @Query("SELECT DISTINCT location FROM photos WHERE strftime('%Y', datetime(createdAt/1000, 'unixepoch')) = :year AND location != '' AND location IS NOT NULL")
+    suspend fun getVisitedLocationsByYear(year: String): List<String>
 }
