@@ -55,7 +55,7 @@ class HomeViewModel : ViewModel() {
     private val _mapLocationFilter = MutableStateFlow<String?>(null)
     val mapLocationFilter: StateFlow<String?> = _mapLocationFilter.asStateFlow()
     
-    // ✅ 추가: 캘린더에서 표시할 월 상태 (MVP Ver2)
+    // ✅ 추가: 캘린더에서 표시할 월 상태 (MVP Ver2) - 안전한 초기화
     private val _displayedMonth = MutableStateFlow(YearMonth.now())
     val displayedMonth: StateFlow<YearMonth> = _displayedMonth.asStateFlow()
     

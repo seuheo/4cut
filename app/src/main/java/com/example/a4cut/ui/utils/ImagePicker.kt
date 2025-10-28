@@ -57,6 +57,7 @@ class ImagePicker(private val context: Context) {
     /**
      * 이미지를 로드하고 목표 크기로 리사이징
      * 메모리 최적화를 위해 원본 이미지를 메모리에 그대로 올리지 않음
+     * 안전한 이미지 디코딩을 위한 추가 옵션 적용
      */
     private fun loadAndResizeImage(uri: Uri, targetSize: Int): Bitmap {
         // 이미지 크기만 먼저 확인
@@ -71,17 +72,63 @@ class ImagePicker(private val context: Context) {
         // 적절한 샘플링 크기 계산 (더 공격적인 샘플링)
         val sampleSize = calculateSampleSize(options.outWidth, options.outHeight, targetSize)
         
-        // 실제 이미지 로드 (샘플링 적용)
+        // 실제 이미지 로드 (안전한 디코딩 옵션 적용)
         val loadOptions = BitmapFactory.Options().apply {
             inSampleSize = sampleSize
             inPreferredConfig = Bitmap.Config.RGB_565 // 메모리 절약
             inDither = false // 디더링 비활성화로 성능 향상
             inTempStorage = ByteArray(16 * 1024) // 임시 스토리지 크기 제한
+            inPurgeable = true // 메모리 부족 시 퍼지 가능
+            inInputShareable = true // 입력 스트림 공유 가능
+            inScaled = false // 자동 스케일링 비활성화
+            inPremultiplied = false // 프리멀티플라이드 비활성화
         }
         
-        val bitmap = context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            BitmapFactory.decodeStream(inputStream, null, loadOptions)
-        } ?: throw IllegalStateException("이미지를 로드할 수 없습니다")
+        val bitmap = try {
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream, null, loadOptions)
+            } ?: throw IllegalStateException("이미지를 로드할 수 없습니다")
+        } catch (e: Exception) {
+            // 디코딩 실패 시 더 안전한 옵션으로 재시도
+            println("ImagePicker: 이미지 디코딩 실패, 안전한 옵션으로 재시도: ${e.message}")
+            
+            // 여러 단계의 안전한 옵션으로 재시도
+            val safeOptionsList = listOf(
+                BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize * 2
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inScaled = false
+                },
+                BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize * 4
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inScaled = false
+                },
+                BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize * 8
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inScaled = false
+                }
+            )
+            
+            var decodedBitmap: Bitmap? = null
+            for (safeOptions in safeOptionsList) {
+                try {
+                    decodedBitmap = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        BitmapFactory.decodeStream(inputStream, null, safeOptions)
+                    }
+                    if (decodedBitmap != null) {
+                        println("ImagePicker: 안전한 옵션으로 이미지 디코딩 성공")
+                        break
+                    }
+                } catch (e2: Exception) {
+                    println("ImagePicker: 안전한 옵션도 실패: ${e2.message}")
+                    continue
+                }
+            }
+            
+            decodedBitmap ?: throw IllegalStateException("모든 디코딩 옵션이 실패했습니다")
+        }
         
         // 정확한 크기로 리사이징 (고품질 리사이징)
         return if (bitmap.width != targetSize || bitmap.height != targetSize) {

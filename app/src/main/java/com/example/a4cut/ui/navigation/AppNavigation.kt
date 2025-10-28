@@ -343,7 +343,18 @@ fun AppNavigation(
                     frameViewModel = sharedFrameViewModel,
                     photoRepository = photoRepository, // DB 저장을 위한 Repository 전달
                     onBack = {
-                        navController.popBackStack()
+                        try {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            }
+                        } catch (e: Exception) {
+                            // 네비게이션 스택이 비어있거나 오류 발생 시 홈으로 이동
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
+                            }
+                        }
                     },
                     onRestart = {
                         // 첫 번째 단계로 돌아가기 (사진 선택 화면)
@@ -378,11 +389,29 @@ fun AppNavigation(
             ) {
                 SearchScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        try {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            }
+                        } catch (e: Exception) {
+                            // 네비게이션 스택이 비어있거나 오류 발생 시 홈으로 이동
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
+                            }
+                        }
                     },
                     onNavigateToPhotoDetail = { photoId ->
-                        navController.popBackStack()
-                        navController.navigate("photo_detail/$photoId")
+                        try {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            }
+                            navController.navigate("photo_detail/$photoId")
+                        } catch (e: Exception) {
+                            // 네비게이션 오류 시 직접 이동
+                            navController.navigate("photo_detail/$photoId")
+                        }
                     }
                 )
             }
@@ -468,7 +497,18 @@ fun AppNavigation(
             ) {
                 CampaignScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        try {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            }
+                        } catch (e: Exception) {
+                            // 네비게이션 스택이 비어있거나 오류 발생 시 홈으로 이동
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
+                            }
+                        }
                     }
                 )
             }
@@ -515,7 +555,20 @@ fun AppNavigation(
                 
                 PhotoDetailScreen(
                     viewModel = photoDetailViewModel,
-                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateBack = { 
+                        try {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            }
+                        } catch (e: Exception) {
+                            // 네비게이션 오류 시 홈으로 이동
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
+                            }
+                        }
+                    },
                     onNavigateToEdit = { navController.navigate("photo_edit/$photoId") },
                     onNavigateToFrameApply = { navController.navigate("frame_apply/$photoId") }
                 )
@@ -602,7 +655,20 @@ fun AppNavigation(
                 com.example.a4cut.ui.screens.FrameApplyScreen(
                     viewModel = frameApplyViewModel,
                     frameViewModel = sharedFrameViewModel,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { 
+                        try {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            }
+                        } catch (e: Exception) {
+                            // 네비게이션 오류 시 홈으로 이동
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
+                            }
+                        }
+                    }
                 )
             }
             

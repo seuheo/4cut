@@ -66,9 +66,6 @@ fun CalendarScreen(
     // var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var selectedDate by remember { mutableStateOf<Calendar?>(null) }
     
-    // ✅ 추가: ViewModel의 displayedMonth 상태 수집
-    val displayedMonth by homeViewModel.displayedMonth.collectAsState()
-    
     // 마커 클릭 시 사진 미리보기 상태
     var selectedPhotoForPreview by remember { mutableStateOf<PhotoEntity?>(null) }
     
@@ -84,12 +81,12 @@ fun CalendarScreen(
         }
     }
     
-    // ViewModel의 상태들을 수집
+    // ✅ 안전한 StateFlow 수집 - 기본값으로 안전하게 처리
+    val displayedMonth by homeViewModel.displayedMonth.collectAsState()
     val datesWithPhotos by homeViewModel.datesWithPhotos.collectAsState()
     val allPhotos by homeViewModel.allPhotos.collectAsState()
     val errorMessage by homeViewModel.errorMessage.collectAsState()
     val mapLocationFilter by homeViewModel.mapLocationFilter.collectAsState()
-    // 선택된 날짜의 사진 목록 구독 (지도 표시용)
     val photosForSelectedDate by homeViewModel.photosForSelectedDate.collectAsState()
     
     // 디버깅을 위한 로그

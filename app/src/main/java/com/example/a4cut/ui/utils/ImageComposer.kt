@@ -66,7 +66,7 @@ class ImageComposer(private val context: Context) {
         frameBitmap: Bitmap,
         photos: List<Bitmap?>,
         frameId: String? = null
-    ): Bitmap = withContext(Dispatchers.Default) {
+    ): Bitmap = withContext(Dispatchers.IO) {
         println("=== ImageComposer: composeLife4CutFrame 시작 ===")
         println("프레임 ID: $frameId")
         println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
@@ -142,7 +142,7 @@ class ImageComposer(private val context: Context) {
     suspend fun composeImage(
         photos: List<Bitmap?>,
         frameBitmap: Bitmap
-    ): Bitmap = withContext(Dispatchers.Default) {
+    ): Bitmap = withContext(Dispatchers.IO) {
         // 최종 결과물이 될 Bitmap 생성
         val resultBitmap = Bitmap.createBitmap(OUTPUT_WIDTH, OUTPUT_HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(resultBitmap)
@@ -174,7 +174,7 @@ class ImageComposer(private val context: Context) {
     suspend fun composeImageWithPhotoStates(
         photoStates: List<PhotoState>,
         frameBitmap: Bitmap
-    ): Bitmap = withContext(Dispatchers.Default) {
+    ): Bitmap = withContext(Dispatchers.IO) {
         // 최종 결과물이 될 Bitmap 생성
         val resultBitmap = Bitmap.createBitmap(OUTPUT_WIDTH, OUTPUT_HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(resultBitmap)
@@ -446,25 +446,45 @@ class ImageComposer(private val context: Context) {
      */
     fun createSafeBitmap(width: Int, height: Int, config: Bitmap.Config = Bitmap.Config.RGB_565): Bitmap? {
         return try {
-            // 메모리 사용량 계산
-            val memoryUsage = width * height * when (config) {
+            // 메모리 사용량 계산 (픽셀당 바이트 수)
+            val bytesPerPixel = when (config) {
                 Bitmap.Config.ALPHA_8 -> 1
                 Bitmap.Config.RGB_565 -> 2
                 Bitmap.Config.ARGB_4444 -> 2
                 Bitmap.Config.ARGB_8888 -> 4
+                Bitmap.Config.RGBA_F16 -> 8
+                Bitmap.Config.HARDWARE -> 4 // 하드웨어 가속 시 추정값
                 else -> 4
             }
             
-            // 메모리 사용량이 너무 크면 null 반환
-            if (memoryUsage > 50 * 1024 * 1024) { // 50MB 제한
-                println("ImageComposer: 메모리 사용량이 너무 큽니다: ${memoryUsage / 1024 / 1024}MB")
-                return null
-            }
+            val memoryUsage = width * height * bytesPerPixel
+            val maxMemory = Runtime.getRuntime().maxMemory()
+            val usedMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
+            val availableMemory = maxMemory - usedMemory
             
-            Bitmap.createBitmap(width, height, config)
+            // 메모리 사용량이 너무 크면 더 작은 크기로 생성
+            if (memoryUsage > availableMemory * 0.6) { // 더 보수적인 메모리 사용
+                val scale = (availableMemory * 0.6 / memoryUsage).coerceAtLeast(0.1)
+                val scaledWidth = (width * scale).toInt().coerceAtLeast(1)
+                val scaledHeight = (height * scale).toInt().coerceAtLeast(1)
+                println("ImageComposer: 메모리 부족으로 Bitmap 크기 축소: ${width}x${height} -> ${scaledWidth}x${scaledHeight}")
+                Bitmap.createBitmap(scaledWidth, scaledHeight, config)
+            } else {
+                Bitmap.createBitmap(width, height, config)
+            }
         } catch (e: OutOfMemoryError) {
-            println("ImageComposer: 메모리 부족으로 Bitmap 생성 실패: ${e.message}")
-            null
+            // 메모리 부족 시 가비지 컬렉션 강제 실행
+            System.gc()
+            try {
+                // 더 작은 크기로 재시도
+                val scaledWidth = (width * 0.5).toInt().coerceAtLeast(1)
+                val scaledHeight = (height * 0.5).toInt().coerceAtLeast(1)
+                println("ImageComposer: OOM 발생, 더 작은 크기로 재시도: ${scaledWidth}x${scaledHeight}")
+                Bitmap.createBitmap(scaledWidth, scaledHeight, config)
+            } catch (e2: OutOfMemoryError) {
+                println("ImageComposer: 메모리 부족으로 Bitmap 생성 실패: ${e2.message}")
+                null
+            }
         } catch (e: Exception) {
             println("ImageComposer: Bitmap 생성 중 오류: ${e.message}")
             null

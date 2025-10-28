@@ -18,6 +18,7 @@ import java.io.FileOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.model.Frame
+import kotlinx.coroutines.delay
 import com.example.a4cut.data.model.FrameFormat
 import com.example.a4cut.data.model.KtxStation
 import com.example.a4cut.data.repository.FrameRepository
@@ -165,10 +166,10 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 테스트용 사진들 로드 (아이유 사진 4장)
+     * 테스트용 사진들 로드 (아이유 사진 4장) - 안전한 이미지 디코딩
      */
     private fun loadTestPhotos() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 println("아이유 사진 로드 시작")
                 val testPhotoIds = listOf(
@@ -181,9 +182,37 @@ class FrameViewModel : ViewModel() {
                 val bitmaps = testPhotoIds.mapNotNull { drawableId: Int ->
                     try {
                         context?.let { ctx ->
-                            BitmapFactory.decodeResource(ctx.resources, drawableId)?.let { bitmap ->
-                                // 512x512 크기로 리사이즈
-                                Bitmap.createScaledBitmap(bitmap, 512, 512, true)
+                            // 안전한 이미지 디코딩을 위한 옵션 설정
+                            val options = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                                inPreferredConfig = Bitmap.Config.RGB_565 // 메모리 절약
+                                inSampleSize = 1
+                            }
+                            
+                            // 먼저 이미지 크기만 확인
+                            BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            // 이미지가 너무 크면 샘플링 적용
+                            if (options.outWidth > 1024 || options.outHeight > 1024) {
+                                options.inSampleSize = calculateInSampleSize(options, 512, 512)
+                            }
+                            
+                            // 실제 디코딩
+                            options.inJustDecodeBounds = false
+                            val bitmap = BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            bitmap?.let { bmp ->
+                                // 안전한 리사이징
+                                if (bmp.width != 512 || bmp.height != 512) {
+                                    val scaledBitmap = Bitmap.createScaledBitmap(bmp, 512, 512, true)
+                                    // 원본 해제 (샘플링으로 생성된 경우에만)
+                                    if (scaledBitmap != bmp) {
+                                        bmp.recycle()
+                                    }
+                                    scaledBitmap
+                                } else {
+                                    bmp
+                                }
                             }
                         }
                     } catch (e: Exception) {
@@ -202,10 +231,10 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 고품질 예시 사진들 로드
+     * 고품질 예시 사진들 로드 - 안전한 이미지 디코딩
      */
     private fun loadExamplePhotos() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 println("고품질 예시 사진 로드 시작")
                 val examplePhotoIds = listOf(
@@ -222,9 +251,37 @@ class FrameViewModel : ViewModel() {
                 val bitmaps = examplePhotoIds.mapNotNull { drawableId: Int ->
                     try {
                         context?.let { ctx ->
-                            BitmapFactory.decodeResource(ctx.resources, drawableId)?.let { bitmap ->
-                                // 512x512 크기로 리사이즈
-                                Bitmap.createScaledBitmap(bitmap, 512, 512, true)
+                            // 안전한 이미지 디코딩을 위한 옵션 설정
+                            val options = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                                inPreferredConfig = Bitmap.Config.RGB_565 // 메모리 절약
+                                inSampleSize = 1
+                            }
+                            
+                            // 먼저 이미지 크기만 확인
+                            BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            // 이미지가 너무 크면 샘플링 적용
+                            if (options.outWidth > 1024 || options.outHeight > 1024) {
+                                options.inSampleSize = calculateInSampleSize(options, 512, 512)
+                            }
+                            
+                            // 실제 디코딩
+                            options.inJustDecodeBounds = false
+                            val bitmap = BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            bitmap?.let { bmp ->
+                                // 안전한 리사이징
+                                if (bmp.width != 512 || bmp.height != 512) {
+                                    val scaledBitmap = Bitmap.createScaledBitmap(bmp, 512, 512, true)
+                                    // 원본 해제 (샘플링으로 생성된 경우에만)
+                                    if (scaledBitmap != bmp) {
+                                        bmp.recycle()
+                                    }
+                                    scaledBitmap
+                                } else {
+                                    bmp
+                                }
                             }
                         }
                     } catch (e: Exception) {
@@ -240,6 +297,26 @@ class FrameViewModel : ViewModel() {
                 _errorMessage.value = "예시 사진 로드 실패: ${e.message}"
             }
         }
+    }
+    
+    /**
+     * 이미지 샘플링 크기 계산 (메모리 절약)
+     */
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val height = options.outHeight
+        val width = options.outWidth
+        var inSampleSize = 1
+        
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+            
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        
+        return inSampleSize
     }
     
     /**
@@ -968,12 +1045,23 @@ class FrameViewModel : ViewModel() {
     private fun updatePhotoStateFromBitmap(index: Int, bitmap: Bitmap?) {
         if (index in 0..3) {
             // 해당 인덱스의 PhotoState 업데이트
-            _photoStates[index] = PhotoState(
+            val newPhotoState = PhotoState(
                 bitmap = bitmap,
                 scale = 1f,
                 offsetX = 0f,
                 offsetY = 0f
             )
+            
+            // SnapshotStateList의 특성상 직접 인덱스 할당이 UI 업데이트를 트리거하지 않을 수 있음
+            // 따라서 새로운 리스트를 생성하여 할당
+            val newPhotoStates = _photoStates.toMutableList()
+            newPhotoStates[index] = newPhotoState
+            
+            // 기존 리스트를 새 리스트로 교체하여 UI 업데이트 트리거
+            _photoStates.clear()
+            _photoStates.addAll(newPhotoStates)
+            
+            println("updatePhotoStateFromBitmap: 인덱스 $index 업데이트 완료, bitmap=${bitmap != null}")
         }
     }
     
@@ -1719,26 +1807,55 @@ class FrameViewModel : ViewModel() {
                 }
                 
                 println("ImagePicker로 이미지 처리 시작")
-                val processedImages = imagePicker.processImagesForGrid(uris, 512)
+                
+                // 이미지 처리를 더 작은 단위로 나누어 메모리 압박 완화
+                val processedImages = mutableListOf<Bitmap?>()
+                for (i in uris.indices) {
+                    if (i >= 4) break // 최대 4개까지만 처리
+                    
+                    try {
+                        // 개별 이미지 처리로 메모리 효율성 향상
+                        val singleImageList = listOf(uris[i])
+                        val singleProcessed = imagePicker.processImagesForGrid(singleImageList, 512)
+                        processedImages.add(singleProcessed.firstOrNull())
+                        
+                        // 각 이미지 처리 후 잠시 대기하여 메인 스레드에 제어권 양보
+                        if (i < uris.size - 1) {
+                            delay(10) // 10ms 대기
+                        }
+                    } catch (e: Exception) {
+                        println("이미지 ${i} 처리 실패: ${e.message}")
+                        processedImages.add(null)
+                    }
+                }
+                
                 println("이미지 처리 완료: ${processedImages.size}개의 Bitmap 생성")
                 
                 // 메인 스레드에서 UI 업데이트
                 withContext(Dispatchers.Main) {
                     // 변환된 Bitmap들을 그리드에 배치
-                    val currentPhotos = _photos.value.toMutableList()
-                    processedImages.forEachIndexed { index, bitmap ->
-                        if (index < 4) {
-                            // 기존 Bitmap은 UI에서 사용 중일 수 있으므로 즉시 해제하지 않음
-                            // 대신 새로운 bitmap으로 교체하고 가비지 컬렉터가 처리하도록 함
-                            currentPhotos[index] = bitmap
-                            
-                            // PhotoState도 함께 업데이트
-                            updatePhotoStateFromBitmap(index, bitmap)
-                            
+                    val newPhotos = mutableListOf<Bitmap?>()
+                    
+                    // 기존 사진들을 새 리스트에 복사
+                    repeat(4) { index ->
+                        if (index < processedImages.size) {
+                            newPhotos.add(processedImages[index])
                             println("그리드 위치 ${index}에 이미지 배치 완료")
+                        } else {
+                            newPhotos.add(null)
                         }
                     }
-                    _photos.value = currentPhotos
+                    
+                    // StateFlow 업데이트 (새로운 리스트로 교체하여 UI 업데이트 보장)
+                    _photos.value = newPhotos
+                    
+                    // PhotoState도 함께 업데이트
+                    processedImages.forEachIndexed { index, bitmap ->
+                        if (index < 4) {
+                            updatePhotoStateFromBitmap(index, bitmap)
+                        }
+                    }
+                    
                     println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
                     println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
                     

@@ -1064,7 +1064,7 @@ private fun saveBitmapToGallery(context: android.content.Context, composedImage:
         
         Log.d("ResultScreen", "갤러리 저장 시작: $fileName")
         
-        // 코루틴에서 갤러리 저장 실행
+        // 코루틴에서 갤러리 저장 실행 (비동기 처리)
         var savedUri: android.net.Uri? = null
         val job = CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -1075,9 +1075,8 @@ private fun saveBitmapToGallery(context: android.content.Context, composedImage:
             }
         }
         
-        // 동기적으로 결과 대기 (실제로는 비동기 처리가 필요하지만 테스트용)
-        // TODO: 실제로는 비동기 처리를 위해 함수를 suspend로 만들어야 함
-        Thread.sleep(1000) // 임시로 1초 대기
+        // 비동기 처리를 위해 즉시 반환 (메인 스레드 블로킹 방지)
+        // 실제 저장은 백그라운드에서 진행되며, 사용자에게는 즉시 피드백 제공
         
         if (savedUri != null) {
             Log.d("ResultScreen", "갤러리 저장 성공: $savedUri")
