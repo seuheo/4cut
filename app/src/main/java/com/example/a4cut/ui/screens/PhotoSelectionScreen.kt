@@ -59,14 +59,16 @@ fun PhotoSelectionScreen(
     val photos by frameViewModel.photos.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val successMessage by frameViewModel.successMessage.collectAsState()
+    val uiUpdateTrigger by frameViewModel.uiUpdateTrigger.collectAsState()
     
     // 디버그 로그
-    LaunchedEffect(photos) {
+    LaunchedEffect(photos, uiUpdateTrigger) {
         val photoCount = photos.count { it != null }
         println("=== PhotoSelectionScreen 디버그 ===")
         println("PhotoSelectionScreen: 사진 상태 업데이트 - ${photos.map { it != null }}")
         println("PhotoSelectionScreen: 선택된 사진 개수: $photoCount")
         println("PhotoSelectionScreen: 사진 리스트 크기: ${photos.size}")
+        println("PhotoSelectionScreen: UI 업데이트 트리거: $uiUpdateTrigger")
         photos.forEachIndexed { index, bitmap ->
             println("PhotoSelectionScreen: 사진[$index] = ${if (bitmap != null) "있음 (${bitmap.width}x${bitmap.height})" else "없음"}")
         }

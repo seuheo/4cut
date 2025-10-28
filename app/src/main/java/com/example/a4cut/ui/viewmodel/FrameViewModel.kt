@@ -65,6 +65,10 @@ class FrameViewModel : ViewModel() {
     private var photoRepository: PhotoRepository? = null // PhotoRepository 추가
     private var locationTaggingService: LocationTaggingService? = null // 위치 태깅 서비스 추가
     
+    // UI 업데이트 강제 트리거
+    private val _uiUpdateTrigger = MutableStateFlow(0L)
+    val uiUpdateTrigger: StateFlow<Long> = _uiUpdateTrigger.asStateFlow()
+    
     // 프레임 관련 상태
     private val _frames = MutableStateFlow<List<Frame>>(emptyList())
     val frames: StateFlow<List<Frame>> = _frames.asStateFlow()
@@ -1849,12 +1853,18 @@ class FrameViewModel : ViewModel() {
                     // StateFlow 업데이트 (새로운 리스트로 교체하여 UI 업데이트 보장)
                     _photos.value = newPhotos
                     
+                    // 강제 UI 업데이트를 위한 추가 트리거
+                    _photos.value = newPhotos.toList() // 새로운 인스턴스 생성
+                    
                     // PhotoState도 함께 업데이트
                     processedImages.forEachIndexed { index, bitmap ->
                         if (index < 4) {
                             updatePhotoStateFromBitmap(index, bitmap)
                         }
                     }
+                    
+                    // UI 업데이트 강제 트리거
+                    _uiUpdateTrigger.value = System.currentTimeMillis()
                     
                     println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
                     println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
