@@ -1048,6 +1048,9 @@ class FrameViewModel : ViewModel() {
      */
     private fun updatePhotoStateFromBitmap(index: Int, bitmap: Bitmap?) {
         if (index in 0..3) {
+            println("updatePhotoStateFromBitmap 시작: 인덱스 $index, bitmap=${bitmap != null}")
+            println("현재 스레드: ${Thread.currentThread().name}")
+            
             // 해당 인덱스의 PhotoState 업데이트
             val newPhotoState = PhotoState(
                 bitmap = bitmap,
@@ -1061,11 +1064,14 @@ class FrameViewModel : ViewModel() {
             val newPhotoStates = _photoStates.toMutableList()
             newPhotoStates[index] = newPhotoState
             
+            println("새로운 PhotoState 리스트 생성 완료: ${newPhotoStates.map { it.bitmap != null }}")
+            
             // 기존 리스트를 새 리스트로 교체하여 UI 업데이트 트리거
             _photoStates.clear()
             _photoStates.addAll(newPhotoStates)
             
-            println("updatePhotoStateFromBitmap: 인덱스 $index 업데이트 완료, bitmap=${bitmap != null}")
+            println("PhotoState 리스트 교체 완료")
+            println("updatePhotoStateFromBitmap 완료: 인덱스 $index 업데이트 완료, bitmap=${bitmap != null}")
         }
     }
     
@@ -1837,6 +1843,9 @@ class FrameViewModel : ViewModel() {
                 
                 // 메인 스레드에서 UI 업데이트
                 withContext(Dispatchers.Main) {
+                    println("=== 메인 스레드 UI 업데이트 시작 ===")
+                    println("현재 스레드: ${Thread.currentThread().name}")
+                    
                     // 변환된 Bitmap들을 그리드에 배치
                     val newPhotos = mutableListOf<Bitmap?>()
                     
@@ -1844,17 +1853,21 @@ class FrameViewModel : ViewModel() {
                     repeat(4) { index ->
                         if (index < processedImages.size) {
                             newPhotos.add(processedImages[index])
-                            println("그리드 위치 ${index}에 이미지 배치 완료")
+                            println("그리드 위치 ${index}에 이미지 배치 완료 - Bitmap: ${processedImages[index] != null}")
                         } else {
                             newPhotos.add(null)
                         }
                     }
                     
+                    println("새로운 photos 리스트 생성 완료: ${newPhotos.map { it != null }}")
+                    
                     // StateFlow 업데이트 (새로운 리스트로 교체하여 UI 업데이트 보장)
                     _photos.value = newPhotos
+                    println("_photos.value 업데이트 완료")
                     
                     // 강제 UI 업데이트를 위한 추가 트리거
                     _photos.value = newPhotos.toList() // 새로운 인스턴스 생성
+                    println("_photos.value 강제 업데이트 완료")
                     
                     // PhotoState도 함께 업데이트
                     processedImages.forEachIndexed { index, bitmap ->
@@ -1865,9 +1878,11 @@ class FrameViewModel : ViewModel() {
                     
                     // UI 업데이트 강제 트리거
                     _uiUpdateTrigger.value = System.currentTimeMillis()
+                    println("UI 업데이트 트리거 설정 완료: ${_uiUpdateTrigger.value}")
                     
                     println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
                     println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
+                    println("=== 메인 스레드 UI 업데이트 완료 ===")
                     
                     _successMessage.value = "갤러리에서 ${uris.size}장의 사진을 선택했습니다"
                     clearError()
