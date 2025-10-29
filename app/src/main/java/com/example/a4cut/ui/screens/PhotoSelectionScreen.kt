@@ -265,10 +265,18 @@ private fun PhotoGridSection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.height(400.dp)
         ) {
-            items(4) { index ->
+            items(
+                count = 4,
+                key = { index -> 
+                    // photo의 존재 여부와 크기를 key로 사용하여 재구성 강제
+                    val photo = photos.getOrNull(index)
+                    "photo_${index}_${photo != null}_${photo?.width ?: 0}_${photo?.height ?: 0}"
+                }
+            ) { index ->
+                val photo = photos.getOrNull(index)
                 PhotoGridItem(
                     index = index,
-                    photo = photos.getOrNull(index),
+                    photo = photo,
                     onPhotoClick = onPhotoClick
                 )
             }
@@ -316,15 +324,90 @@ private fun PhotoGridItem(
             contentAlignment = Alignment.Center
         ) {
             if (photo != null) {
-                // 사진이 있을 때
-                Image(
-                    bitmap = photo.asImageBitmap(),
-                    contentDescription = "사진 ${index + 1}",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                // 디버그 로그 추가
+                LaunchedEffect(photo) {
+                    println("PhotoGridItem[$index]: Bitmap 렌더링 시도 - 크기: ${photo.width}x${photo.height}, isRecycled: ${photo.isRecycled}")
+                }
+                
+                // Bitmap 유효성 검사
+                if (photo.isRecycled) {
+                    println("PhotoGridItem[$index]: Bitmap이 이미 재활용됨")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Color.Red.copy(alpha = 0.3f),
+                                RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Bitmap\n재활용됨",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Red,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    // 사진이 있을 때 - 디버깅을 위해 배경색과 투명도 확인
+                    val imageBitmap = remember(photo) { 
+                        println("PhotoGridItem[$index]: asImageBitmap() 호출 - 원본 Bitmap 크기: ${photo.width}x${photo.height}")
+                        photo.asImageBitmap()
+                    }
+                    
+                    // 디버깅: 이미지가 실제로 렌더링되는지 확인하기 위한 명확한 배경
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                // 이미지가 투명하거나 안 보일 경우를 위한 파란색 배경
+                                Color.Blue.copy(alpha = 0.3f),
+                                RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        // 실제 이미지 렌더링
+                        Image(
+                            bitmap = imageBitmap,
+                            contentDescription = "사진 ${index + 1}",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        
+                        // 디버깅용: 이미지가 렌더링되었는지 확인하기 위한 인디케이터
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(4.dp)
+                                .background(
+                                    Color.Green.copy(alpha = 0.8f),
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${photo.width}x${photo.height}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        
+                        // 추가 디버깅: 이미지가 실제로 보이는지 확인하기 위한 테두리
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .border(
+                                    width = 2.dp,
+                                    color = Color.Red.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                        )
+                    }
+                    println("PhotoGridItem[$index]: Image 컴포넌트 렌더링 완료 - 파란색 배경과 빨간색 테두리 추가됨")
+                }
                 
                 // 사진 위에 제거 버튼 오버레이
                 Box(

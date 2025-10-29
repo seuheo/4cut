@@ -1367,32 +1367,87 @@ class FrameViewModel : ViewModel() {
     fun processSelectedImages(uris: List<Uri>) {
         if (uris.isEmpty()) return
         
-        viewModelScope.launch {
+        println("=== processSelectedImages 시작 ===")
+        println("선택된 URI 개수: ${uris.size}")
+        
+        viewModelScope.launch(Dispatchers.IO) {
             _isProcessing.value = true
             try {
                 imagePicker?.let { picker ->
-                    // 선택된 이미지들을 4컷 그리드에 맞게 처리
+                    println("이미지 처리 시작 - processImagesForGrid 호출")
+                    // 선택된 이미지들을 4컷 그리드에 맞게 처리 (백그라운드 스레드)
                     val processedBitmaps = picker.processImagesForGrid(uris, 512)
                     
+                    println("이미지 처리 완료: ${processedBitmaps.size}개의 Bitmap 생성")
+                    println("처리된 Bitmap 상태: ${processedBitmaps.map { it != null }}")
+                    
                     // 기존 Bitmap들 메모리 해제
-                    _photos.value.forEach { bitmap ->
-                        bitmap?.let { 
-                            if (!it.isRecycled) {
-                                it.recycle()
+                    withContext(Dispatchers.Main) {
+                        _photos.value.forEach { bitmap ->
+                            bitmap?.let { 
+                                if (!it.isRecycled) {
+                                    it.recycle()
+                                }
                             }
                         }
                     }
                     
-                    // 새로운 Bitmap들로 교체
-                    _photos.value = processedBitmaps
-                    clearError()
+                    // UI 상태 업데이트는 메인 스레드에서 실행
+                    withContext(Dispatchers.Main) {
+                        println("=== 메인 스레드 UI 업데이트 시작 (processSelectedImages) ===")
+                        println("현재 스레드: ${Thread.currentThread().name}")
+                        
+                        // 4개 슬롯을 채우기 위해 리스트 확장
+                        val newPhotos = mutableListOf<Bitmap?>()
+                        repeat(4) { index ->
+                            if (index < processedBitmaps.size) {
+                                newPhotos.add(processedBitmaps[index])
+                            } else {
+                                newPhotos.add(null)
+                            }
+                        }
+                        
+                        println("새로운 photos 리스트 생성 완료: ${newPhotos.map { it != null }}")
+                        
+                        // StateFlow 업데이트 (새로운 리스트로 교체하여 UI 업데이트 보장)
+                        _photos.value = newPhotos
+                        println("_photos.value 업데이트 완료")
+                        
+                        // 강제 UI 업데이트를 위한 추가 트리거
+                        _photos.value = newPhotos.toList()
+                        println("_photos.value 강제 업데이트 완료")
+                        
+                        // PhotoState도 함께 업데이트
+                        processedBitmaps.forEachIndexed { index, bitmap ->
+                            if (index < 4) {
+                                updatePhotoStateFromBitmap(index, bitmap)
+                            }
+                        }
+                        
+                        // UI 업데이트 강제 트리거
+                        _uiUpdateTrigger.value = System.currentTimeMillis()
+                        println("UI 업데이트 트리거 설정 완료: ${_uiUpdateTrigger.value}")
+                        
+                        println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
+                        println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
+                        println("=== 메인 스레드 UI 업데이트 완료 (processSelectedImages) ===")
+                        
+                        clearError()
+                    }
                 } ?: run {
-                    _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
+                    withContext(Dispatchers.Main) {
+                        _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
+                    }
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "이미지 처리 실패: ${e.message}"
+                println("이미지 처리 실패: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    _errorMessage.value = "이미지 처리 실패: ${e.message}"
+                }
             } finally {
-                _isProcessing.value = false
+                withContext(Dispatchers.Main) {
+                    _isProcessing.value = false
+                }
             }
         }
     }

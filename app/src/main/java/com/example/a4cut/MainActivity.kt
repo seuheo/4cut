@@ -24,8 +24,9 @@ class MainActivity : ComponentActivity() {
             Log.d("MainActivity", "갤러리에서 선택된 이미지: ${uris.size}개")
             // 이미지가 선택되었을 경우 ViewModel에 전달
             if (uris.isNotEmpty()) {
-                Log.d("MainActivity", "ViewModel에 이미지 URI 전달 시작")
-                frameViewModel.onImagesSelected(uris)
+                Log.d("MainActivity", "ViewModel에 이미지 URI 전달 시작 - processSelectedImages 호출")
+                // ✨ 구형 함수 onImagesSelected 대신 새로운 processSelectedImages 사용
+                frameViewModel.processSelectedImages(uris)
             } else {
                 Log.d("MainActivity", "선택된 이미지가 없습니다")
             }

@@ -107,17 +107,22 @@ class ImageComposer(private val context: Context) {
         photos.take(4).forEachIndexed { index, photo ->
             photo?.let { bitmap ->
                 val rect = photoRects[index]
+                val targetWidth = rect.width().toInt()
+                val targetHeight = rect.height().toInt()
+                
                 println("${index + 1}번째 사진 처리 시작:")
                 println("  원본 크기: ${bitmap.width}x${bitmap.height}")
-                println("  목표 크기: ${rect.width().toInt()}x${rect.height().toInt()}")
+                println("  목표 크기: ${targetWidth}x${targetHeight}")
                 
-                // 각 칸의 크기에 맞게 사진을 프레임 사각형 모양에 정확히 맞게 크기 조절
-                val scaledPhoto = scaleBitmapToFill(bitmap, rect.width().toInt(), rect.height().toInt())
+                // 비율을 유지하면서 칸에 맞게 크기 조절 (Fit 방식)
+                val scaledPhoto = scaleBitmapToFit(bitmap, targetWidth, targetHeight)
                 println("  스케일된 크기: ${scaledPhoto.width}x${scaledPhoto.height}")
                 
-                // 정확한 위치에 사진을 그립니다.
-                canvas.drawBitmap(scaledPhoto, rect.left, rect.top, paint)
-                println("  ${index + 1}번째 사진 그리기 완료")
+                // 중앙 정렬하여 사진을 그립니다 (비율 유지하면서 칸에 맞게)
+                val drawLeft = rect.left + (targetWidth - scaledPhoto.width) / 2f
+                val drawTop = rect.top + (targetHeight - scaledPhoto.height) / 2f
+                canvas.drawBitmap(scaledPhoto, drawLeft, drawTop, paint)
+                println("  ${index + 1}번째 사진 그리기 완료 - 위치: ($drawLeft, $drawTop)")
                 
                 // 스케일된 비트맵이 원본과 다른 경우에만 메모리 해제
                 if (scaledPhoto != bitmap && !scaledPhoto.isRecycled) {

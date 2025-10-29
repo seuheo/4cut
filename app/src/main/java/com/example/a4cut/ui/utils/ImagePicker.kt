@@ -3,6 +3,9 @@ package com.example.a4cut.ui.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Matrix
+import android.graphics.Paint
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.activity.result.contract.ActivityResultContracts
@@ -75,11 +78,11 @@ class ImagePicker(private val context: Context) {
         // 실제 이미지 로드 (안전한 디코딩 옵션 적용)
         val loadOptions = BitmapFactory.Options().apply {
             inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.RGB_565 // 메모리 절약
+            inPreferredConfig = Bitmap.Config.ARGB_8888 // 풀 컬러 지원 (RGB_565는 색상 손실 가능)
             inDither = false // 디더링 비활성화로 성능 향상
             inTempStorage = ByteArray(16 * 1024) // 임시 스토리지 크기 제한
-            inPurgeable = true // 메모리 부족 시 퍼지 가능
-            inInputShareable = true // 입력 스트림 공유 가능
+            inPurgeable = false // 퍼지 가능 비활성화 (안정성 향상)
+            inInputShareable = false // 입력 스트림 공유 비활성화 (안정성 향상)
             inScaled = false // 자동 스케일링 비활성화
             inPremultiplied = false // 프리멀티플라이드 비활성화
         }
@@ -96,17 +99,17 @@ class ImagePicker(private val context: Context) {
             val safeOptionsList = listOf(
                 BitmapFactory.Options().apply {
                     inSampleSize = sampleSize * 2
-                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inPreferredConfig = Bitmap.Config.ARGB_8888 // 풀 컬러 지원
                     inScaled = false
                 },
                 BitmapFactory.Options().apply {
                     inSampleSize = sampleSize * 4
-                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inPreferredConfig = Bitmap.Config.ARGB_8888 // 풀 컬러 지원
                     inScaled = false
                 },
                 BitmapFactory.Options().apply {
                     inSampleSize = sampleSize * 8
-                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inPreferredConfig = Bitmap.Config.ARGB_8888 // 풀 컬러 지원
                     inScaled = false
                 }
             )
@@ -130,17 +133,70 @@ class ImagePicker(private val context: Context) {
             decodedBitmap ?: throw IllegalStateException("모든 디코딩 옵션이 실패했습니다")
         }
         
-        // 정확한 크기로 리사이징 (고품질 리사이징)
-        return if (bitmap.width != targetSize || bitmap.height != targetSize) {
-            val resizedBitmap = Bitmap.createScaledBitmap(bitmap, targetSize, targetSize, true)
+        // Bitmap 유효성 검증
+        println("ImagePicker: 디코딩된 Bitmap - 크기: ${bitmap.width}x${bitmap.height}, isRecycled: ${bitmap.isRecycled}, config: ${bitmap.config}")
+        if (bitmap.width <= 0 || bitmap.height <= 0) {
+            println("ImagePicker: 경고! Bitmap 크기가 유효하지 않음")
+            bitmap.recycle()
+            throw IllegalStateException("유효하지 않은 Bitmap 크기: ${bitmap.width}x${bitmap.height}")
+        }
+        
+        if (bitmap.isRecycled) {
+            println("ImagePicker: 경고! Bitmap이 이미 재활용됨")
+            throw IllegalStateException("Bitmap이 이미 재활용되었습니다")
+        }
+        
+        // 정확한 크기로 리사이징 (Canvas를 사용한 고품질 리사이징)
+        val finalBitmap = if (bitmap.width != targetSize || bitmap.height != targetSize) {
+            println("ImagePicker: 리사이징 시작 - 원본: ${bitmap.width}x${bitmap.height} -> 목표: ${targetSize}x${targetSize}")
+            
+            // Canvas를 사용한 고품질 리사이징 (createScaledBitmap 대신)
+            val resizedBitmap = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(resizedBitmap)
+            
+            // 고품질 리샘플링을 위한 Paint 설정
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            paint.isDither = true // 디더링 활성화로 색상 품질 향상
+            
+            // Matrix를 사용한 스케일링
+            val matrix = Matrix()
+            val scaleX = targetSize.toFloat() / bitmap.width
+            val scaleY = targetSize.toFloat() / bitmap.height
+            val scale = scaleX.coerceAtMost(scaleY) // 비율 유지 (Crop)
+            
+            // 중앙 정렬을 위한 이동
+            val dx = (targetSize - bitmap.width * scale) / 2f
+            val dy = (targetSize - bitmap.height * scale) / 2f
+            
+            matrix.postScale(scale, scale)
+            matrix.postTranslate(dx, dy)
+            
+            canvas.drawBitmap(bitmap, matrix, paint)
+            canvas.setBitmap(null) // Canvas와 Bitmap 연결 해제
+            
+            println("ImagePicker: Canvas 리사이징 완료 - 결과: ${resizedBitmap.width}x${resizedBitmap.height}, config: ${resizedBitmap.config}")
+            
+            // 리사이징된 Bitmap 유효성 검증
+            if (resizedBitmap.width != targetSize || resizedBitmap.height != targetSize || resizedBitmap.isRecycled) {
+                println("ImagePicker: 오류! 리사이징된 Bitmap이 유효하지 않음")
+                resizedBitmap.recycle()
+                bitmap.recycle()
+                throw IllegalStateException("리사이징된 Bitmap이 유효하지 않음")
+            }
+            
             // 원본 비트맵 메모리 해제
-            if (bitmap != resizedBitmap) {
+            if (!bitmap.isRecycled) {
                 bitmap.recycle()
             }
+            
             resizedBitmap
         } else {
+            println("ImagePicker: 리사이징 불필요 - 이미 목표 크기와 동일")
             bitmap
         }
+        
+        println("ImagePicker: 최종 Bitmap - 크기: ${finalBitmap.width}x${finalBitmap.height}, isRecycled: ${finalBitmap.isRecycled}, config: ${finalBitmap.config}")
+        return finalBitmap
     }
     
     /**
