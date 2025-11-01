@@ -146,7 +146,12 @@ fun AppNavigation(
     // 데이터베이스 및 Repository를 네비게이션 그래프 레벨에서 싱글톤으로 관리
     val database = remember { com.example.a4cut.data.database.AppDatabase.getDatabase(context) }
     val photoRepository = remember { com.example.a4cut.data.repository.PhotoRepository(database.photoDao()) }
-    val frameRepository = remember { com.example.a4cut.data.repository.FrameRepository() }
+    val frameRepository = remember { 
+        val repo = com.example.a4cut.data.repository.FrameRepository()
+        // JSON에서 슬롯 정보 로드 및 기존 Frame 객체에 병합
+        repo.loadSlotsFromJson(context)
+        repo
+    }
     
     // ViewModel을 네비게이션 그래프 레벨에서 공유 (전달받은 것이 있으면 사용, 없으면 새로 생성)
     val sharedFrameViewModel: FrameViewModel = frameViewModel ?: viewModel()

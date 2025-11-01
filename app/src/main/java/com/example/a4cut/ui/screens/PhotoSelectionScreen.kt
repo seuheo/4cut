@@ -349,64 +349,20 @@ private fun PhotoGridItem(
                         )
                     }
                 } else {
-                    // 사진이 있을 때 - 디버깅을 위해 배경색과 투명도 확인
+                    // 사진이 있을 때 - 칸에 꽉 차게 표시
                     val imageBitmap = remember(photo) { 
-                        println("PhotoGridItem[$index]: asImageBitmap() 호출 - 원본 Bitmap 크기: ${photo.width}x${photo.height}")
                         photo.asImageBitmap()
                     }
                     
-                    // 디버깅: 이미지가 실제로 렌더링되는지 확인하기 위한 명확한 배경
-                    Box(
+                    // 이미지를 칸에 꽉 차게 표시 (Crop 방식으로 비율 유지하면서 칸 전체 채우기)
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = "사진 ${index + 1}",
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(
-                                // 이미지가 투명하거나 안 보일 경우를 위한 파란색 배경
-                                Color.Blue.copy(alpha = 0.3f),
-                                RoundedCornerShape(12.dp)
-                            )
-                    ) {
-                        // 실제 이미지 렌더링
-                        Image(
-                            bitmap = imageBitmap,
-                            contentDescription = "사진 ${index + 1}",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        
-                        // 디버깅용: 이미지가 렌더링되었는지 확인하기 위한 인디케이터
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(4.dp)
-                                .background(
-                                    Color.Green.copy(alpha = 0.8f),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "${photo.width}x${photo.height}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        
-                        // 추가 디버깅: 이미지가 실제로 보이는지 확인하기 위한 테두리
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .border(
-                                    width = 2.dp,
-                                    color = Color.Red.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                        )
-                    }
-                    println("PhotoGridItem[$index]: Image 컴포넌트 렌더링 완료 - 파란색 배경과 빨간색 테두리 추가됨")
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
                 }
                 
                 // 사진 위에 제거 버튼 오버레이

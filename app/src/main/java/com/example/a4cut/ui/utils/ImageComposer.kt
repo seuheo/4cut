@@ -65,10 +65,13 @@ class ImageComposer(private val context: Context) {
     suspend fun composeLife4CutFrame(
         frameBitmap: Bitmap,
         photos: List<Bitmap?>,
-        frameId: String? = null
+        frameId: String? = null,
+        frame: com.example.a4cut.data.model.Frame? = null
     ): Bitmap = withContext(Dispatchers.IO) {
         println("=== ImageComposer: composeLife4CutFrame 시작 ===")
         println("프레임 ID: $frameId")
+        println("프레임 객체: ${frame?.id}")
+        println("프레임 slots: ${frame?.slots?.size ?: 0}개")
         println("프레임 크기: ${frameBitmap.width}x${frameBitmap.height}")
         println("프레임 비율: ${frameBitmap.width.toFloat() / frameBitmap.height.toFloat()}")
         println("입력 사진 개수: ${photos.size}")
@@ -97,32 +100,51 @@ class ImageComposer(private val context: Context) {
         canvas.drawBitmap(frameBitmap, null, frameRect, paint)
         println("프레임 배경 그리기 완료: ${outputWidth}x${outputHeight}")
 
-        // ✨ 중요: 프레임 위에 세로로 약간 더 긴 4개의 사각형 안에 사진 배치
-        val photoRects = calculateLife4CutPhotoPositions(outputWidth, outputHeight, frameId)
+        // ✨ JSON 기반 슬롯 정보 또는 기존 하드코딩된 레이아웃 사용
+        val photoRects = if (frame?.slots != null) {
+            // 신규 로직: JSON slots 정보 사용 (비율 문제 해결)
+            println("JSON 슬롯 정보 사용: ${frame.slots.size}개")
+            frame.slots.map { slot ->
+                RectF(
+                    slot.x * outputWidth,
+                    slot.y * outputHeight,
+                    (slot.x + slot.width) * outputWidth,
+                    (slot.y + slot.height) * outputHeight
+                )
+            }
+        } else {
+            // 기존 로직: 하드코딩된 frameLayouts 사용
+            println("기존 하드코딩된 레이아웃 사용")
+            calculateLife4CutPhotoPositions(outputWidth, outputHeight, frameId)
+        }
         println("계산된 사진 위치들:")
         photoRects.forEachIndexed { index, rect ->
             println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom}) 크기: ${rect.width()}x${rect.height()}")
         }
 
+        // 4번째 사진의 가로 길이를 기준으로 모든 사진의 가로 길이를 통일
+        val fourthRect = photoRects[3]
+        val unifiedWidth = fourthRect.width().toInt()
+        println("통일된 사진 가로 길이 (4번째 사진 기준): $unifiedWidth")
+
         photos.take(4).forEachIndexed { index, photo ->
             photo?.let { bitmap ->
                 val rect = photoRects[index]
-                val targetWidth = rect.width().toInt()
-                val targetHeight = rect.height().toInt()
+                val targetWidth = unifiedWidth  // 4번째 사진과 동일한 가로 길이
+                val targetHeight = rect.height().toInt()  // 각 사진의 원래 높이 유지
                 
                 println("${index + 1}번째 사진 처리 시작:")
                 println("  원본 크기: ${bitmap.width}x${bitmap.height}")
-                println("  목표 크기: ${targetWidth}x${targetHeight}")
+                println("  위치: (${rect.left}, ${rect.top})")
+                println("  목표 크기 (가로만 통일): ${targetWidth}x${targetHeight}")
                 
-                // 비율을 유지하면서 칸에 맞게 크기 조절 (Fit 방식)
-                val scaledPhoto = scaleBitmapToFit(bitmap, targetWidth, targetHeight)
+                // 가로 길이만 4번째 사진과 동일하게 크기 조절 (Crop 방식)
+                val scaledPhoto = scaleBitmapToFill(bitmap, targetWidth, targetHeight)
                 println("  스케일된 크기: ${scaledPhoto.width}x${scaledPhoto.height}")
                 
-                // 중앙 정렬하여 사진을 그립니다 (비율 유지하면서 칸에 맞게)
-                val drawLeft = rect.left + (targetWidth - scaledPhoto.width) / 2f
-                val drawTop = rect.top + (targetHeight - scaledPhoto.height) / 2f
-                canvas.drawBitmap(scaledPhoto, drawLeft, drawTop, paint)
-                println("  ${index + 1}번째 사진 그리기 완료 - 위치: ($drawLeft, $drawTop)")
+                // 원래 위치에 사진을 그립니다 (위치는 유지, 가로 길이만 4번째와 동일)
+                canvas.drawBitmap(scaledPhoto, rect.left, rect.top, paint)
+                println("  ${index + 1}번째 사진 그리기 완료 - 위치: (${rect.left}, ${rect.top})")
                 
                 // 스케일된 비트맵이 원본과 다른 경우에만 메모리 해제
                 if (scaledPhoto != bitmap && !scaledPhoto.isRecycled) {

@@ -1524,7 +1524,7 @@ class FrameViewModel : ViewModel() {
                                 return@launch
                             }
                             
-                            composer.composeLife4CutFrame(frameBitmap, photos, selectedFrame.id)
+                            composer.composeLife4CutFrame(frameBitmap, photos, selectedFrame.id, selectedFrame)
                         }
                         else -> {
                             println("기존 프레임 감지! composeImageWithPhotoStates 호출")
