@@ -15,7 +15,9 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
-        mavenCentral() // FFmpeg-kit은 Maven Central에 배포됨
+        mavenCentral()
+        // FFmpeg-Android-Java는 JitPack을 통해 배포됨
+        maven { url = uri("https://www.jitpack.io") }
     }
 }
 

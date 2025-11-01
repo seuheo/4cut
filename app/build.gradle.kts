@@ -88,12 +88,11 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     
     // FFmpeg 래퍼 라이브러리 (동영상 슬라이드쇼 생성용)
-    // FFmpegKit이 2025년 1월 6일부로 공식 은퇴하여 대체 라이브러리 사용
-    // ws.schild:jave-core는 FFmpeg를 Java/Kotlin에서 사용할 수 있게 해주는 래퍼
-    // 참고: FFmpegKit은 com.arthenica:ffmpeg-kit-* 패키지가 더 이상 Maven Central에 없음
-    // TODO: jave-core 또는 다른 FFmpeg 래퍼 라이브러리 확인 필요
-    // 일단 주석 처리 (실제 라이브러리 선택 후 활성화)
-    // implementation("ws.schild:jave-core:3.4.0")
+    // FFmpegKit(은퇴)로 인해 대체 라이브러리 탐색 중
+    // 여러 FFmpeg-Android-Java 라이브러리 시도했으나 패키지를 찾을 수 없음
+    // TODO: 정확한 GitHub 리포지토리 및 JitPack 태그 확인 필요
+    // 임시로 주석 처리 - 실제 라이브러리 확인 후 활성화 예정
+    // implementation("com.github.WritingMinds:ffmpeg-android-java:1.1.2")
     
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
