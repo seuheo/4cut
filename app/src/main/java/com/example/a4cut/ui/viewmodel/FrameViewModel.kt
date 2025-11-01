@@ -917,7 +917,12 @@ class FrameViewModel : ViewModel() {
      */
     fun selectFrame(frame: Frame) {
         println("프레임 선택됨: ${frame.name} (ID: ${frame.id}, DrawableID: ${frame.drawableId})")
-        _selectedFrame.value = frame
+        
+        // 최신 _frames.value에서 해당 프레임을 찾아서 선택 (JSON 슬롯 정보 포함)
+        val updatedFrame = _frames.value.find { it.id == frame.id } ?: frame
+        _selectedFrame.value = updatedFrame
+        println("프레임 선택 완료: ${updatedFrame.name} (ID: ${updatedFrame.id}, slots: ${updatedFrame.slots?.size ?: 0}개)")
+        
         clearError()
         // 햅틱 피드백 추가
         triggerHapticFeedback()
@@ -1600,10 +1605,14 @@ class FrameViewModel : ViewModel() {
                         // 선택된 KTX 역 정보 사용
                         val selectedStation = _selectedKtxStation.value
                         
-                        // 원본 사진 4장으로 슬라이드쇼 동영상 생성
-                        val videoPath = context?.let { ctx ->
-                            VideoSlideShowCreator.createSlideShowVideo(_photos.value, ctx)
+                        // 원본 사진 4장으로 슬라이드쇼 동영상 생성 (suspend fun이므로 await 필요)
+                        val videoPath = if (context != null) {
+                            VideoSlideShowCreator.createSlideShowVideo(_photos.value, context!!)
+                        } else {
+                            null
                         }
+                        
+                        Log.d("FrameViewModel", "동영상 생성 완료: videoPath=$videoPath")
                         
                         // PhotoEntity에 동영상 경로 포함하여 저장
                         photoRepository?.createKTXPhoto(
@@ -1614,6 +1623,8 @@ class FrameViewModel : ViewModel() {
                             longitude = selectedStation?.longitude,
                             videoPath = videoPath
                         )
+                        
+                        Log.d("FrameViewModel", "PhotoEntity 저장 완료: imagePath=${savedUri.toString()}, videoPath=$videoPath")
                         
                         // 성공 메시지에 위치 정보 포함
                         val successMessage = if (selectedStation != null) {
