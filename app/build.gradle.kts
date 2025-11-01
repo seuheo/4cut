@@ -87,15 +87,10 @@ dependencies {
     // OpenStreetMap (osmdroid) - Google Maps 대체
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     
-    // FFmpeg 래퍼 라이브러리 (동영상 슬라이드쇼 생성용)
-    // 시도한 라이브러리들:
-    // 1. FFmpegKit (은퇴 2025-01-06) - Maven Central에서 제거됨
-    // 2. WritingMinds FFmpeg-Android-Java - JitPack에서 찾을 수 없음
-    // 3. bravoborja 포크 - 401 Unauthorized
-    // 4. JCodec - API 시그니처 문제 (SequenceEncoder 생성자 복잡)
-    // 5. tanersener 포크 - 401 Unauthorized
-    // TODO: FFmpeg 바이너리 직접 포함 또는 MediaCodec 직접 구현 검토 필요
-    // 임시로 주석 처리 - 실제 라이브러리 확인 후 활성화 예정
+    // JCodec (동영상 슬라이드쇼 생성용)
+    // Pure Java/Kotlin 기반 라이브러리, NDK 없이 안정적인 비디오 인코딩
+    // AndroidSequenceEncoder API 사용으로 간단한 구현 가능
+    implementation("org.jcodec:jcodec-android:0.2.5")
     
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")

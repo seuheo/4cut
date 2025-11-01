@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jcodec.api.android.AndroidSequenceEncoder
+import org.jcodec.scale.BitmapUtil
 import java.io.File
 
 /**
@@ -21,19 +23,10 @@ object VideoSlideShowCreator {
     private const val FRAMES_PER_PHOTO = FRAME_RATE * PHOTO_DURATION_SECONDS // 각 사진당 프레임 수 (60프레임)
     
     /**
-     * 원본 사진 4장으로 슬라이드쇼 MP4 동영상 생성
+     * 원본 사진 4장으로 슬라이드쇼 MP4 동영상 생성 (JCodec AndroidSequenceEncoder 사용)
      * @param photos 원본 사진 Bitmap 목록 (4장)
      * @param context Context
      * @return 생성된 MP4 파일 경로 (실패 시 null)
-     * 
-     * 주의: 현재는 라이브러리 의존성 문제로 실제 인코딩이 구현되지 않았습니다.
-     * 시도한 라이브러리들:
-     * 1. FFmpegKit (은퇴 2025-01-06) - Maven Central에서 제거됨
-     * 2. WritingMinds FFmpeg-Android-Java - JitPack에서 찾을 수 없음
-     * 3. bravoborja/tanersener 포크 - 401 Unauthorized
-     * 4. JCodec - API 시그니처 문제
-     * 
-     * TODO: FFmpeg 바이너리 직접 포함 또는 MediaCodec 직접 구현 검토 필요
      */
     suspend fun createSlideShowVideo(
         photos: List<Bitmap?>,
@@ -41,7 +34,7 @@ object VideoSlideShowCreator {
     ): String? = withContext(Dispatchers.IO) {
         val validPhotos = photos.filterNotNull()
         if (validPhotos.isEmpty()) {
-            Log.e(TAG, "사진이 없어 동영상을 생성할 수 없습니다")
+            Log.e(TAG, "슬라이드쇼를 만들 유효한 사진이 없습니다")
             return@withContext null
         }
         
@@ -55,22 +48,65 @@ object VideoSlideShowCreator {
         // 비디오 디렉토리 생성
         outputFile.parentFile?.mkdirs()
         
+        var encoder: AndroidSequenceEncoder? = null
+        
         try {
-            Log.d(TAG, "슬라이드쇼 동영상 생성 시작: ${validPhotos.size}장의 사진")
-            Log.w(TAG, "현재는 라이브러리 의존성 문제로 실제 인코딩 미구현")
-            Log.w(TAG, "FFmpeg 바이너리 직접 포함 또는 MediaCodec 직접 구현 필요")
+            Log.d(TAG, "JCodec 동영상 생성 시작: ${outputFile.absolutePath} (${validPhotos.size}장의 사진)")
             
-            // TODO: 실제 비디오 인코딩 구현 필요
-            // 현재는 파일 경로만 생성하고 null 반환
-            // 실제 라이브러리 확인 후 인코딩 로직 추가 예정
+            // 1. AndroidSequenceEncoder 생성 (File과 프레임 속도 사용)
+            // createSequenceEncoder는 File과 Int(프레임 속도)를 받음
+            encoder = AndroidSequenceEncoder.createSequenceEncoder(outputFile, FRAME_RATE)
             
-            null
+            // 2. 각 Bitmap을 리사이즈하고 Picture로 변환하여 인코딩
+            validPhotos.forEachIndexed { index, bitmap ->
+                Log.d(TAG, "${index + 1}번째 사진 인코딩 중...")
+                
+                // Bitmap 리사이즈 (1080x1920에 맞춤)
+                val resizedBitmap = resizeBitmap(bitmap, VIDEO_WIDTH, VIDEO_HEIGHT)
+                
+                try {
+                    // Bitmap을 JCodec Picture 포맷으로 변환
+                    val picture = BitmapUtil.fromBitmap(resizedBitmap)
+                    
+                    // 각 사진을 2초(60프레임) 동안 인코딩
+                    for (i in 0 until FRAMES_PER_PHOTO) {
+                        encoder.encodeNativeFrame(picture)
+                    }
+                    
+                    Log.d(TAG, "${index + 1}번째 사진 인코딩 완료 (${FRAMES_PER_PHOTO}프레임)")
+                    
+                    // 리사이즈된 Bitmap 재활용
+                    if (resizedBitmap != bitmap && !resizedBitmap.isRecycled) {
+                        resizedBitmap.recycle()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Picture 변환 또는 인코딩 실패: 사진 ${index + 1}", e)
+                    throw e
+                }
+            }
+            
+            // 3. 인코더 완료
+            encoder.finish()
+            Log.d(TAG, "JCodec 동영상 생성 완료: ${outputFile.absolutePath} (총 ${validPhotos.size * FRAMES_PER_PHOTO}프레임)")
+            
+            outputFile.absolutePath
             
         } catch (e: Exception) {
-            Log.e(TAG, "동영상 생성 실패", e)
+            Log.e(TAG, "JCodec 동영상 생성 실패", e)
             e.printStackTrace()
-            outputFile.delete()
+            outputFile.delete() // 실패 시 파일 삭제
             null
+        } finally {
+            // 4. 리소스 정리
+            encoder?.let {
+                try {
+                    // AndroidSequenceEncoder는 finish() 후 자동으로 정리됨
+                    // 추가 정리 불필요 (finish()에서 이미 처리)
+                } catch (e: Exception) {
+                    Log.w(TAG, "인코더 정리 중 오류", e)
+                }
+            }
+            Log.d(TAG, "인코더 리소스 정리 완료")
         }
     }
     
