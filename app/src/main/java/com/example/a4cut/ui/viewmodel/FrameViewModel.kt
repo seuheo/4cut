@@ -29,6 +29,7 @@ import com.example.a4cut.data.database.AppDatabase
 import com.example.a4cut.ui.utils.ImagePicker
 import com.example.a4cut.ui.utils.PermissionHelper
 import com.example.a4cut.ui.utils.ImageComposer
+import com.example.a4cut.ui.utils.VideoSlideShowCreator
 import com.example.a4cut.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1599,12 +1600,19 @@ class FrameViewModel : ViewModel() {
                         // 선택된 KTX 역 정보 사용
                         val selectedStation = _selectedKtxStation.value
                         
+                        // 원본 사진 4장으로 슬라이드쇼 동영상 생성
+                        val videoPath = context?.let { ctx ->
+                            VideoSlideShowCreator.createSlideShowVideo(_photos.value, ctx)
+                        }
+                        
+                        // PhotoEntity에 동영상 경로 포함하여 저장
                         photoRepository?.createKTXPhoto(
                             imagePath = savedUri.toString(),
                             title = "KTX 네컷 사진",
                             location = selectedStation?.stationName ?: "KTX 역",
                             latitude = selectedStation?.latitude,
-                            longitude = selectedStation?.longitude
+                            longitude = selectedStation?.longitude,
+                            videoPath = videoPath
                         )
                         
                         // 성공 메시지에 위치 정보 포함

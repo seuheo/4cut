@@ -105,7 +105,8 @@ class PhotoRepository(private val photoDao: PhotoDao) {
         companions: String = "",
         travelPurpose: String = "",
         season: String = "",
-        timeOfDay: String = ""
+        timeOfDay: String = "",
+        videoPath: String? = null
     ): Long {
         val photo = PhotoEntity(
             imagePath = imagePath,
@@ -123,7 +124,8 @@ class PhotoRepository(private val photoDao: PhotoDao) {
             companions = companions,
             travelPurpose = travelPurpose,
             season = season,
-            timeOfDay = timeOfDay
+            timeOfDay = timeOfDay,
+            videoPath = videoPath
         )
         return insertPhoto(photo)
     }
