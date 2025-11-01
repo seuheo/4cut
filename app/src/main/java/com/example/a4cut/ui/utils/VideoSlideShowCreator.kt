@@ -48,14 +48,12 @@ object VideoSlideShowCreator {
         // 비디오 디렉토리 생성
         outputFile.parentFile?.mkdirs()
         
-        var encoder: AndroidSequenceEncoder? = null
-        
         try {
             Log.d(TAG, "JCodec 동영상 생성 시작: ${outputFile.absolutePath} (${validPhotos.size}장의 사진)")
             
             // 1. AndroidSequenceEncoder 생성 (File과 프레임 속도 사용)
             // createSequenceEncoder는 File과 Int(프레임 속도)를 받음
-            encoder = AndroidSequenceEncoder.createSequenceEncoder(outputFile, FRAME_RATE)
+            val encoder = AndroidSequenceEncoder.createSequenceEncoder(outputFile, FRAME_RATE)
             
             // 2. 각 Bitmap을 리사이즈하고 Picture로 변환하여 인코딩
             validPhotos.forEachIndexed { index, bitmap ->
@@ -97,15 +95,8 @@ object VideoSlideShowCreator {
             outputFile.delete() // 실패 시 파일 삭제
             null
         } finally {
-            // 4. 리소스 정리
-            encoder?.let {
-                try {
-                    // AndroidSequenceEncoder는 finish() 후 자동으로 정리됨
-                    // 추가 정리 불필요 (finish()에서 이미 처리)
-                } catch (e: Exception) {
-                    Log.w(TAG, "인코더 정리 중 오류", e)
-                }
-            }
+            // 4. 리소스 정리 완료
+            // AndroidSequenceEncoder는 finish() 호출 시 자동으로 리소스를 정리함
             Log.d(TAG, "인코더 리소스 정리 완료")
         }
     }
