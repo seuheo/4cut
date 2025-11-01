@@ -51,5 +51,8 @@ data class PhotoEntity(
     val companions: String = "",           // 함께한 사람들
     val travelPurpose: String = "",        // 여행 목적 (출장, 여행, 출장 등)
     val season: String = "",               // 촬영 계절
-    val timeOfDay: String = ""             // 촬영 시간대 (아침, 점심, 저녁, 밤)
+    val timeOfDay: String = "",            // 촬영 시간대 (아침, 점심, 저녁, 밤)
+    
+    // 동영상 경로 (슬라이드쇼 MP4 파일 경로)
+    val videoPath: String? = null          // 슬라이드쇼 동영상 파일 경로 (선택사항)
 )
