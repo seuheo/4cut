@@ -572,27 +572,43 @@ private fun FlowRow(
 /**
  * 사진 공유 기능
  * FileProvider를 사용하여 이미지 및 동영상을 안드로이드 기본 공유 시트로 공유
+ * 잠신네컷의 QR 코드 공유 기능을 모바일 네이티브 공유로 대체
  */
 private fun sharePhoto(context: android.content.Context, photo: PhotoEntity) {
     try {
+        android.util.Log.d("PhotoDetailScreen", "공유 시작: 이미지=${photo.imagePath}, 동영상=${photo.videoPath}")
+        
         val uris = mutableListOf<android.net.Uri>()
         
         // 이미지 파일 URI 생성
         val imagePath = photo.imagePath
-        if (imagePath.isNotEmpty() && !imagePath.startsWith("content://")) {
-            // 경로가 content:// URI가 아닌 경우 File로 변환
-            val imageFile = File(imagePath)
-            if (imageFile.exists()) {
-                val imageUri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.provider",
-                    imageFile
-                )
-                uris.add(imageUri)
+        if (imagePath.isNotEmpty()) {
+            when {
+                // content:// URI인 경우 그대로 사용
+                imagePath.startsWith("content://") -> {
+                    uris.add(android.net.Uri.parse(imagePath))
+                    android.util.Log.d("PhotoDetailScreen", "이미지 URI (content://): ${imagePath}")
+                }
+                // 파일 경로인 경우 FileProvider 사용
+                else -> {
+                    val imageFile = File(imagePath)
+                    if (imageFile.exists()) {
+                        try {
+                            val imageUri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.provider",
+                                imageFile
+                            )
+                            uris.add(imageUri)
+                            android.util.Log.d("PhotoDetailScreen", "이미지 URI (FileProvider): ${imageUri}")
+                        } catch (e: Exception) {
+                            android.util.Log.e("PhotoDetailScreen", "이미지 FileProvider URI 생성 실패", e)
+                        }
+                    } else {
+                        android.util.Log.w("PhotoDetailScreen", "이미지 파일이 존재하지 않음: ${imagePath}")
+                    }
+                }
             }
-        } else if (imagePath.startsWith("content://")) {
-            // 이미 content:// URI인 경우 그대로 사용
-            uris.add(android.net.Uri.parse(imagePath))
         }
         
         // 동영상 파일 URI 생성 (있는 경우)
@@ -600,28 +616,47 @@ private fun sharePhoto(context: android.content.Context, photo: PhotoEntity) {
             if (videoPath.isNotEmpty()) {
                 val videoFile = File(videoPath)
                 if (videoFile.exists()) {
-                    val videoUri = FileProvider.getUriForFile(
-                        context,
-                        "${context.packageName}.provider",
-                        videoFile
-                    )
-                    uris.add(videoUri)
+                    try {
+                        val videoUri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.provider",
+                            videoFile
+                        )
+                        uris.add(videoUri)
+                        android.util.Log.d("PhotoDetailScreen", "동영상 URI (FileProvider): ${videoUri}")
+                    } catch (e: Exception) {
+                        android.util.Log.e("PhotoDetailScreen", "동영상 FileProvider URI 생성 실패", e)
+                    }
+                } else {
+                    android.util.Log.w("PhotoDetailScreen", "동영상 파일이 존재하지 않음: ${videoPath}")
                 }
             }
         }
         
         if (uris.isEmpty()) {
-            // 공유할 파일이 없는 경우
+            android.util.Log.w("PhotoDetailScreen", "공유할 파일이 없음")
+            android.widget.Toast.makeText(
+                context,
+                "공유할 파일을 찾을 수 없습니다.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
             return
         }
+        
+        android.util.Log.d("PhotoDetailScreen", "공유할 파일 개수: ${uris.size}개")
         
         // 공유 Intent 생성
         val shareIntent = if (uris.size == 1) {
             // 단일 파일 공유
             Intent(Intent.ACTION_SEND).apply {
-                type = if (photo.videoPath != null) "video/mp4" else "image/jpeg"
+                // 파일 유형에 따라 MIME 타입 결정
+                type = when {
+                    photo.videoPath != null && uris[0].path?.endsWith(".mp4") == true -> "video/mp4"
+                    else -> "image/jpeg"
+                }
                 putExtra(Intent.EXTRA_STREAM, uris[0])
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                android.util.Log.d("PhotoDetailScreen", "단일 파일 공유 Intent 생성: type=${type}")
             }
         } else {
             // 여러 파일 공유 (이미지 + 동영상)
@@ -632,15 +667,33 @@ private fun sharePhoto(context: android.content.Context, photo: PhotoEntity) {
                     ArrayList(uris)
                 )
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                android.util.Log.d("PhotoDetailScreen", "다중 파일 공유 Intent 생성: 파일 ${uris.size}개")
             }
         }
         
         // 공유 시트 표시
-        val chooser = Intent.createChooser(shareIntent, "사진 공유하기")
-        context.startActivity(chooser)
+        try {
+            val chooser = Intent.createChooser(shareIntent, "사진 공유하기")
+            // Chooser에 FLAG_ACTIVITY_NEW_TASK 추가 (Activity가 아닌 Context에서 호출 시 필요)
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+            android.util.Log.d("PhotoDetailScreen", "공유 시트 표시 완료")
+        } catch (e: android.content.ActivityNotFoundException) {
+            android.util.Log.e("PhotoDetailScreen", "공유 앱을 찾을 수 없음", e)
+            android.widget.Toast.makeText(
+                context,
+                "공유할 수 있는 앱이 없습니다.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
         
     } catch (e: Exception) {
         android.util.Log.e("PhotoDetailScreen", "공유 실패", e)
+        android.widget.Toast.makeText(
+            context,
+            "공유 중 오류가 발생했습니다: ${e.message}",
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
     }
 }
 
