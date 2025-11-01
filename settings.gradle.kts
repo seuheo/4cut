@@ -15,9 +15,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
-        mavenCentral()
-        // FFmpeg Kit 저장소 (JitPack 또는 직접 저장소)
-        maven { url = uri("https://www.jitpack.io") }
+        mavenCentral() // FFmpeg-kit은 Maven Central에 배포됨
     }
 }
 
