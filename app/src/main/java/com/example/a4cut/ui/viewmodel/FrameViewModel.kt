@@ -1591,7 +1591,8 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 이미지 저장
+     * 이미지 저장 (Phase 2 수정: 비동기 작업 순차 실행 보장)
+     * 동영상 생성이 완료된 후 DB 저장이 실행되도록 수정
      */
     fun saveImage() {
         val imageToSave = _composedImage.value
@@ -1600,58 +1601,86 @@ class FrameViewModel : ViewModel() {
             return
         }
 
-        viewModelScope.launch {
-            _isProcessing.value = true
+        if (context == null) {
+            _errorMessage.value = "Context를 찾을 수 없습니다. 앱을 다시 시작해주세요."
+            return
+        }
+
+        // UI 상태를 먼저 업데이트 (메인 스레드)
+        _isProcessing.value = true
+
+        // 비동기 IO 작업을 위한 코루틴 시작
+        viewModelScope.launch(Dispatchers.IO) {
+            var imageUri: Uri? = null
+            var videoPath: String? = null
+            var errorOccurred = false
+
             try {
+                Log.d("FrameViewModel", "saveImage 작업 시작 (IO 스레드)")
+
+                // 1. (AWAIT) 이미지 갤러리 저장
                 val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
-                val savedUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
-                
-                if (savedUri != null) {
-                    // 갤러리 저장 성공 후 DB에도 저장
-                    try {
-                        // 선택된 KTX 역 정보 사용
-                        val selectedStation = _selectedKtxStation.value
-                        
-                        // 원본 사진 4장으로 슬라이드쇼 동영상 생성 (suspend fun이므로 await 필요)
-                        val videoPath = if (context != null) {
-                            VideoSlideShowCreator.createSlideShowVideo(_photos.value, context!!)
-                        } else {
-                            null
-                        }
-                        
-                        Log.d("FrameViewModel", "동영상 생성 완료: videoPath=$videoPath")
-                        
-                        // PhotoEntity에 동영상 경로 포함하여 저장
-                        photoRepository?.createKTXPhoto(
-                            imagePath = savedUri.toString(),
-                            title = "KTX 네컷 사진",
-                            location = selectedStation?.stationName ?: "KTX 역",
-                            latitude = selectedStation?.latitude,
-                            longitude = selectedStation?.longitude,
-                            videoPath = videoPath
-                        )
-                        
-                        Log.d("FrameViewModel", "PhotoEntity 저장 완료: imagePath=${savedUri.toString()}, videoPath=$videoPath")
-                        
-                        // 성공 메시지에 위치 정보 포함
-                        val successMessage = if (selectedStation != null) {
-                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.stationName}에서 촬영)"
-                        } else {
-                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
-                        }
-                        _successMessage.value = successMessage
-                    } catch (dbException: Exception) {
-                        // 데이터베이스 저장 실패해도 갤러리 저장은 성공했으므로 부분 성공 메시지
-                        _successMessage.value = "이미지는 갤러리에 저장되었지만 앱 저장에 실패했습니다."
-                    }
-                    clearError()
-                } else {
-                    _errorMessage.value = "이미지 저장에 실패했습니다."
+                imageUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
+
+                if (imageUri == null) {
+                    throw IllegalStateException("갤러리 저장 실패 - Uri가 null")
                 }
+
+                Log.d("FrameViewModel", "갤러리 저장 완료: $imageUri")
+
+                // 2. (AWAIT) 동영상 생성 (suspend fun 호출 - 완료될 때까지 코루틴이 대기)
+                videoPath = VideoSlideShowCreator.createSlideShowVideo(_photos.value, context!!)
+                Log.d("FrameViewModel", "동영상 생성 완료: videoPath=$videoPath")
+
+                // 3. (AWAIT) DB 저장 (1, 2 작업이 모두 완료된 후 DB에 저장)
+                val selectedStation = _selectedKtxStation.value
+                photoRepository?.createKTXPhoto(
+                    imagePath = imageUri.toString(),
+                    title = "KTX 네컷 사진",
+                    location = selectedStation?.stationName ?: "KTX 역",
+                    latitude = selectedStation?.latitude,
+                    longitude = selectedStation?.longitude,
+                    videoPath = videoPath // <- 생성된 동영상 경로
+                )
+
+                Log.d("FrameViewModel", "PhotoEntity 저장 완료: imagePath=${imageUri.toString()}, videoPath=$videoPath")
+
+                // 성공 메시지에 위치 정보 포함
+                val successMessage = if (selectedStation != null) {
+                    "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.stationName}에서 촬영)"
+                } else {
+                    "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
+                }
+
+                // UI 업데이트는 메인 스레드에서 실행
+                withContext(Dispatchers.Main) {
+                    _successMessage.value = successMessage
+                    clearError()
+                }
+
             } catch (e: Exception) {
-                _errorMessage.value = "이미지 저장 실패: ${e.message}"
+                errorOccurred = true
+                Log.e("FrameViewModel", "saveImage 중 오류 발생", e)
+
+                // 에러 발생 시 UI 업데이트 (메인 스레드)
+                withContext(Dispatchers.Main) {
+                    _errorMessage.value = when {
+                        e is IllegalStateException && e.message?.contains("Uri가 null") == true -> {
+                            "이미지 저장에 실패했습니다. 갤러리 권한을 확인해주세요."
+                        }
+                        e.message?.contains("동영상") == true -> {
+                            "이미지는 저장되었지만 동영상 생성에 실패했습니다."
+                        }
+                        else -> {
+                            "이미지 저장 실패: ${e.message}"
+                        }
+                    }
+                }
             } finally {
-                _isProcessing.value = false
+                // 모든 작업 완료 후 Main 스레드에서 UI 상태 업데이트
+                withContext(Dispatchers.Main) {
+                    _isProcessing.value = false
+                }
             }
         }
     }
