@@ -89,10 +89,10 @@ dependencies {
     
     // FFmpeg 래퍼 라이브러리 (동영상 슬라이드쇼 생성용)
     // FFmpegKit(은퇴)로 인해 대체 라이브러리 탐색 중
-    // 여러 FFmpeg-Android-Java 라이브러리 시도했으나 패키지를 찾을 수 없음
-    // TODO: 정확한 GitHub 리포지토리 및 JitPack 태그 확인 필요
+    // bravoborja 포크: 401 Unauthorized (JitPack에서 찾을 수 없음)
+    // TODO: 정확한 GitHub 리포지토리 URL 및 사용 가능한 버전 확인 필요
     // 임시로 주석 처리 - 실제 라이브러리 확인 후 활성화 예정
-    // implementation("com.github.WritingMinds:ffmpeg-android-java:1.1.2")
+    // implementation("com.github.bravoborja:FFmpeg-Android-Java-wse:0.4.9")
     
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
