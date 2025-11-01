@@ -854,6 +854,13 @@ class FrameViewModel : ViewModel() {
         val database = AppDatabase.getDatabase(context)
         photoRepository = PhotoRepository(database.photoDao())
         
+        // FrameRepository에서 JSON 슬롯 정보 로드 (Phase 1 수정)
+        frameRepository.loadSlotsFromJson(context)
+        
+        // JSON 슬롯 정보 로드 후, _frames.value 업데이트
+        _frames.value = frameRepository.getFrames()
+        println("FrameViewModel: JSON 슬롯 정보 로드 완료, _frames 업데이트: ${_frames.value.size}개")
+        
         checkImagePermission()
         
         // 기존 사진 데이터가 없을 때만 테스트 사진들 로드
