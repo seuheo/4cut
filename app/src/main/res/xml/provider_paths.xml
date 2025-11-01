@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- 캐시 디렉토리의 이미지 파일 공유 -->
     <cache-path name="shared_images" path="images/"/>
+    
+    <!-- 외부 파일 디렉토리 공유 (이미지 및 동영상 포함) -->
     <external-files-path name="external_files" path="."/>
+    
+    <!-- 동영상 파일 공유를 위한 명시적 경로 -->
+    <external-files-path name="videos" path="videos/"/>
+    
+    <!-- 외부 저장소 전체 공유 (fallback) -->
     <external-path name="external" path="."/>
 </paths>
