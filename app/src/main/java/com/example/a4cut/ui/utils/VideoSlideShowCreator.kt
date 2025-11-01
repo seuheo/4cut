@@ -3,13 +3,15 @@ package com.example.a4cut.ui.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-// TODO: FFmpeg-kit 라이브러리 의존성 확인 후 추가 필요
-// import com.arthenica.ffmpegkit.FFmpegKit
-// import com.arthenica.ffmpegkit.ReturnCode
+import org.jcodec.api.SequenceEncoder
+import org.jcodec.common.io.NIOUtils
+import org.jcodec.common.io.SeekableByteChannel
+import org.jcodec.common.model.Picture
+import org.jcodec.common.model.Rational
+import org.jcodec.scale.BitmapUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
 
 /**
  * 원본 사진 4장으로 슬라이드쇼 MP4 동영상을 생성하는 유틸리티 클래스
@@ -21,11 +23,11 @@ object VideoSlideShowCreator {
     private const val VIDEO_WIDTH = 1080 // 인스타그램 스토리 최적화
     private const val VIDEO_HEIGHT = 1920
     private const val PHOTO_DURATION_SECONDS = 2 // 각 사진 표시 시간 (초)
-    private const val VIDEO_CODEC = "libx264" // H.264 코덱
-    private const val VIDEO_BITRATE = "8M" // 비트레이트
+    private const val FRAME_RATE = 30 // FPS
+    private const val FRAMES_PER_PHOTO = FRAME_RATE * PHOTO_DURATION_SECONDS // 각 사진당 프레임 수 (60프레임)
     
     /**
-     * 원본 사진 4장으로 슬라이드쇼 MP4 동영상 생성 (FFmpeg 기반)
+     * 원본 사진 4장으로 슬라이드쇼 MP4 동영상 생성 (JCodec 기반)
      * @param photos 원본 사진 Bitmap 목록 (4장)
      * @param context Context
      * @return 생성된 MP4 파일 경로 (실패 시 null)
@@ -40,9 +42,6 @@ object VideoSlideShowCreator {
             return@withContext null
         }
         
-        val tempDir = File(context.cacheDir, "video_temp_${System.currentTimeMillis()}")
-        tempDir.mkdirs()
-        
         val outputFile = File(
             context.getExternalFilesDir(null)?.let { 
                 File(it, "videos")
@@ -53,58 +52,47 @@ object VideoSlideShowCreator {
         // 비디오 디렉토리 생성
         outputFile.parentFile?.mkdirs()
         
-        val tempImageFiles = mutableListOf<File>()
+        var encoder: SequenceEncoder? = null
         
         try {
-            Log.d(TAG, "슬라이드쇼 동영상 생성 시작: ${validPhotos.size}장의 사진")
+            Log.d(TAG, "슬라이드쇼 동영상 생성 시작: ${validPhotos.size}장의 사진 (JCodec 사용)")
             
-            // 1. 각 Bitmap을 임시 PNG 파일로 저장
-            validPhotos.forEachIndexed { index, bitmap ->
+            // 1. SequenceEncoder 생성 (MP4 파일 인코더)
+            val channel = NIOUtils.writableFileChannel(outputFile.absolutePath)
+            encoder = SequenceEncoder(channel, Rational.R(FRAME_RATE, 1))
+            
+            // 2. 각 Bitmap을 리사이즈하고 Picture로 변환하여 인코딩
+            validPhotos.forEachIndexed { photoIndex, bitmap ->
+                // Bitmap 리사이즈
                 val resizedBitmap = resizeBitmap(bitmap, VIDEO_WIDTH, VIDEO_HEIGHT)
-                val tempImageFile = File(tempDir, "frame_${String.format("%02d", index + 1)}.png")
                 
-                FileOutputStream(tempImageFile).use { out ->
-                    resizedBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-                }
-                
-                tempImageFiles.add(tempImageFile)
-                Log.d(TAG, "임시 이미지 파일 생성: ${tempImageFile.absolutePath}")
-                
-                // 리사이즈된 Bitmap은 원본과 다르면 해제
-                if (resizedBitmap != bitmap) {
-                    resizedBitmap.recycle()
+                try {
+                    // Bitmap을 Picture로 변환
+                    val picture = BitmapUtil.fromBitmap(resizedBitmap)
+                    
+                    // 각 사진을 2초(60프레임) 동안 유지
+                    for (i in 0 until FRAMES_PER_PHOTO) {
+                        // Picture를 인코딩하여 비디오에 추가
+                        encoder.encodeNativeFrame(picture)
+                    }
+                    
+                    Log.d(TAG, "사진 ${photoIndex + 1}/${validPhotos.size} 인코딩 완료 (${FRAMES_PER_PHOTO}프레임)")
+                    
+                    // 리사이즈된 Bitmap은 원본과 다르면 해제
+                    if (resizedBitmap != bitmap) {
+                        resizedBitmap.recycle()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Picture 변환 또는 인코딩 실패: 사진 ${photoIndex + 1}", e)
+                    throw e
                 }
             }
             
-            // 2. FFmpeg 명령어 구성: 각 이미지를 2초씩 표시하고 연결
-            // 예시: ffmpeg -loop 1 -t 2 -i frame_01.png -loop 1 -t 2 -i frame_02.png ... 
-            //       -filter_complex "[0:v][1:v][2:v][3:v]concat=n=4:v=1:a=0" -c:v libx264 -b:v 8M -y output.mp4
-            val ffmpegCommand = buildFFmpegCommand(tempImageFiles, outputFile)
+            // 3. Encoder 완료
+            encoder.finish()
+            Log.d(TAG, "JCodec 동영상 생성 완료: ${outputFile.absolutePath} (총 ${validPhotos.size * FRAMES_PER_PHOTO}프레임)")
             
-            Log.d(TAG, "FFmpeg 명령어 구성 완료: $ffmpegCommand")
-            
-            // TODO: FFmpeg-kit 라이브러리 의존성 추가 후 아래 주석 해제
-            // 3. FFmpeg 실행
-            /*
-            val session = FFmpegKit.execute(ffmpegCommand)
-            val returnCode = session.returnCode
-            
-            if (ReturnCode.isSuccess(returnCode)) {
-                Log.d(TAG, "동영상 생성 성공: ${outputFile.absolutePath}")
-                outputFile.absolutePath
-            } else {
-                val output = session.allLogsAsString
-                Log.e(TAG, "FFmpeg 실행 실패: $output")
-                outputFile.delete()
-                null
-            }
-            */
-            
-            // 임시: FFmpeg 라이브러리 없이 파일 경로만 반환
-            Log.w(TAG, "FFmpeg 라이브러리 미설치로 인해 실제 동영상 생성 생략")
-            Log.w(TAG, "FFmpeg-kit 의존성 추가 후 주석 해제 필요")
-            // outputFile.createNewFile() // 임시 파일 생성
-            null // 현재는 null 반환 (실제 동영상 생성 불가)
+            outputFile.absolutePath
             
         } catch (e: Exception) {
             Log.e(TAG, "동영상 생성 실패", e)
@@ -112,37 +100,16 @@ object VideoSlideShowCreator {
             outputFile.delete()
             null
         } finally {
-            // 임시 파일 정리
-            tempImageFiles.forEach { it.delete() }
-            tempDir.deleteRecursively()
-            Log.d(TAG, "임시 파일 정리 완료")
+            // Encoder 정리
+            encoder?.let {
+                try {
+                    it.finish()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Encoder 정리 중 오류", e)
+                }
+            }
+            Log.d(TAG, "리소스 정리 완료")
         }
-    }
-    
-    /**
-     * FFmpeg 명령어 생성
-     * 각 이미지를 2초씩 반복하여 표시하고 연결
-     */
-    private fun buildFFmpegCommand(imageFiles: List<File>, outputFile: File): String {
-        val inputs = imageFiles.joinToString(" ") { file ->
-            "-loop 1 -t $PHOTO_DURATION_SECONDS -i \"${file.absolutePath}\""
-        }
-        
-        // concat 필터: 모든 비디오를 순차적으로 연결
-        val filterInputs = imageFiles.indices.joinToString("") { "[$it:v]" }
-        val filterComplex = "$filterInputs concat=n=${imageFiles.size}:v=1:a=0 [v]"
-        
-        val command = "-y $inputs " +
-                "-filter_complex \"$filterComplex\" " +
-                "-map \"[v]\" " +
-                "-c:v $VIDEO_CODEC " +
-                "-b:v $VIDEO_BITRATE " +
-                "-preset medium " +
-                "-pix_fmt yuv420p " +
-                "-s ${VIDEO_WIDTH}x${VIDEO_HEIGHT} " +
-                "\"${outputFile.absolutePath}\""
-        
-        return command
     }
     
     /**
