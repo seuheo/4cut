@@ -138,6 +138,21 @@ class PhotoRepository(private val photoDao: PhotoDao) {
         updatePhoto(updatedPhoto)
     }
     
+    /**
+     * 특정 PhotoEntity의 videoPath 필드만 업데이트 (백그라운드 동영상 생성 완료 후 사용)
+     * @param photoId 업데이트할 사진 ID
+     * @param videoPath 업데이트할 동영상 경로 (null 가능)
+     */
+    suspend fun updateVideoPath(photoId: Int, videoPath: String?) {
+        val photo = getPhotoById(photoId)
+        if (photo != null) {
+            val updatedPhoto = photo.copy(videoPath = videoPath)
+            updatePhoto(updatedPhoto)
+        } else {
+            throw IllegalStateException("PhotoEntity를 찾을 수 없습니다: photoId=$photoId")
+        }
+    }
+    
     // 새로운 확장 메서드들 (미래 기능을 위한 준비)
     /**
      * 계절별 사진 조회

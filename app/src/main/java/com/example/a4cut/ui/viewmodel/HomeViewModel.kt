@@ -192,6 +192,12 @@ class HomeViewModel : ViewModel() {
             // 사진 목록 Flow 구독
             repository.getAllPhotos().collect { photos ->
                 Log.d("HomeViewModel", "사진 목록 업데이트: ${photos.size} photos")
+                if (photos.isNotEmpty()) {
+                    Log.d("HomeViewModel", "저장된 사진 목록:")
+                    photos.forEachIndexed { index, photo ->
+                        Log.d("HomeViewModel", "  ${index + 1}. ID: ${photo.id}, 제목: ${photo.title}, 위치: ${photo.location}, 생성일: ${photo.createdAt}")
+                    }
+                }
                 _photoLogs.value = photos
             }
         }

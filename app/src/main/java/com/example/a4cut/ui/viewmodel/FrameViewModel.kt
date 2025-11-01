@@ -1612,7 +1612,7 @@ class FrameViewModel : ViewModel() {
         // 비동기 IO 작업을 위한 코루틴 시작
         viewModelScope.launch(Dispatchers.IO) {
             var imageUri: Uri? = null
-            var videoPath: String? = null
+            var photoId: Long? = null
             var errorOccurred = false
 
             try {
@@ -1628,22 +1628,60 @@ class FrameViewModel : ViewModel() {
 
                 Log.d("FrameViewModel", "갤러리 저장 완료: $imageUri")
 
-                // 2. (AWAIT) 동영상 생성 (suspend fun 호출 - 완료될 때까지 코루틴이 대기)
-                videoPath = VideoSlideShowCreator.createSlideShowVideo(_photos.value, context!!)
-                Log.d("FrameViewModel", "동영상 생성 완료: videoPath=$videoPath")
-
-                // 3. (AWAIT) DB 저장 (1, 2 작업이 모두 완료된 후 DB에 저장)
+                // 2. (AWAIT) 즉시 DB 저장 (videoPath = null로 저장하여 사용자가 바로 확인할 수 있도록)
                 val selectedStation = _selectedKtxStation.value
-                photoRepository?.createKTXPhoto(
-                    imagePath = imageUri.toString(),
-                    title = "KTX 네컷 사진",
-                    location = selectedStation?.stationName ?: "KTX 역",
-                    latitude = selectedStation?.latitude,
-                    longitude = selectedStation?.longitude,
-                    videoPath = videoPath // <- 생성된 동영상 경로
-                )
+                Log.d("FrameViewModel", "즉시 DB 저장 시작... (videoPath = null)")
+                
+                photoId = if (photoRepository != null) {
+                    try {
+                        photoRepository?.createKTXPhoto(
+                            imagePath = imageUri.toString(),
+                            title = "KTX 네컷 사진",
+                            location = selectedStation?.stationName ?: "KTX 역",
+                            latitude = selectedStation?.latitude,
+                            longitude = selectedStation?.longitude,
+                            videoPath = null // <- 즉시 저장 시 동영상은 null
+                        )
+                    } catch (dbException: Exception) {
+                        Log.e("FrameViewModel", "DB 저장 중 오류 발생", dbException)
+                        throw dbException
+                    }
+                } else {
+                    Log.e("FrameViewModel", "photoRepository가 null입니다. DB 저장 실패")
+                    null
+                }
 
-                Log.d("FrameViewModel", "PhotoEntity 저장 완료: imagePath=${imageUri.toString()}, videoPath=$videoPath")
+                Log.d("FrameViewModel", "PhotoEntity 즉시 저장 완료: photoId=$photoId, imagePath=${imageUri.toString()}, videoPath=null")
+
+                // 3. 백그라운드에서 동영상 생성 및 DB 업데이트 (별도 코루틴)
+                if (photoId != null) {
+                    val savedPhotoId = photoId // 외부 변수 안전하게 캡처
+                    Log.d("FrameViewModel", "백그라운드 동영상 생성 시작... (photoId=$savedPhotoId)")
+                    viewModelScope.launch(Dispatchers.IO) {
+                        try {
+                            // 동영상 생성 (수십 초 소요)
+                            val videoPath = try {
+                                VideoSlideShowCreator.createSlideShowVideo(_photos.value, context!!)
+                            } catch (e: Exception) {
+                                Log.e("FrameViewModel", "동영상 생성 중 오류 발생", e)
+                                null
+                            }
+                            
+                            if (videoPath != null) {
+                                Log.d("FrameViewModel", "동영상 생성 완료: videoPath=$videoPath, photoId 업데이트 시작... (photoId=$savedPhotoId)")
+                                
+                                // 기존 PhotoEntity의 videoPath 필드만 업데이트
+                                photoRepository?.updateVideoPath(savedPhotoId.toInt(), videoPath)
+                                Log.d("FrameViewModel", "PhotoEntity videoPath 업데이트 완료: photoId=$savedPhotoId, videoPath=$videoPath")
+                            } else {
+                                Log.w("FrameViewModel", "동영상 생성 실패: photoId=${savedPhotoId}의 videoPath는 null로 유지됩니다.")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("FrameViewModel", "백그라운드 동영상 처리 중 오류 발생", e)
+                            // 백그라운드 오류는 사용자에게 노출하지 않음 (이미지는 저장됨)
+                        }
+                    }
+                }
 
                 // 성공 메시지에 위치 정보 포함
                 val successMessage = if (selectedStation != null) {
@@ -1668,8 +1706,8 @@ class FrameViewModel : ViewModel() {
                         e is IllegalStateException && e.message?.contains("Uri가 null") == true -> {
                             "이미지 저장에 실패했습니다. 갤러리 권한을 확인해주세요."
                         }
-                        e.message?.contains("동영상") == true -> {
-                            "이미지는 저장되었지만 동영상 생성에 실패했습니다."
+                        e.message?.contains("DB") == true -> {
+                            "이미지는 저장되었지만 앱 내 저장에 실패했습니다."
                         }
                         else -> {
                             "이미지 저장 실패: ${e.message}"

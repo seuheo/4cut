@@ -87,10 +87,18 @@ object VideoSlideShowCreator {
             encoder.finish()
             Log.d(TAG, "JCodec 동영상 생성 완료: ${outputFile.absolutePath} (총 ${validPhotos.size * FRAMES_PER_PHOTO}프레임)")
             
-            outputFile.absolutePath
+            // 파일 존재 여부 확인
+            if (outputFile.exists() && outputFile.length() > 0) {
+                Log.d(TAG, "동영상 파일 생성 확인: ${outputFile.absolutePath}, 크기: ${outputFile.length()} bytes")
+                outputFile.absolutePath
+            } else {
+                Log.e(TAG, "동영상 파일이 생성되지 않았거나 크기가 0입니다: ${outputFile.absolutePath}")
+                null
+            }
             
         } catch (e: Exception) {
             Log.e(TAG, "JCodec 동영상 생성 실패", e)
+            Log.e(TAG, "동영상 생성 실패 상세: ${e.message}", e)
             e.printStackTrace()
             outputFile.delete() // 실패 시 파일 삭제
             null
