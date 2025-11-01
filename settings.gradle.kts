@@ -16,6 +16,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // FFmpeg Kit 저장소 (JitPack 또는 직접 저장소)
+        maven { url = uri("https://www.jitpack.io") }
     }
 }
 

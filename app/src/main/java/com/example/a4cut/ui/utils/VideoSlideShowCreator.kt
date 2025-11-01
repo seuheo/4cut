@@ -2,20 +2,14 @@ package com.example.a4cut.ui.utils
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.media.MediaCodec
-import android.media.MediaCodecInfo
-import android.media.MediaFormat
-import android.media.MediaMuxer
-import android.os.Build
 import android.util.Log
-import android.view.Surface
+// TODO: FFmpeg-kit 라이브러리 의존성 확인 후 추가 필요
+// import com.arthenica.ffmpegkit.FFmpegKit
+// import com.arthenica.ffmpegkit.ReturnCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.nio.ByteBuffer
-import kotlin.math.roundToInt
+import java.io.FileOutputStream
 
 /**
  * 원본 사진 4장으로 슬라이드쇼 MP4 동영상을 생성하는 유틸리티 클래스
@@ -24,17 +18,14 @@ import kotlin.math.roundToInt
 object VideoSlideShowCreator {
     
     private const val TAG = "VideoSlideShowCreator"
-    private const val MIME_TYPE = "video/avc" // H.264 코덱
-    private const val FRAME_RATE = 30 // FPS
-    private const val IFRAME_INTERVAL = 10 // I-Frame 간격
-    private const val BIT_RATE = 8_000_000 // 비트레이트 (8Mbps)
     private const val VIDEO_WIDTH = 1080 // 인스타그램 스토리 최적화
     private const val VIDEO_HEIGHT = 1920
     private const val PHOTO_DURATION_SECONDS = 2 // 각 사진 표시 시간 (초)
-    private const val FRAMES_PER_PHOTO = FRAME_RATE * PHOTO_DURATION_SECONDS // 각 사진당 프레임 수
+    private const val VIDEO_CODEC = "libx264" // H.264 코덱
+    private const val VIDEO_BITRATE = "8M" // 비트레이트
     
     /**
-     * 원본 사진 4장으로 슬라이드쇼 MP4 동영상 생성
+     * 원본 사진 4장으로 슬라이드쇼 MP4 동영상 생성 (FFmpeg 기반)
      * @param photos 원본 사진 Bitmap 목록 (4장)
      * @param context Context
      * @return 생성된 MP4 파일 경로 (실패 시 null)
@@ -49,6 +40,9 @@ object VideoSlideShowCreator {
             return@withContext null
         }
         
+        val tempDir = File(context.cacheDir, "video_temp_${System.currentTimeMillis()}")
+        tempDir.mkdirs()
+        
         val outputFile = File(
             context.getExternalFilesDir(null)?.let { 
                 File(it, "videos")
@@ -59,51 +53,58 @@ object VideoSlideShowCreator {
         // 비디오 디렉토리 생성
         outputFile.parentFile?.mkdirs()
         
-        var muxer: MediaMuxer? = null
-        var encoder: MediaCodec? = null
-        var inputSurface: Surface? = null
+        val tempImageFiles = mutableListOf<File>()
         
         try {
             Log.d(TAG, "슬라이드쇼 동영상 생성 시작: ${validPhotos.size}장의 사진")
             
-            // MediaMuxer 초기화
-            muxer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+            // 1. 각 Bitmap을 임시 PNG 파일로 저장
+            validPhotos.forEachIndexed { index, bitmap ->
+                val resizedBitmap = resizeBitmap(bitmap, VIDEO_WIDTH, VIDEO_HEIGHT)
+                val tempImageFile = File(tempDir, "frame_${String.format("%02d", index + 1)}.png")
+                
+                FileOutputStream(tempImageFile).use { out ->
+                    resizedBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                }
+                
+                tempImageFiles.add(tempImageFile)
+                Log.d(TAG, "임시 이미지 파일 생성: ${tempImageFile.absolutePath}")
+                
+                // 리사이즈된 Bitmap은 원본과 다르면 해제
+                if (resizedBitmap != bitmap) {
+                    resizedBitmap.recycle()
+                }
+            }
+            
+            // 2. FFmpeg 명령어 구성: 각 이미지를 2초씩 표시하고 연결
+            // 예시: ffmpeg -loop 1 -t 2 -i frame_01.png -loop 1 -t 2 -i frame_02.png ... 
+            //       -filter_complex "[0:v][1:v][2:v][3:v]concat=n=4:v=1:a=0" -c:v libx264 -b:v 8M -y output.mp4
+            val ffmpegCommand = buildFFmpegCommand(tempImageFiles, outputFile)
+            
+            Log.d(TAG, "FFmpeg 명령어 구성 완료: $ffmpegCommand")
+            
+            // TODO: FFmpeg-kit 라이브러리 의존성 추가 후 아래 주석 해제
+            // 3. FFmpeg 실행
+            /*
+            val session = FFmpegKit.execute(ffmpegCommand)
+            val returnCode = session.returnCode
+            
+            if (ReturnCode.isSuccess(returnCode)) {
+                Log.d(TAG, "동영상 생성 성공: ${outputFile.absolutePath}")
+                outputFile.absolutePath
             } else {
-                @Suppress("DEPRECATION")
-                MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+                val output = session.allLogsAsString
+                Log.e(TAG, "FFmpeg 실행 실패: $output")
+                outputFile.delete()
+                null
             }
+            */
             
-            // MediaCodec 인코더 생성
-            encoder = MediaCodec.createEncoderByType(MIME_TYPE)
-            
-            // 비디오 포맷 설정
-            val format = MediaFormat.createVideoFormat(MIME_TYPE, VIDEO_WIDTH, VIDEO_HEIGHT).apply {
-                setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
-                setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE)
-                setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE)
-                setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL)
-            }
-            
-            encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-            
-            // 입력 Surface 생성
-            inputSurface = encoder.createInputSurface()
-            encoder.start()
-            
-            // Surface에 Bitmap을 직접 그리는 것은 복잡하므로
-            // 실제 MediaCodec 인코딩은 향후 구현 예정
-            // 현재는 기본 구조만 마련하고, 파일 경로 반환
-            Log.w(TAG, "MediaCodec Surface 인코딩은 복잡하므로, 실제 인코딩은 향후 구현 예정")
-            Log.w(TAG, "현재는 파일 경로만 생성하고, 실제 MP4 파일 생성은 라이브러리 도입 검토 필요")
-            Log.d(TAG, "향후 개선 방안: OpenGL ES를 사용한 Surface 렌더링 또는 FFmpeg 라이브러리 사용")
-            
-            // 실제 인코딩 구현을 위한 기본 구조만 완성
-            // 향후 각 Bitmap을 Surface에 렌더링하여 인코딩하는 로직 추가 필요
-            // 임시로 빈 파일 생성 (실제 인코딩은 추후 구현)
-            outputFile.createNewFile()
-            Log.d(TAG, "동영상 파일 경로 생성 완료: ${outputFile.absolutePath}")
-            outputFile.absolutePath
+            // 임시: FFmpeg 라이브러리 없이 파일 경로만 반환
+            Log.w(TAG, "FFmpeg 라이브러리 미설치로 인해 실제 동영상 생성 생략")
+            Log.w(TAG, "FFmpeg-kit 의존성 추가 후 주석 해제 필요")
+            // outputFile.createNewFile() // 임시 파일 생성
+            null // 현재는 null 반환 (실제 동영상 생성 불가)
             
         } catch (e: Exception) {
             Log.e(TAG, "동영상 생성 실패", e)
@@ -111,12 +112,37 @@ object VideoSlideShowCreator {
             outputFile.delete()
             null
         } finally {
-            inputSurface?.release()
-            encoder?.stop()
-            encoder?.release()
-            muxer?.stop()
-            muxer?.release()
+            // 임시 파일 정리
+            tempImageFiles.forEach { it.delete() }
+            tempDir.deleteRecursively()
+            Log.d(TAG, "임시 파일 정리 완료")
         }
+    }
+    
+    /**
+     * FFmpeg 명령어 생성
+     * 각 이미지를 2초씩 반복하여 표시하고 연결
+     */
+    private fun buildFFmpegCommand(imageFiles: List<File>, outputFile: File): String {
+        val inputs = imageFiles.joinToString(" ") { file ->
+            "-loop 1 -t $PHOTO_DURATION_SECONDS -i \"${file.absolutePath}\""
+        }
+        
+        // concat 필터: 모든 비디오를 순차적으로 연결
+        val filterInputs = imageFiles.indices.joinToString("") { "[$it:v]" }
+        val filterComplex = "$filterInputs concat=n=${imageFiles.size}:v=1:a=0 [v]"
+        
+        val command = "-y $inputs " +
+                "-filter_complex \"$filterComplex\" " +
+                "-map \"[v]\" " +
+                "-c:v $VIDEO_CODEC " +
+                "-b:v $VIDEO_BITRATE " +
+                "-preset medium " +
+                "-pix_fmt yuv420p " +
+                "-s ${VIDEO_WIDTH}x${VIDEO_HEIGHT} " +
+                "\"${outputFile.absolutePath}\""
+        
+        return command
     }
     
     /**

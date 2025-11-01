@@ -87,6 +87,13 @@ dependencies {
     // OpenStreetMap (osmdroid) - Google Maps 대체
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     
+    // FFmpeg Kit (동영상 슬라이드쇼 생성용)
+    // 주의: ffmpeg-kit 패키지가 Maven Central에서 찾을 수 없어서
+    // 일단 기본 구조만 유지하고, 실제 인코딩은 향후 구현 예정
+    // 또는 다른 FFmpeg 래퍼 라이브러리 도입 검토 필요
+    // TODO: FFmpeg 라이브러리 의존성 확인 및 추가 필요
+    // implementation("com.arthenica:ffmpeg-kit-full-gpl:6.0-2")
+    
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     
