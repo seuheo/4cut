@@ -70,28 +70,41 @@ fun CropScreen(
     
     // 이미지 로드
     LaunchedEffect(imageUri) {
-        if (imageUri.toString().isEmpty()) {
+        println("=== CropScreen: 이미지 로드 시작 ===")
+        println("입력 URI 문자열: $imageUriString")
+        println("비율 문자열: $aspectRatioString")
+        println("슬롯 인덱스: $slotIndex")
+        
+        if (imageUriString.isEmpty()) {
+            println("❌ URI 문자열이 비어있음 - 화면 종료")
             navController.popBackStack()
             return@LaunchedEffect
         }
         
+        val uri = imageUriString.toUri()
+        println("변환된 URI: $uri")
+        
         imageBitmap = withContext(Dispatchers.IO) {
             try {
                 val request = ImageRequest.Builder(context)
-                    .data(imageUri)
+                    .data(uri)
                     .size(2048, 2048) // 최대 크기 제한
                     .build()
                 val imageLoader = ImageLoader(context)
                 val result = imageLoader.execute(request)
                 when (result) {
                     is coil.request.SuccessResult -> {
-                        result.drawable?.toBitmap()
+                        val bitmap = result.drawable?.toBitmap()
+                        println("이미지 로드 성공: ${bitmap?.width}x${bitmap?.height}")
+                        bitmap
                     }
                     else -> {
+                        println("❌ 이미지 로드 실패: ${(result as? coil.request.ErrorResult)?.throwable?.message}")
                         null
                     }
                 }
             } catch (e: Exception) {
+                println("❌ 이미지 로드 중 예외 발생: ${e.message}")
                 e.printStackTrace()
                 null
             }
@@ -100,6 +113,8 @@ fun CropScreen(
         imageBitmap?.let { bitmap ->
             val size = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
             imageSize = size
+            println("이미지 크기 설정: ${size.width}x${size.height}")
+            println("목표 비율: $aspectRatio (${slotWidth}:${slotHeight})")
             
             // 초기 크롭 영역 계산 (슬롯 비율 유지)
             val cropWidth = minOf(size.width, size.height * aspectRatio)
@@ -107,10 +122,20 @@ fun CropScreen(
             val cropX = (size.width - cropWidth) / 2
             val cropY = (size.height - cropHeight) / 2
             
+            println("초기 크롭 영역 계산:")
+            println("  크기: ${cropWidth}x${cropHeight}")
+            println("  위치: ($cropX, $cropY)")
+            
             cropRect = Rect(
-                offset = Offset(cropX, cropY),
-                size = Size(cropWidth, cropHeight)
+                left = cropX,
+                top = cropY,
+                right = cropX + cropWidth,
+                bottom = cropY + cropHeight
             )
+            println("✅ 이미지 로드 및 초기 크롭 영역 설정 완료")
+        } ?: run {
+            println("❌ imageBitmap이 null - 화면 종료")
+            navController.popBackStack()
         }
     }
     
@@ -129,27 +154,63 @@ fun CropScreen(
                 actions = {
                     IconButton(
                         onClick = {
+                            println("=== CropScreen: 완료 버튼 클릭 ===")
                             imageBitmap?.let { bitmap ->
                                 cropRect?.let { rect ->
+                                    println("원본 비트맵 크기: ${bitmap.width}x${bitmap.height}")
+                                    println("크롭 영역: left=${rect.left}, top=${rect.top}, width=${rect.width}, height=${rect.height}")
+                                    
+                                    // 크롭 영역이 비트맵 범위를 벗어나지 않도록 제한
+                                    val cropLeft = rect.left.toInt().coerceIn(0, bitmap.width - 1)
+                                    val cropTop = rect.top.toInt().coerceIn(0, bitmap.height - 1)
+                                    val cropWidth = rect.width.toInt().coerceIn(1, bitmap.width - cropLeft)
+                                    val cropHeight = rect.height.toInt().coerceIn(1, bitmap.height - cropTop)
+                                    
+                                    println("조정된 크롭 영역: left=$cropLeft, top=$cropTop, width=$cropWidth, height=$cropHeight")
+                                    
                                     // 크롭된 비트맵 생성
-                                    val croppedBitmap = Bitmap.createBitmap(
-                                        bitmap,
-                                        rect.left.toInt(),
-                                        rect.top.toInt(),
-                                        rect.width.toInt(),
-                                        rect.height.toInt()
-                                    )
+                                    val croppedBitmap = try {
+                                        Bitmap.createBitmap(
+                                            bitmap,
+                                            cropLeft,
+                                            cropTop,
+                                            cropWidth,
+                                            cropHeight
+                                        )
+                                    } catch (e: Exception) {
+                                        println("❌ 크롭된 비트맵 생성 실패: ${e.message}")
+                                        e.printStackTrace()
+                                        null
+                                    }
                                     
-                                    // 크롭된 이미지를 임시 파일로 저장하고 Uri 반환
-                                    val resultUri = saveBitmapToCache(context, croppedBitmap)
-                                    
-                                    // 이전 화면으로 잘린 이미지 Uri 전달
-                                    navController.previousBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("croppedImageUri", resultUri.toString())
-                                    
-                                    navController.popBackStack()
+                                    croppedBitmap?.let { cropped ->
+                                        println("크롭된 비트맵 생성 성공: ${cropped.width}x${cropped.height}")
+                                        
+                                        // 크롭된 이미지를 임시 파일로 저장하고 Uri 반환
+                                        val resultUri = saveBitmapToCache(context, cropped)
+                                        println("저장된 파일 URI: $resultUri")
+                                        
+                                        // 이전 화면으로 잘린 이미지 Uri 전달
+                                        val previousEntry = navController.previousBackStackEntry
+                                        if (previousEntry != null) {
+                                            previousEntry.savedStateHandle.set("croppedImageUri", resultUri.toString())
+                                            println("✅ savedStateHandle에 URI 저장 완료")
+                                        } else {
+                                            println("❌ previousBackStackEntry가 null")
+                                        }
+                                        
+                                        // 메모리 정리
+                                        if (cropped != bitmap && !cropped.isRecycled) {
+                                            cropped.recycle()
+                                        }
+                                        
+                                        navController.popBackStack()
+                                    }
+                                } ?: run {
+                                    println("❌ cropRect가 null")
                                 }
+                            } ?: run {
+                                println("❌ imageBitmap이 null")
                             }
                         },
                         enabled = imageBitmap != null && cropRect != null
@@ -212,6 +273,11 @@ private fun ImageCropperContent(
     aspectRatio: Float,
     onCropRectChanged: (Rect) -> Unit
 ) {
+    // 화면 크기에 맞춰 이미지 스케일링 (Canvas 블록 밖에서 계산)
+    val scaledBitmap = remember(imageBitmap, imageSize) {
+        // 실제 스케일링은 Canvas 내부에서 동적으로 처리
+        imageBitmap
+    }
     var imageOffsetX by remember { mutableStateOf(0f) }
     var imageOffsetY by remember { mutableStateOf(0f) }
     var imageScale by remember { mutableStateOf(1f) }
@@ -232,18 +298,19 @@ private fun ImageCropperContent(
                     val dragX = dragAmount.x / actualScale
                     val dragY = dragAmount.y / actualScale
                     
+                    val newLeft = (cropRect.left + dragX).coerceIn(
+                        0f,
+                        imageSize.width - cropRect.width
+                    )
+                    val newTop = (cropRect.top + dragY).coerceIn(
+                        0f,
+                        imageSize.height - cropRect.height
+                    )
                     val newRect = Rect(
-                        offset = Offset(
-                            (cropRect.left + dragX).coerceIn(
-                                0f,
-                                imageSize.width - cropRect.width
-                            ),
-                            (cropRect.top + dragY).coerceIn(
-                                0f,
-                                imageSize.height - cropRect.height
-                            )
-                        ),
-                        size = cropRect.size
+                        left = newLeft,
+                        top = newTop,
+                        right = newLeft + cropRect.width,
+                        bottom = newTop + cropRect.height
                     )
                     onCropRectChanged(newRect)
                 }
@@ -262,18 +329,20 @@ private fun ImageCropperContent(
             val imageOffsetY = (size.height - scaledImageHeight) / 2
             
             // 크롭 영역을 화면 좌표계로 변환
+            val cropScreenLeft = imageOffsetX + cropRect.left * actualScale
+            val cropScreenTop = imageOffsetY + cropRect.top * actualScale
+            val cropScreenWidth = cropRect.width * actualScale
+            val cropScreenHeight = cropRect.height * actualScale
             val cropRectScreen = Rect(
-                offset = Offset(
-                    imageOffsetX + cropRect.left * actualScale,
-                    imageOffsetY + cropRect.top * actualScale
-                ),
-                size = Size(cropRect.width * actualScale, cropRect.height * actualScale)
+                left = cropScreenLeft,
+                top = cropScreenTop,
+                right = cropScreenLeft + cropScreenWidth,
+                bottom = cropScreenTop + cropScreenHeight
             )
-            // 이미지 그리기
+            // 이미지 그리기 - 위치만 지정 (원본 크기로 그리기)
             drawImage(
                 image = imageBitmap.asImageBitmap(),
-                dstOffset = Offset(imageOffsetX, imageOffsetY),
-                dstSize = Size(scaledImageWidth, scaledImageHeight)
+                topLeft = Offset(imageOffsetX, imageOffsetY)
             )
             
             // 크롭 영역 외부를 어둡게 처리

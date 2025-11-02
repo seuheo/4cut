@@ -1400,7 +1400,7 @@ class FrameViewModel : ViewModel() {
                         // 메인 스레드에서 특정 인덱스에 적용
                         withContext(Dispatchers.Main) {
                             selectPhoto(index, bitmap)
-                            println("processSingleImageAt: 인덱스 $index에 이미지 적용 완료")
+                            println("processSingleImageAt: 인덱스 ${index}에 이미지 적용 완료")
                             clearError()
                         }
                     } else {

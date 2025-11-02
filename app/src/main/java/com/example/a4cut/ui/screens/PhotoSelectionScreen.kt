@@ -1,6 +1,7 @@
 package com.example.a4cut.ui.screens
 
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -85,6 +86,23 @@ fun PhotoSelectionScreen(
     val hasSlots = selectedFrame?.slots != null
     val shouldUseCrop = isLongFormFrame && hasSlots && navController != null
     
+    // 디버그: 크롭 기능 활성화 상태 확인
+    LaunchedEffect(selectedFrame, shouldUseCrop) {
+        val currentFrame = selectedFrame // 로컬 변수에 할당하여 스마트 캐스트 가능하게 함
+        println("=== PhotoSelectionScreen: 크롭 기능 상태 ===")
+        println("선택된 프레임: ${currentFrame?.name} (ID: ${currentFrame?.id})")
+        println("long_form 프레임 여부: $isLongFormFrame")
+        println("슬롯 정보 존재 여부: $hasSlots (슬롯 개수: ${currentFrame?.slots?.size ?: 0})")
+        println("크롭 기능 활성화: $shouldUseCrop")
+        currentFrame?.let { frame ->
+            frame.slots?.forEachIndexed { index, slot ->
+                val ratioString = FrameSlotCalculator.getSlotRatioString(slot, frame.id)
+                println("  슬롯[$index]: 비율 = $ratioString")
+            }
+        }
+        println("=== 크롭 기능 상태 확인 완료 ===")
+    }
+    
     var editingSlotIndex by remember { mutableStateOf<Int?>(null) }
     
     // 갤러리 런처 (단일 이미지 선택)
@@ -93,35 +111,46 @@ fun PhotoSelectionScreen(
     ) { uri: Uri? ->
         uri?.let { imageUri ->
             editingSlotIndex?.let { index ->
-                if (shouldUseCrop && selectedFrame != null) {
+                println("=== PhotoSelectionScreen: 갤러리에서 이미지 선택됨 ===")
+                println("선택된 인덱스: $index")
+                println("이미지 URI: $imageUri")
+                
+                val currentSelectedFrame = selectedFrame // 로컬 변수에 할당하여 스마트 캐스트 가능하게 함
+                if (shouldUseCrop && currentSelectedFrame != null) {
+                    println("크롭 기능 활성화됨 - 슬롯 정보 확인 중...")
                     // 슬롯 정보 가져오기
-                    val slot = selectedFrame.slots?.getOrNull(index)
+                    val slot = currentSelectedFrame.slots?.getOrNull(index)
                     if (slot != null) {
                         // 슬롯의 실제 픽셀 크기 계산하여 비율 문자열 생성
                         val ratioString = FrameSlotCalculator.getSlotRatioString(
                             slot,
-                            selectedFrame.id
+                            currentSelectedFrame.id
                         )
+                        println("계산된 비율 문자열: $ratioString")
                         
                         // Uri 인코딩
                         val encodedUri = URLEncoder.encode(
                             imageUri.toString(),
                             StandardCharsets.UTF_8.name()
                         )
+                        println("인코딩된 URI: $encodedUri")
                         
                         // CropScreen으로 이동
-                        navController?.navigate(
-                            "${Screen.Crop.route}?uri=$encodedUri&ratio=$ratioString&slotIndex=$index"
-                        )
+                        val cropRoute = "${Screen.Crop.route}?uri=$encodedUri&ratio=$ratioString&slotIndex=$index"
+                        println("CropScreen으로 이동: $cropRoute")
+                        navController?.navigate(cropRoute)
                     } else {
+                        println("⚠️ 슬롯 정보가 없음 (인덱스 $index) - 일반 처리")
                         // 슬롯 정보가 없으면 일반 처리
                         frameViewModel.processSelectedImages(listOf(imageUri))
                     }
                 } else {
+                    println("크롭 기능 비활성화 또는 프레임 미선택 - 일반 처리")
                     // long_form 프레임이 아니면 일반 처리
                     frameViewModel.processSelectedImages(listOf(imageUri))
                 }
             } ?: run {
+                println("⚠️ editingSlotIndex가 null - 일반 처리")
                 // editingSlotIndex가 null이면 일반 처리
                 frameViewModel.processSelectedImages(listOf(imageUri))
             }
@@ -133,18 +162,31 @@ fun PhotoSelectionScreen(
     LaunchedEffect(Unit) {
         navController?.currentBackStackEntry?.savedStateHandle?.getLiveData<String>("croppedImageUri")
             ?.observe(navController.currentBackStackEntry!!) { resultUriString ->
+                println("=== PhotoSelectionScreen: CropScreen에서 크롭 완료 결과 수신 ===")
+                println("수신된 URI 문자열: $resultUriString")
+                
                 resultUriString?.let {
                     val croppedUri = it.toUri()
+                    println("변환된 URI: $croppedUri")
+                    
                     // ViewModel에 잘린 이미지 Uri 전달
                     editingSlotIndex?.let { index ->
+                        println("특정 인덱스(${index})에 크롭된 이미지 적용 시작")
                         // 크롭된 이미지를 특정 인덱스에 적용
                         // processSelectedImages는 여러 이미지를 순서대로 배치하므로,
                         // 특정 인덱스에 적용하기 위해 별도 처리 필요
                         frameViewModel.processSingleImageAt(croppedUri, index)
+                        println("인덱스 ${index}에 이미지 적용 완료")
+                    } ?: run {
+                        println("⚠️ editingSlotIndex가 null - 크롭된 이미지를 적용할 인덱스를 알 수 없음")
                     }
+                    
                     // Handle에서 결과 제거
                     navController.currentBackStackEntry?.savedStateHandle?.remove<String>("croppedImageUri")
                     editingSlotIndex = null
+                    println("savedStateHandle 정리 완료")
+                } ?: run {
+                    println("⚠️ resultUriString이 null")
                 }
             }
     }

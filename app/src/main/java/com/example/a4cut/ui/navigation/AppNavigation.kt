@@ -330,7 +330,7 @@ fun AppNavigation(
                     frameViewModel = sharedFrameViewModel,
                     onNext = {
                         // 사진 선택 후 결과 화면으로 이동 (이미지 합성 시작)
-                        frameViewModel.startImageComposition()
+                        sharedFrameViewModel.startImageComposition()
                         navController.navigate("result")
                     },
                     openGallery = openGallery,

@@ -46,7 +46,13 @@ object FrameSlotCalculator {
      */
     fun getSlotRatioString(slot: Slot, frameId: String?): String {
         val (width, height) = calculateSlotPixelSize(slot, frameId)
-        return "$width:$height"
+        val ratioString = "$width:$height"
+        println("FrameSlotCalculator: 슬롯 비율 계산")
+        println("  프레임 ID: $frameId")
+        println("  슬롯 좌표 (정규화): x=${slot.x}, y=${slot.y}, width=${slot.width}, height=${slot.height}")
+        println("  계산된 픽셀 크기: ${width}x${height}")
+        println("  비율 문자열: $ratioString")
+        return ratioString
     }
 }
 
