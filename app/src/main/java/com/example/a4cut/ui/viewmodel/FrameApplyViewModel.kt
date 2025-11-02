@@ -18,6 +18,8 @@ import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -41,6 +43,14 @@ class FrameApplyViewModel(
 
     private val _uiState = MutableStateFlow(FrameApplyUiState())
     val uiState: StateFlow<FrameApplyUiState> = _uiState.asStateFlow()
+    
+    // 현재 선택된 프레임의 슬롯 정보 (frames.json에서 로드된 슬롯)
+    val frameSlots: StateFlow<List<com.example.a4cut.data.model.Slot>> = 
+        _uiState.map { it.selectedFrame?.slots ?: emptyList() }.stateIn(
+            scope = viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
     
     // KTX 역 관련 상태
     private val _ktxLines = MutableStateFlow<List<String>>(emptyList())

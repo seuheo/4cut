@@ -35,9 +35,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import androidx.core.net.toUri
 import com.example.a4cut.ui.components.TossPrimaryButton
+import com.example.a4cut.ui.navigation.Screen
 import com.example.a4cut.ui.theme.*
+import com.example.a4cut.ui.utils.FrameSlotCalculator
 import com.example.a4cut.ui.viewmodel.FrameViewModel
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -51,15 +65,88 @@ fun PhotoSelectionScreen(
     modifier: Modifier = Modifier,
     frameViewModel: FrameViewModel,
     onNext: () -> Unit,
-    openGallery: (() -> Unit)? = null
+    openGallery: (() -> Unit)? = null,
+    navController: NavController? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     
     // FrameViewModel에서 상태 수집
     val photos by frameViewModel.photos.collectAsState()
+    val selectedFrame by frameViewModel.selectedFrame.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val successMessage by frameViewModel.successMessage.collectAsState()
     val uiUpdateTrigger by frameViewModel.uiUpdateTrigger.collectAsState()
+    
+    // 각 칸에 대한 크롭 기능 연결 (long_form 프레임인 경우)
+    // long_form 프레임이 선택되어 있고 슬롯 정보가 있으면 크롭 기능 활성화
+    val isLongFormFrame = selectedFrame?.id == "long_form_white" || 
+                         selectedFrame?.id == "long_form_black"
+    val hasSlots = selectedFrame?.slots != null
+    val shouldUseCrop = isLongFormFrame && hasSlots && navController != null
+    
+    var editingSlotIndex by remember { mutableStateOf<Int?>(null) }
+    
+    // 갤러리 런처 (단일 이미지 선택)
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { imageUri ->
+            editingSlotIndex?.let { index ->
+                if (shouldUseCrop && selectedFrame != null) {
+                    // 슬롯 정보 가져오기
+                    val slot = selectedFrame.slots?.getOrNull(index)
+                    if (slot != null) {
+                        // 슬롯의 실제 픽셀 크기 계산하여 비율 문자열 생성
+                        val ratioString = FrameSlotCalculator.getSlotRatioString(
+                            slot,
+                            selectedFrame.id
+                        )
+                        
+                        // Uri 인코딩
+                        val encodedUri = URLEncoder.encode(
+                            imageUri.toString(),
+                            StandardCharsets.UTF_8.name()
+                        )
+                        
+                        // CropScreen으로 이동
+                        navController?.navigate(
+                            "${Screen.Crop.route}?uri=$encodedUri&ratio=$ratioString&slotIndex=$index"
+                        )
+                    } else {
+                        // 슬롯 정보가 없으면 일반 처리
+                        frameViewModel.processSelectedImages(listOf(imageUri))
+                    }
+                } else {
+                    // long_form 프레임이 아니면 일반 처리
+                    frameViewModel.processSelectedImages(listOf(imageUri))
+                }
+            } ?: run {
+                // editingSlotIndex가 null이면 일반 처리
+                frameViewModel.processSelectedImages(listOf(imageUri))
+            }
+        }
+        editingSlotIndex = null
+    }
+    
+    // CropScreen에서 완료된 Uri를 돌려받는 부분
+    LaunchedEffect(Unit) {
+        navController?.currentBackStackEntry?.savedStateHandle?.getLiveData<String>("croppedImageUri")
+            ?.observe(navController.currentBackStackEntry!!) { resultUriString ->
+                resultUriString?.let {
+                    val croppedUri = it.toUri()
+                    // ViewModel에 잘린 이미지 Uri 전달
+                    editingSlotIndex?.let { index ->
+                        // 크롭된 이미지를 특정 인덱스에 적용
+                        // processSelectedImages는 여러 이미지를 순서대로 배치하므로,
+                        // 특정 인덱스에 적용하기 위해 별도 처리 필요
+                        frameViewModel.processSingleImageAt(croppedUri, index)
+                    }
+                    // Handle에서 결과 제거
+                    navController.currentBackStackEntry?.savedStateHandle?.remove<String>("croppedImageUri")
+                    editingSlotIndex = null
+                }
+            }
+    }
     
     // 디버그 로그
     LaunchedEffect(photos, uiUpdateTrigger) {
@@ -123,7 +210,15 @@ fun PhotoSelectionScreen(
                 PhotoGridSection(
                     photos = photos,
                     onPhotoClick = { index -> 
-                        frameViewModel.togglePhotoSelection(index)
+                        // 각 칸 클릭 시: long_form 프레임이면 크롭 기능 사용, 아니면 일반 처리
+                        if (shouldUseCrop) {
+                            // long_form 프레임이면 갤러리에서 사진 선택 후 크롭 화면으로 이동
+                            editingSlotIndex = index
+                            imagePickerLauncher.launch("image/*")
+                        } else {
+                            // 일반 프레임이면 기존 동작 (togglePhotoSelection)
+                            frameViewModel.togglePhotoSelection(index)
+                        }
                     }
                 )
             }

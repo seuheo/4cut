@@ -59,4 +59,11 @@ sealed class Screen(
         title = R.string.nav_campaign,
         icon = R.drawable.ic_campaign
     )
+    
+    // Crop 화면 (long_form 프레임용 이미지 크롭)
+    object Crop : Screen(
+        route = "crop",
+        title = R.string.nav_frame, // 임시로 프레임 아이콘 사용
+        icon = R.drawable.ic_frame
+    )
 }

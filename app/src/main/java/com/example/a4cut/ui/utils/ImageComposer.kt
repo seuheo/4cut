@@ -122,35 +122,46 @@ class ImageComposer(private val context: Context) {
             println("  ${index + 1}번째: (${rect.left}, ${rect.top}, ${rect.right}, ${rect.bottom}) 크기: ${rect.width()}x${rect.height()}")
         }
 
-        // 4번째 사진의 가로 길이를 기준으로 모든 사진의 가로 길이를 통일
-        val fourthRect = photoRects[3]
-        val unifiedWidth = fourthRect.width().toInt()
-        println("통일된 사진 가로 길이 (4번째 사진 기준): $unifiedWidth")
-
         photos.take(4).forEachIndexed { index, photo ->
             photo?.let { bitmap ->
                 val rect = photoRects[index]
-                val targetWidth = unifiedWidth  // 4번째 사진과 동일한 가로 길이
-                val targetHeight = rect.height().toInt()  // 각 사진의 원래 높이 유지
+                // 각 사진의 프레임 칸 크기에 정확히 맞추기
+                val targetWidth = rect.width().toInt()
+                val targetHeight = rect.height().toInt()
                 
                 println("${index + 1}번째 사진 처리 시작:")
                 println("  원본 크기: ${bitmap.width}x${bitmap.height}")
                 println("  위치: (${rect.left}, ${rect.top})")
-                println("  목표 크기 (가로만 통일): ${targetWidth}x${targetHeight}")
+                println("  목표 크기 (프레임 칸 전체): ${targetWidth}x${targetHeight}")
                 
-                // 가로 길이만 4번째 사진과 동일하게 크기 조절 (Crop 방식)
-                val scaledPhoto = scaleBitmapToFill(bitmap, targetWidth, targetHeight)
-                println("  스케일된 크기: ${scaledPhoto.width}x${scaledPhoto.height}")
+                // Crop 방식으로 비율을 유지하면서 크기 조절 (프레임 칸을 꽉 채우도록)
+                val croppedPhoto = scaleBitmapToFill(bitmap, targetWidth, targetHeight)
+                println("  크롭된 크기: ${croppedPhoto.width}x${croppedPhoto.height}")
                 
-                // 원래 위치에 사진을 그립니다 (위치는 유지, 가로 길이만 4번째와 동일)
-                canvas.drawBitmap(scaledPhoto, rect.left, rect.top, paint)
-                println("  ${index + 1}번째 사진 그리기 완료 - 위치: (${rect.left}, ${rect.top})")
-                
-                // 스케일된 비트맵이 원본과 다른 경우에만 메모리 해제
-                if (scaledPhoto != bitmap && !scaledPhoto.isRecycled) {
-                    // UI에서 사용 중인 Bitmap은 재활용하지 않음
-                    // scaledPhoto.recycle() // 주석 처리
+                // 정확히 목표 크기로 강제 조정 (원본 비율을 무시하고 정확히 맞춤)
+                val finalPhoto = if (croppedPhoto.width != targetWidth || croppedPhoto.height != targetHeight) {
+                    Bitmap.createScaledBitmap(croppedPhoto, targetWidth, targetHeight, true)
+                } else {
+                    croppedPhoto
                 }
+                println("  최종 크기: ${finalPhoto.width}x${finalPhoto.height}")
+                
+                // 목표 Rect 전체를 정확히 채우도록 그립니다
+                val destRect = RectF(rect.left, rect.top, rect.right, rect.bottom)
+                canvas.save()
+                canvas.clipRect(destRect) // 클리핑 영역 설정하여 정확히 Rect 내부에만 그리기
+                canvas.drawBitmap(finalPhoto, rect.left, rect.top, paint)
+                canvas.restore()
+                
+                // 중간 비트맵 정리
+                if (croppedPhoto != bitmap && croppedPhoto != finalPhoto && !croppedPhoto.isRecycled) {
+                    croppedPhoto.recycle()
+                }
+                
+                println("  ${index + 1}번째 사진 그리기 완료 - 위치: (${rect.left}, ${rect.top}), 크기: ${destRect.width()}x${destRect.height()}")
+                
+                // 최종 비트맵이 원본과 다른 경우에만 메모리 해제 (finalPhoto는 나중에 사용될 수 있으므로 유지)
+                // 메모리 정리는 위에서 croppedPhoto만 처리
             } ?: run {
                 println("${index + 1}번째 사진이 null이므로 건너뜀")
             }

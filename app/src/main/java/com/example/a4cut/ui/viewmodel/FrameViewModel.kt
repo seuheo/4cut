@@ -1375,6 +1375,58 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
+     * 단일 이미지를 특정 인덱스에 적용
+     * @param uri 이미지 Uri
+     * @param index 적용할 인덱스 (0-3)
+     */
+    fun processSingleImageAt(uri: Uri, index: Int) {
+        if (index !in 0..3) {
+            _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
+            return
+        }
+        
+        println("=== processSingleImageAt 시작 ===")
+        println("processSingleImageAt: index=$index, uri=$uri")
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            _isProcessing.value = true
+            try {
+                imagePicker?.let { picker ->
+                    // 단일 이미지를 처리하여 Bitmap으로 변환
+                    val processedBitmaps = picker.processImagesForGrid(listOf(uri), 512)
+                    val bitmap = processedBitmaps.firstOrNull()
+                    
+                    if (bitmap != null) {
+                        // 메인 스레드에서 특정 인덱스에 적용
+                        withContext(Dispatchers.Main) {
+                            selectPhoto(index, bitmap)
+                            println("processSingleImageAt: 인덱스 $index에 이미지 적용 완료")
+                            clearError()
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            _errorMessage.value = "이미지를 처리할 수 없습니다"
+                        }
+                    }
+                } ?: run {
+                    withContext(Dispatchers.Main) {
+                        _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
+                    }
+                }
+            } catch (e: Exception) {
+                println("이미지 처리 실패: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    _errorMessage.value = "이미지 처리 실패: ${e.message}"
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    _isProcessing.value = false
+                }
+            }
+        }
+    }
+    
+    /**
      * 이미지 선택 결과 처리
      */
     fun processSelectedImages(uris: List<Uri>) {

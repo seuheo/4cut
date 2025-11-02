@@ -302,7 +302,8 @@ fun AppNavigation(
                     onNext = {
                         navController.navigate("frame_selection")
                     },
-                    openGallery = openGallery
+                    openGallery = openGallery,
+                    navController = navController
                 )
             }
             
@@ -622,6 +623,39 @@ fun AppNavigation(
             }
             
             // 프레임 적용 화면
+            // 이미지 크롭 화면 (long_form 프레임용)
+            composable(
+                route = "${Screen.Crop.route}?uri={uri}&ratio={ratio}&slotIndex={slotIndex}",
+                arguments = listOf(
+                    navArgument("uri") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("ratio") { type = NavType.StringType; defaultValue = "3:4" },
+                    navArgument("slotIndex") { type = NavType.IntType; defaultValue = -1 }
+                ),
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) { backStackEntry ->
+                val imageUriString = backStackEntry.arguments?.getString("uri") ?: ""
+                val aspectRatioString = backStackEntry.arguments?.getString("ratio") ?: "3:4"
+                val slotIndex = backStackEntry.arguments?.getInt("slotIndex") ?: -1
+                
+                com.example.a4cut.ui.screens.CropScreen(
+                    navController = navController,
+                    imageUriString = imageUriString,
+                    aspectRatioString = aspectRatioString,
+                    slotIndex = slotIndex
+                )
+            }
+            
             composable(
                 route = "frame_apply/{photoId}",
                 arguments = listOf(
