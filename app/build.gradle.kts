@@ -92,6 +92,10 @@ dependencies {
     // AndroidSequenceEncoder API 사용으로 간단한 구현 가능
     implementation("org.jcodec:jcodec-android:0.2.5")
     
+    // Auto Background Remover (사진 배경 제거용)
+    // 오프라인에서 AI 모델을 사용하여 배경을 제거하는 Android 라이브러리
+    implementation("com.github.GhayasAhmad:auto-background-remover:1.0.7")
+    
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     

@@ -40,10 +40,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Observer
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.core.net.toUri
@@ -75,6 +78,7 @@ fun PhotoSelectionScreen(
     // FrameViewModel에서 상태 수집
     val photos by frameViewModel.photos.collectAsState()
     val selectedFrame by frameViewModel.selectedFrame.collectAsState()
+    val frames by frameViewModel.frames.collectAsState()
     val errorMessage by frameViewModel.errorMessage.collectAsState()
     val successMessage by frameViewModel.successMessage.collectAsState()
     val uiUpdateTrigger by frameViewModel.uiUpdateTrigger.collectAsState()
@@ -94,20 +98,30 @@ fun PhotoSelectionScreen(
     
     // 각 칸에 대한 크롭 기능 연결 (long_form 프레임인 경우)
     // long_form 프레임이 선택되어 있고 슬롯 정보가 있으면 크롭 기능 활성화
-    val isLongFormFrame = selectedFrame?.id == "long_form_white" || 
-                         selectedFrame?.id == "long_form_black"
-    val hasSlots = selectedFrame?.slots != null
+    // 중요: selectedFrame에 슬롯 정보가 없을 수 있으므로, frames에서 최신 프레임 정보를 찾아서 확인
+    val updatedFrame = remember(selectedFrame, frames) {
+        val currentFrameId = selectedFrame?.id
+        if (currentFrameId != null) {
+            frames.find { it.id == currentFrameId } ?: selectedFrame
+        } else {
+            selectedFrame
+        }
+    }
+    
+    val isLongFormFrame = updatedFrame?.id == "long_form_white" || 
+                         updatedFrame?.id == "long_form_black"
+    val hasSlots = updatedFrame?.slots != null
     val shouldUseCrop = isLongFormFrame && hasSlots && navController != null
     
     // 디버그: 크롭 기능 활성화 상태 확인
-    LaunchedEffect(selectedFrame, shouldUseCrop) {
-        val currentFrame = selectedFrame // 로컬 변수에 할당하여 스마트 캐스트 가능하게 함
+    LaunchedEffect(selectedFrame, updatedFrame, shouldUseCrop) {
         println("=== PhotoSelectionScreen: 크롭 기능 상태 ===")
-        println("선택된 프레임: ${currentFrame?.name} (ID: ${currentFrame?.id})")
+        println("선택된 프레임: ${selectedFrame?.name} (ID: ${selectedFrame?.id})")
+        println("업데이트된 프레임: ${updatedFrame?.name} (ID: ${updatedFrame?.id})")
         println("long_form 프레임 여부: $isLongFormFrame")
-        println("슬롯 정보 존재 여부: $hasSlots (슬롯 개수: ${currentFrame?.slots?.size ?: 0})")
+        println("슬롯 정보 존재 여부: $hasSlots (슬롯 개수: ${updatedFrame?.slots?.size ?: 0})")
         println("크롭 기능 활성화: $shouldUseCrop")
-        currentFrame?.let { frame ->
+        updatedFrame?.let { frame ->
             frame.slots?.forEachIndexed { index, slot ->
                 val ratioString = FrameSlotCalculator.getSlotRatioString(slot, frame.id)
                 println("  슬롯[$index]: 비율 = $ratioString")
@@ -128,16 +142,17 @@ fun PhotoSelectionScreen(
                 println("선택된 인덱스: $index")
                 println("이미지 URI: $imageUri")
                 
-                val currentSelectedFrame = selectedFrame // 로컬 변수에 할당하여 스마트 캐스트 가능하게 함
-                if (shouldUseCrop && currentSelectedFrame != null) {
+                // updatedFrame 사용 (슬롯 정보가 포함된 최신 프레임)
+                if (shouldUseCrop && updatedFrame != null) {
                     println("크롭 기능 활성화됨 - 슬롯 정보 확인 중...")
+                    println("업데이트된 프레임: ${updatedFrame.name} (ID: ${updatedFrame.id}, slots: ${updatedFrame.slots?.size ?: 0}개)")
                     // 슬롯 정보 가져오기
-                    val slot = currentSelectedFrame.slots?.getOrNull(index)
+                    val slot = updatedFrame.slots?.getOrNull(index)
                     if (slot != null) {
                         // 슬롯의 실제 픽셀 크기 계산하여 비율 문자열 생성
                         val ratioString = FrameSlotCalculator.getSlotRatioString(
                             slot,
-                            currentSelectedFrame.id
+                            updatedFrame.id
                         )
                         println("계산된 비율 문자열: $ratioString")
                         
@@ -159,6 +174,11 @@ fun PhotoSelectionScreen(
                     }
                 } else {
                     println("크롭 기능 비활성화 또는 프레임 미선택 - 일반 처리")
+                    println("  - shouldUseCrop: $shouldUseCrop")
+                    println("  - updatedFrame: ${updatedFrame?.name}")
+                    println("  - isLongFormFrame: $isLongFormFrame")
+                    println("  - hasSlots: $hasSlots")
+                    println("  - navController: ${navController != null}")
                     // long_form 프레임이 아니면 일반 처리
                     frameViewModel.processSelectedImages(listOf(imageUri))
                 }
@@ -172,36 +192,55 @@ fun PhotoSelectionScreen(
     }
     
     // CropScreen에서 완료된 Uri를 돌려받는 부분
-    LaunchedEffect(Unit) {
-        navController?.currentBackStackEntry?.savedStateHandle?.getLiveData<String>("croppedImageUri")
-            ?.observe(navController.currentBackStackEntry!!) { resultUriString ->
+    // DisposableEffect와 LifecycleOwner를 사용하여 LiveData 관찰
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    
+    DisposableEffect(navController) {
+        val currentEntry = navController?.currentBackStackEntry
+        if (currentEntry != null) {
+            val uriLiveData = currentEntry.savedStateHandle.getLiveData<String>("croppedImageUri")
+            val slotIndexLiveData = currentEntry.savedStateHandle.getLiveData<Int>("croppedImageSlotIndex")
+            
+            val uriObserver = Observer<String> { resultUriString ->
+                val slotIndexFromHandle = slotIndexLiveData.value
                 println("=== PhotoSelectionScreen: CropScreen에서 크롭 완료 결과 수신 ===")
                 println("수신된 URI 문자열: $resultUriString")
+                println("수신된 slotIndex: $slotIndexFromHandle")
                 
-                resultUriString?.let {
-                    val croppedUri = it.toUri()
+                resultUriString?.let { uriString ->
+                    val croppedUri = uriString.toUri()
                     println("변환된 URI: $croppedUri")
                     
-                    // ViewModel에 잘린 이미지 Uri 전달
-                    editingSlotIndex?.let { index ->
-                        println("특정 인덱스(${index})에 크롭된 이미지 적용 시작")
+                    // savedStateHandle에서 읽은 slotIndex 사용
+                    val targetIndex = slotIndexFromHandle
+                    if (targetIndex != null && targetIndex >= 0 && targetIndex < 4) {
+                        println("특정 인덱스(${targetIndex})에 크롭된 이미지 적용 시작")
                         // 크롭된 이미지를 특정 인덱스에 적용
-                        // processSelectedImages는 여러 이미지를 순서대로 배치하므로,
-                        // 특정 인덱스에 적용하기 위해 별도 처리 필요
-                        frameViewModel.processSingleImageAt(croppedUri, index)
-                        println("인덱스 ${index}에 이미지 적용 완료")
-                    } ?: run {
-                        println("⚠️ editingSlotIndex가 null - 크롭된 이미지를 적용할 인덱스를 알 수 없음")
+                        frameViewModel.processSingleImageAt(croppedUri, targetIndex)
+                        println("인덱스 ${targetIndex}에 이미지 적용 완료")
+                        
+                        // Handle에서 결과 제거
+                        currentEntry.savedStateHandle.remove<String>("croppedImageUri")
+                        currentEntry.savedStateHandle.remove<Int>("croppedImageSlotIndex")
+                        editingSlotIndex = null
+                        println("savedStateHandle 정리 완료")
+                    } else {
+                        println("⚠️ slotIndex가 유효하지 않음: $targetIndex")
                     }
-                    
-                    // Handle에서 결과 제거
-                    navController.currentBackStackEntry?.savedStateHandle?.remove<String>("croppedImageUri")
-                    editingSlotIndex = null
-                    println("savedStateHandle 정리 완료")
                 } ?: run {
                     println("⚠️ resultUriString이 null")
                 }
             }
+            
+            // LifecycleOwner를 사용하여 안전하게 관찰
+            uriLiveData.observe(lifecycleOwner, uriObserver)
+            
+            onDispose {
+                uriLiveData.removeObserver(uriObserver)
+            }
+        } else {
+            onDispose { }
+        }
     }
     
     // 디버그 로그
@@ -280,13 +319,32 @@ fun PhotoSelectionScreen(
             }
             
             // 갤러리에서 사진 선택 버튼
+            // long_form 프레임일 때는 비활성화 (각 칸을 클릭하여 개별 선택 필요)
             if (openGallery != null) {
                 item {
-                    IosStyleButton(
-                        text = "갤러리에서 사진 선택하기",
-                        onClick = openGallery,
-                        icon = Icons.Default.Home
-                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IosStyleButton(
+                            text = "갤러리에서 사진 선택하기",
+                            onClick = openGallery,
+                            icon = Icons.Default.Home,
+                            enabled = !shouldUseCrop // long_form 프레임일 때는 비활성화
+                        )
+                        
+                        // long_form 프레임일 때 안내 메시지 표시
+                        if (shouldUseCrop) {
+                            Text(
+                                text = "⚠️ 각 칸을 클릭하여 사진을 선택하고 크롭해주세요",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = IosColors.SystemOrange,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
                 }
             }
             
