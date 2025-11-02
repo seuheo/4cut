@@ -117,11 +117,16 @@ fun FrameSelectionScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // 선택된 사진 미리보기 섹션
+            // 프레임 선택 안내 문구 (워크플로우 변경: 프레임을 먼저 선택)
             item {
-                SelectedPhotosPreview(
-                    photos = photos,
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    text = "사진에 적용할 프레임을 선택해주세요",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = IosColors.secondaryLabel,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp)
                 )
             }
 
@@ -148,46 +153,28 @@ fun FrameSelectionScreen(
                 }
             }
 
-            // 다음 단계 버튼
+            // 다음 단계 버튼 (워크플로우 변경: 프레임 선택 후 사진 선택 화면으로 이동)
             item {
-                val photoCount = photos.count { it != null }
-                val hasValidPhotos = photoCount > 0
                 val hasSelectedFrame = selectedFrame != null
                 
                 NextStepButton(
-                    isEnabled = hasValidPhotos && hasSelectedFrame,
+                    isEnabled = hasSelectedFrame,
                     isLoading = isLoading,
                     onNext = {
                         println("=== FrameSelectionScreen: 다음 단계 버튼 클릭 ===")
-                        println("FrameSelectionScreen: 사진 상태 = ${photos.map { it != null }}")
                         println("FrameSelectionScreen: 선택된 프레임 = ${selectedFrame?.name}")
-                        println("FrameSelectionScreen: 이미지 합성 시작")
+                        println("FrameSelectionScreen: 프레임 ID = ${selectedFrame?.id}")
+                        println("FrameSelectionScreen: 슬롯 정보 = ${selectedFrame?.slots?.size ?: 0}개")
+                        println("FrameSelectionScreen: PhotoSelectionScreen으로 이동")
                         
-                        // 이미지 합성 시작
-                        frameViewModel.startImageComposition()
-                        
-                        // 다음 화면으로 이동하기 전에 상태 초기화
-                        frameViewModel.resetState()
-                        println("FrameSelectionScreen: 상태 초기화 완료")
-                        
-                        println("FrameSelectionScreen: ResultScreen으로 이동")
+                        // 프레임은 이미 선택되어 있으므로, 바로 사진 선택 화면으로 이동
                         onNext()
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
-                // 사진 선택 상태 안내
-                if (!hasValidPhotos) {
-                    Text(
-                        text = "최소 한 장의 사진을 선택해주세요",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = IosColors.SystemRed,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    )
-                } else if (!hasSelectedFrame) {
+                // 프레임 선택 안내
+                if (!hasSelectedFrame) {
                     Text(
                         text = "프레임을 선택해주세요",
                         style = MaterialTheme.typography.bodyMedium,
@@ -199,7 +186,7 @@ fun FrameSelectionScreen(
                     )
                 } else {
                     Text(
-                        text = "선택된 사진: ${photoCount}장, 프레임: ${selectedFrame?.name}",
+                        text = "선택된 프레임: ${selectedFrame?.name}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = IosColors.SystemBlue,
                         textAlign = TextAlign.Center,
@@ -507,7 +494,7 @@ private fun NextStepButton(
             )
         } else {
             Text(
-                text = "다음 단계",
+                text = "사진 선택하기",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )

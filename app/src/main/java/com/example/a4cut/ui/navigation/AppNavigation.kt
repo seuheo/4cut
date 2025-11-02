@@ -274,14 +274,43 @@ fun AppNavigation(
                         navController.navigate("photo_detail/$photoId")
                     },
                     onNavigateToFrame = {
-                        navController.navigate(Screen.Frame.route)
+                        // 워크플로우 변경: 프레임 선택을 먼저 함
+                        navController.navigate("frame_selection")
                     },
                     onNavigateToSearch = {
                         navController.navigate("search")
                     }
                 )
             }
-            // 1단계: 사진 선택 화면
+            // 1단계: 프레임 선택 화면 (워크플로우 변경: 프레임 먼저 선택)
+            composable(
+                route = "frame_selection",
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(300)
+                    )
+                }
+            ) {
+                FrameSelectionScreen(
+                    frameViewModel = sharedFrameViewModel,
+                    onNext = {
+                        // 프레임 선택 후 사진 선택 화면으로 이동
+                        navController.navigate(Screen.Frame.route)
+                    },
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            
+            // 2단계: 사진 선택 화면 (프레임 정보를 가지고 사진 선택)
             composable(
                 route = Screen.Frame.route,
                 enterTransition = {
@@ -300,32 +329,12 @@ fun AppNavigation(
                 PhotoSelectionScreen(
                     frameViewModel = sharedFrameViewModel,
                     onNext = {
-                        navController.navigate("frame_selection")
+                        // 사진 선택 후 결과 화면으로 이동 (이미지 합성 시작)
+                        frameViewModel.startImageComposition()
+                        navController.navigate("result")
                     },
                     openGallery = openGallery,
                     navController = navController
-                )
-            }
-            
-            // 2단계: 프레임 선택 화면
-            composable(
-                route = "frame_selection",
-                enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = tween(300)
-                    )
-                },
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it },
-                        animationSpec = tween(300)
-                    )
-                }
-            ) {
-                FramePickerScreen(
-                    navController = navController,
-                    viewModel = sharedFrameViewModel
                 )
             }
             

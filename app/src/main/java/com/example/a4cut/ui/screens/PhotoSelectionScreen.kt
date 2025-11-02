@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
@@ -268,33 +269,47 @@ fun PhotoSelectionScreen(
                 }
             }
             
-            // 다음 단계 버튼
+            // 완성하기 버튼 (워크플로우 변경: 프레임은 이미 선택되어 있으므로 바로 결과 화면으로)
             item {
                 val photoCount = photos.count { it != null }
+                val selectedFrameName = selectedFrame?.name ?: "프레임"
                 println("PhotoSelectionScreen: photoCount = $photoCount, photos = ${photos.map { it != null }}")
+                println("PhotoSelectionScreen: 선택된 프레임 = $selectedFrameName")
                 IosStyleButton(
-                    text = "프레임 선택하기 (${photoCount}장 선택됨)",
+                    text = "완성하기 (${photoCount}장 선택됨)",
                     onClick = {
-                        println("=== PhotoSelectionScreen: 프레임 선택 화면으로 이동 ===")
+                        println("=== PhotoSelectionScreen: 완성하기 버튼 클릭 ===")
                         println("PhotoSelectionScreen: 현재 사진 상태 = ${photos.map { it != null }}")
                         println("PhotoSelectionScreen: 선택된 사진 개수 = $photoCount")
+                        println("PhotoSelectionScreen: 선택된 프레임 = ${selectedFrame?.name}")
                         println("PhotoSelectionScreen: FrameViewModel 상태 확인")
                         println("  - _photos: ${frameViewModel.photos.value.map { it != null }}")
                         println("  - _photoStates: ${frameViewModel.photoStates.map { it.bitmap != null }}")
+                        println("PhotoSelectionScreen: 이미지 합성 시작 후 ResultScreen으로 이동")
+                        
+                        // 이미지 합성은 AppNavigation에서 처리하므로 여기서는 onNext만 호출
                         onNext()
                     },
-                    enabled = photoCount > 0,
-                    icon = Icons.Default.Star
+                    enabled = photoCount > 0 && selectedFrame != null,
+                    icon = Icons.Default.Check
                 )
             }
             
             // 안내 텍스트
             item {
                 val photoCount = photos.count { it != null }
+                val selectedFrameName = selectedFrame?.name
                 Text(
-                    text = if (photoCount == 0) "최소 1장의 사진을 선택해주세요" else "선택된 사진: ${photoCount}장",
+                    text = when {
+                        photoCount == 0 -> "최소 1장의 사진을 선택해주세요"
+                        selectedFrameName == null -> "프레임이 선택되지 않았습니다"
+                        else -> "선택된 사진: ${photoCount}장, 프레임: $selectedFrameName"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (photoCount > 0) IosColors.SystemBlue else IosColors.secondaryLabel,
+                    color = when {
+                        photoCount == 0 || selectedFrameName == null -> IosColors.SystemRed
+                        else -> IosColors.SystemBlue
+                    },
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
