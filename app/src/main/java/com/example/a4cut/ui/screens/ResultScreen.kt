@@ -253,8 +253,8 @@ fun ResultScreen(
                     isSaved = false, // 임시로 false
                     isShared = false, // 임시로 false
                     onSave = { 
-                        // KTX 역 정보와 함께 DB에 자동 저장
-                        saveToDatabaseWithStation(selectedStation, photoRepository, context, composedImage)
+                        // FrameViewModel에서 갤러리 저장 및 DB 저장을 모두 처리
+                        // KTX 역 정보는 이미 LaunchedEffect에서 FrameViewModel에 전달됨
                         frameViewModel.saveImage()
                         showSaveSnackbar = true
                     },

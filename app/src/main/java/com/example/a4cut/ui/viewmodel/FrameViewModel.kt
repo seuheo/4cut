@@ -861,6 +861,15 @@ class FrameViewModel : ViewModel() {
         _frames.value = frameRepository.getFrames()
         println("FrameViewModel: JSON 슬롯 정보 로드 완료, _frames 업데이트: ${_frames.value.size}개")
         
+        // 이미 선택된 프레임이 있으면, 슬롯 정보가 포함된 최신 프레임으로 업데이트
+        _selectedFrame.value?.let { currentSelectedFrame ->
+            val updatedSelectedFrame = _frames.value.find { it.id == currentSelectedFrame.id }
+            if (updatedSelectedFrame != null && updatedSelectedFrame.slots != null) {
+                _selectedFrame.value = updatedSelectedFrame
+                println("FrameViewModel: 선택된 프레임 슬롯 정보 업데이트 - ${updatedSelectedFrame.name} (slots: ${updatedSelectedFrame.slots?.size ?: 0}개)")
+            }
+        }
+        
         checkImagePermission()
         
         // 기존 사진 데이터가 없을 때만 테스트 사진들 로드

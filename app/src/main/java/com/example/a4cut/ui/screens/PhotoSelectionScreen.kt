@@ -79,6 +79,19 @@ fun PhotoSelectionScreen(
     val successMessage by frameViewModel.successMessage.collectAsState()
     val uiUpdateTrigger by frameViewModel.uiUpdateTrigger.collectAsState()
     
+    // 프레임이 선택되지 않았으면 FrameSelectionScreen으로 리다이렉트
+    LaunchedEffect(selectedFrame) {
+        if (selectedFrame == null) {
+            println("PhotoSelectionScreen: 프레임이 선택되지 않음 - FrameSelectionScreen으로 이동")
+            navController?.navigate("frame_selection") {
+                // 이전 PhotoSelectionScreen을 백 스택에서 제거
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = false
+                }
+            }
+        }
+    }
+    
     // 각 칸에 대한 크롭 기능 연결 (long_form 프레임인 경우)
     // long_form 프레임이 선택되어 있고 슬롯 정보가 있으면 크롭 기능 활성화
     val isLongFormFrame = selectedFrame?.id == "long_form_white" || 
