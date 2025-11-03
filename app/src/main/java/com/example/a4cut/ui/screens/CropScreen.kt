@@ -218,7 +218,7 @@ fun CropScreen(
                                             isProcessingBackground = true
                                             try {
                                                 println("배경 제거 시작...")
-                                                processedBitmap = BackgroundRemover.removeBackground(cropped, context)
+                                                processedBitmap = BackgroundRemover.remove(context, cropped)
                                                 println("배경 제거 완료: ${processedBitmap.width}x${processedBitmap.height}")
                                             } catch (e: Exception) {
                                                 println("배경 제거 실패: ${e.message}")

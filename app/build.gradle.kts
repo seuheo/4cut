@@ -1,17 +1,18 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlin.android)
-    id("com.google.devtools.ksp") version "1.9.23-1.0.19"
+    alias(libs.plugins.compose.compiler) // Compose Compiler 플러그인 (Kotlin 2.0+ 필수)
+    id("com.google.devtools.ksp") version "2.0.21-1.0.28" // Kotlin 2.0.21 호환 버전
 }
 
 android {
     namespace = "com.example.a4cut"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.a4cut"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -40,9 +41,6 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.12"
     }
     packaging {
         resources {
