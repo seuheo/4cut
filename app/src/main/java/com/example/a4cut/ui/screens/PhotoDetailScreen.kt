@@ -21,6 +21,9 @@ import coil.compose.AsyncImage
 import com.example.a4cut.data.database.entity.PhotoEntity
 import java.text.SimpleDateFormat
 import java.util.*
+import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
 
 /**
  * 사진 상세 보기 화면
@@ -38,17 +41,37 @@ fun PhotoDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val photo = uiState.photo
     val dateFormat = remember { SimpleDateFormat("yyyy년 MM월 dd일 HH:mm", Locale.getDefault()) }
+    val context = LocalContext.current
     
     // 삭제 확인 다이얼로그 상태
     var showDeleteDialog by remember { mutableStateOf(false) }
     
-    // 사진이 없으면 로딩 표시
+    // 사진이 없으면 로딩 또는 에러 표시
     if (photo == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            if (uiState.isLoading) {
+                CircularProgressIndicator()
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "사진을 찾을 수 없습니다",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "사진이 삭제되었거나 존재하지 않습니다",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
         return
     }
@@ -104,6 +127,13 @@ fun PhotoDetailScreen(
                     }
                 },
                 actions = {
+                    // 공유 버튼
+                    IconButton(onClick = { 
+                        sharePhoto(context = context, photo = photo)
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "공유")
+                    }
+                    
                     // 프레임 적용 버튼
                     IconButton(onClick = onNavigateToFrameApply) {
                         Icon(Icons.Default.Add, contentDescription = "프레임 적용")
@@ -536,6 +566,134 @@ private fun FlowRow(
         horizontalArrangement = horizontalArrangement
     ) {
         content()
+    }
+}
+
+/**
+ * 사진 공유 기능
+ * FileProvider를 사용하여 이미지 및 동영상을 안드로이드 기본 공유 시트로 공유
+ * 잠신네컷의 QR 코드 공유 기능을 모바일 네이티브 공유로 대체
+ */
+private fun sharePhoto(context: android.content.Context, photo: PhotoEntity) {
+    try {
+        android.util.Log.d("PhotoDetailScreen", "공유 시작: 이미지=${photo.imagePath}, 동영상=${photo.videoPath}")
+        
+        val uris = mutableListOf<android.net.Uri>()
+        
+        // 이미지 파일 URI 생성
+        val imagePath = photo.imagePath
+        if (imagePath.isNotEmpty()) {
+            when {
+                // content:// URI인 경우 그대로 사용
+                imagePath.startsWith("content://") -> {
+                    uris.add(android.net.Uri.parse(imagePath))
+                    android.util.Log.d("PhotoDetailScreen", "이미지 URI (content://): ${imagePath}")
+                }
+                // 파일 경로인 경우 FileProvider 사용
+                else -> {
+                    val imageFile = File(imagePath)
+                    if (imageFile.exists()) {
+                        try {
+                            val imageUri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.provider",
+                                imageFile
+                            )
+                            uris.add(imageUri)
+                            android.util.Log.d("PhotoDetailScreen", "이미지 URI (FileProvider): ${imageUri}")
+                        } catch (e: Exception) {
+                            android.util.Log.e("PhotoDetailScreen", "이미지 FileProvider URI 생성 실패", e)
+                        }
+                    } else {
+                        android.util.Log.w("PhotoDetailScreen", "이미지 파일이 존재하지 않음: ${imagePath}")
+                    }
+                }
+            }
+        }
+        
+        // 동영상 파일 URI 생성 (있는 경우)
+        photo.videoPath?.let { videoPath ->
+            if (videoPath.isNotEmpty()) {
+                val videoFile = File(videoPath)
+                if (videoFile.exists()) {
+                    try {
+                        val videoUri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.provider",
+                            videoFile
+                        )
+                        uris.add(videoUri)
+                        android.util.Log.d("PhotoDetailScreen", "동영상 URI (FileProvider): ${videoUri}")
+                    } catch (e: Exception) {
+                        android.util.Log.e("PhotoDetailScreen", "동영상 FileProvider URI 생성 실패", e)
+                    }
+                } else {
+                    android.util.Log.w("PhotoDetailScreen", "동영상 파일이 존재하지 않음: ${videoPath}")
+                }
+            }
+        }
+        
+        if (uris.isEmpty()) {
+            android.util.Log.w("PhotoDetailScreen", "공유할 파일이 없음")
+            android.widget.Toast.makeText(
+                context,
+                "공유할 파일을 찾을 수 없습니다.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        
+        android.util.Log.d("PhotoDetailScreen", "공유할 파일 개수: ${uris.size}개")
+        
+        // 공유 Intent 생성
+        val shareIntent = if (uris.size == 1) {
+            // 단일 파일 공유
+            Intent(Intent.ACTION_SEND).apply {
+                // 파일 유형에 따라 MIME 타입 결정
+                type = when {
+                    photo.videoPath != null && uris[0].path?.endsWith(".mp4") == true -> "video/mp4"
+                    else -> "image/jpeg"
+                }
+                putExtra(Intent.EXTRA_STREAM, uris[0])
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                android.util.Log.d("PhotoDetailScreen", "단일 파일 공유 Intent 생성: type=${type}")
+            }
+        } else {
+            // 여러 파일 공유 (이미지 + 동영상)
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(
+                    Intent.EXTRA_STREAM,
+                    ArrayList(uris)
+                )
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                android.util.Log.d("PhotoDetailScreen", "다중 파일 공유 Intent 생성: 파일 ${uris.size}개")
+            }
+        }
+        
+        // 공유 시트 표시
+        try {
+            val chooser = Intent.createChooser(shareIntent, "사진 공유하기")
+            // Chooser에 FLAG_ACTIVITY_NEW_TASK 추가 (Activity가 아닌 Context에서 호출 시 필요)
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+            android.util.Log.d("PhotoDetailScreen", "공유 시트 표시 완료")
+        } catch (e: android.content.ActivityNotFoundException) {
+            android.util.Log.e("PhotoDetailScreen", "공유 앱을 찾을 수 없음", e)
+            android.widget.Toast.makeText(
+                context,
+                "공유할 수 있는 앱이 없습니다.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+        
+    } catch (e: Exception) {
+        android.util.Log.e("PhotoDetailScreen", "공유 실패", e)
+        android.widget.Toast.makeText(
+            context,
+            "공유 중 오류가 발생했습니다: ${e.message}",
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
     }
 }
 

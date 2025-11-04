@@ -40,6 +40,16 @@ class PermissionHelper(private val context: Context) {
     }
     
     /**
+     * 카메라 권한이 허용되었는지 확인
+     */
+    fun isCameraPermissionGranted(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PermissionChecker.PERMISSION_GRANTED
+    }
+    
+    /**
      * 필요한 권한 목록 반환
      */
     fun getRequiredPermissions(): Array<String> {
@@ -48,6 +58,13 @@ class PermissionHelper(private val context: Context) {
         } else {
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
+    }
+    
+    /**
+     * 카메라 권한 목록 반환
+     */
+    fun getCameraPermissions(): Array<String> {
+        return arrayOf(Manifest.permission.CAMERA)
     }
     
     /**

@@ -1,9 +1,11 @@
 package com.example.a4cut.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,11 +15,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.a4cut.ui.theme.IosColors
 import com.example.a4cut.ui.viewmodel.HomeViewModel
+import android.content.Intent
+import android.net.Uri
+import android.content.pm.PackageManager
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 /**
- * 설정 화면
- * 앱 정보, 테마 설정, 알림 설정 등 기본적인 설정 기능 제공
+ * iOS 스타일 설정 화면
+ * 20대 사용자들이 선호하는 세련되고 깔끔한 미니멀리즘 디자인
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,9 +60,13 @@ fun SettingsScreen(
                 title = { 
                     Text(
                         "설정", 
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = IosColors.label
                     ) 
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = IosColors.systemBackground
+                )
             )
         }
     ) { paddingValues ->
@@ -62,35 +74,74 @@ fun SettingsScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .background(IosColors.secondarySystemBackground)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             
             // 앱 정보 섹션
             SettingsSection(
                 title = "앱 정보",
                 icon = Icons.Default.Info
             ) {
+                // 앱 버전 정보 (실제 버전 가져오기)
+                val appVersion = try {
+                    val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                    "${packageInfo.versionName} (${packageInfo.versionCode})"
+                } catch (e: PackageManager.NameNotFoundException) {
+                    "1.0.0 (MVP)"
+                }
+                
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "앱 버전",
-                    subtitle = "1.0.0 (MVP)",
+                    subtitle = appVersion,
                     onClick = { }
                 )
+                
                 SettingsItem(
                     icon = Icons.Default.Person,
                     title = "개발자",
                     subtitle = "KTX 네컷 팀",
                     onClick = { }
                 )
+                
+                SettingsItem(
+                    icon = Icons.Default.Email,
+                    title = "피드백 보내기",
+                    subtitle = "개발자에게 의견 전달",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:feedback@ktx4cut.com")
+                            putExtra(Intent.EXTRA_SUBJECT, "KTX 네컷 앱 피드백")
+                            putExtra(Intent.EXTRA_TEXT, "앱에 대한 의견이나 버그 신고를 남겨주세요.")
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // 이메일 앱이 없는 경우 처리
+                        }
+                    }
+                )
+                
+                var showLicenseDialog by remember { mutableStateOf(false) }
+                
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "오픈소스 라이선스",
                     subtitle = "MIT License",
-                    onClick = { }
+                    onClick = {
+                        showLicenseDialog = true
+                    }
                 )
+                
+                // 라이선스 다이얼로그
+                if (showLicenseDialog) {
+                    LicenseDialog(
+                        onDismiss = { showLicenseDialog = false }
+                    )
+                }
             }
             
             // 테마 설정 섹션
@@ -188,7 +239,7 @@ fun SettingsScreen(
 }
 
 /**
- * 설정 섹션 컴포넌트
+ * iOS 스타일 설정 섹션 컴포넌트
  */
 @Composable
 private fun SettingsSection(
@@ -197,31 +248,33 @@ private fun SettingsSection(
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = IosColors.systemBackground
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(20.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    tint = IosColors.SystemBlue,
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = IosColors.label
                 )
             }
             content()
@@ -230,7 +283,7 @@ private fun SettingsSection(
 }
 
 /**
- * 설정 아이템 컴포넌트 (클릭 가능)
+ * iOS 스타일 설정 아이템 컴포넌트 (클릭 가능)
  */
 @Composable
 private fun SettingsItem(
@@ -243,10 +296,11 @@ private fun SettingsItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = IosColors.systemGray6
         ),
+        shape = RoundedCornerShape(12.dp),
         onClick = onClick
     ) {
         Row(
@@ -258,28 +312,29 @@ private fun SettingsItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
+                tint = IosColors.systemGray2,
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = IosColors.label
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall,
+                    color = IosColors.secondaryLabel
                 )
             }
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "이동",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = IosColors.systemGray3,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -339,6 +394,64 @@ private fun SettingsSwitchItem(
                 onCheckedChange = onCheckedChange,
                 enabled = enabled
             )
+        }
+    }
+}
+
+/**
+ * 라이선스 정보 다이얼로그
+ */
+@Composable
+private fun LicenseDialog(
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "오픈소스 라이선스",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Text(
+                    text = "KTX 네컷 앱은 다음 오픈소스 라이브러리들을 사용합니다:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Text(
+                    text = "• Jetpack Compose - Apache License 2.0\n" +
+                            "• Room Database - Apache License 2.0\n" +
+                            "• Coil - Apache License 2.0\n" +
+                            "• Kotlin Coroutines - Apache License 2.0\n" +
+                            "• Navigation Compose - Apache License 2.0",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Text(
+                    text = "이 앱은 MIT License 하에 배포됩니다.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("확인")
+                }
+            }
         }
     }
 }

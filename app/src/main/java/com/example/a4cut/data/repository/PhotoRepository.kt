@@ -36,6 +36,11 @@ class PhotoRepository(private val photoDao: PhotoDao) {
     suspend fun deletePhoto(photo: PhotoEntity) = photoDao.deletePhoto(photo)
     
     /**
+     * 모든 사진 삭제
+     */
+    suspend fun deleteAllPhotos() = photoDao.deleteAllPhotos()
+    
+    /**
      * 즐겨찾기된 사진 조회
      */
     fun getFavoritePhotos(): Flow<List<PhotoEntity>> = photoDao.getFavoritePhotos()
@@ -84,12 +89,14 @@ class PhotoRepository(private val photoDao: PhotoDao) {
     ): Flow<List<PhotoEntity>> = photoDao.searchPhotosAdvanced(query, seasons, moods, weather, sortBy)
     
     /**
-     * KTX 4컷 사진 생성 (편의 메서드) - 확장된 메타데이터 지원
+     * KTX 4컷 사진 생성 (편의 메서드) - 확장된 메타데이터 및 GPS 좌표 지원
      */
     suspend fun createKTXPhoto(
         imagePath: String,
         title: String = "",
         location: String = "",
+        latitude: Double? = null,
+        longitude: Double? = null,
         frameType: String = "ktx_signature",
         tags: String = "",
         description: String = "",
@@ -98,13 +105,16 @@ class PhotoRepository(private val photoDao: PhotoDao) {
         companions: String = "",
         travelPurpose: String = "",
         season: String = "",
-        timeOfDay: String = ""
+        timeOfDay: String = "",
+        videoPath: String? = null
     ): Long {
         val photo = PhotoEntity(
             imagePath = imagePath,
             createdAt = System.currentTimeMillis(),
             title = title,
             location = location,
+            latitude = latitude,
+            longitude = longitude,
             frameType = frameType,
             colorTheme = "ktx_blue",
             tags = tags,
@@ -114,7 +124,8 @@ class PhotoRepository(private val photoDao: PhotoDao) {
             companions = companions,
             travelPurpose = travelPurpose,
             season = season,
-            timeOfDay = timeOfDay
+            timeOfDay = timeOfDay,
+            videoPath = videoPath
         )
         return insertPhoto(photo)
     }
@@ -125,6 +136,21 @@ class PhotoRepository(private val photoDao: PhotoDao) {
     suspend fun toggleFavorite(photo: PhotoEntity) {
         val updatedPhoto = photo.copy(isFavorite = !photo.isFavorite)
         updatePhoto(updatedPhoto)
+    }
+    
+    /**
+     * 특정 PhotoEntity의 videoPath 필드만 업데이트 (백그라운드 동영상 생성 완료 후 사용)
+     * @param photoId 업데이트할 사진 ID
+     * @param videoPath 업데이트할 동영상 경로 (null 가능)
+     */
+    suspend fun updateVideoPath(photoId: Int, videoPath: String?) {
+        val photo = getPhotoById(photoId)
+        if (photo != null) {
+            val updatedPhoto = photo.copy(videoPath = videoPath)
+            updatePhoto(updatedPhoto)
+        } else {
+            throw IllegalStateException("PhotoEntity를 찾을 수 없습니다: photoId=$photoId")
+        }
     }
     
     // 새로운 확장 메서드들 (미래 기능을 위한 준비)
@@ -162,4 +188,22 @@ class PhotoRepository(private val photoDao: PhotoDao) {
      * 월별 사진 조회
      */
     fun getPhotosByYearMonth(yearMonth: String): Flow<List<PhotoEntity>> = photoDao.getPhotosByYearMonth(yearMonth)
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (지도 표시용)
+     */
+    suspend fun getPhotosByDateRange(startTime: Long, endTime: Long): List<PhotoEntity> = 
+        photoDao.getPhotosByDateRange(startTime, endTime)
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (Flow 버전)
+     */
+    fun getPhotosByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<PhotoEntity>> = 
+        photoDao.getPhotosByDateRangeFlow(startTime, endTime)
+    
+    /**
+     * ✅ MVP Ver2: 특정 연도에 방문한 고유한 역 이름 목록 조회 (노선도 캠페인 기능용)
+     */
+    suspend fun getVisitedLocationsByYear(year: String): List<String> = 
+        photoDao.getVisitedLocationsByYear(year)
 }

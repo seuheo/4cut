@@ -3,6 +3,7 @@ package com.example.a4cut.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.database.entity.PhotoEntity
+import com.example.a4cut.data.repository.PhotoRepository
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,9 @@ import kotlinx.coroutines.launch
  * 사진 상세 보기 화면을 위한 ViewModel
  * 사진 정보 표시, 편집, 삭제, 즐겨찾기 기능을 관리
  */
-class PhotoDetailViewModel : ViewModel() {
+class PhotoDetailViewModel(
+    private val photoRepository: PhotoRepository
+) : ViewModel() {
     
     // UI 상태 관리
     private val _uiState = MutableStateFlow(PhotoDetailUiState())
@@ -28,7 +31,41 @@ class PhotoDetailViewModel : ViewModel() {
     val editData: StateFlow<EditData> = _editData.asStateFlow()
     
     /**
-     * 사진 정보 설정
+     * 사진 ID로 사진 정보 로드
+     */
+    fun loadPhoto(photoId: Int) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                
+                val photo = photoRepository.getPhotoById(photoId)
+                if (photo != null) {
+                    _uiState.value = PhotoDetailUiState(
+                        photo = photo,
+                        isLoading = false
+                    )
+                    _editData.value = EditData(
+                        title = photo.title,
+                        description = photo.description,
+                        tags = photo.tags
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "사진을 찾을 수 없습니다."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "사진 로드 실패: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    /**
+     * 사진 정보 설정 (기존 호환성 유지)
      */
     fun setPhoto(photo: PhotoEntity) {
         _uiState.value = PhotoDetailUiState(
@@ -91,8 +128,8 @@ class PhotoDetailViewModel : ViewModel() {
                     tags = editData.tags
                 )
                 
-                // TODO: Repository를 통한 실제 업데이트 구현
-                // photoRepository.updatePhoto(updatedPhoto)
+                // Repository를 통한 실제 업데이트
+                photoRepository.updatePhoto(updatedPhoto)
                 
                 _uiState.value = _uiState.value.copy(
                     photo = updatedPhoto,
@@ -122,8 +159,8 @@ class PhotoDetailViewModel : ViewModel() {
         
         viewModelScope.launch {
             try {
-                // TODO: Repository를 통한 실제 즐겨찾기 토글 구현
-                // photoRepository.toggleFavorite(photo)
+                // Repository를 통한 실제 즐겨찾기 토글
+                photoRepository.toggleFavorite(photo)
                 
                 // UI 상태 업데이트
                 val updatedPhoto = photo.copy(isFavorite = !photo.isFavorite)
@@ -147,8 +184,8 @@ class PhotoDetailViewModel : ViewModel() {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
                 
-                // TODO: Repository를 통한 실제 삭제 구현
-                // photoRepository.deletePhoto(_uiState.value.photo!!)
+                // Repository를 통한 실제 삭제
+                photoRepository.deletePhoto(_uiState.value.photo!!)
                 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

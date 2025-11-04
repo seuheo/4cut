@@ -42,6 +42,12 @@ interface PhotoDao {
     suspend fun deletePhoto(photo: PhotoEntity)
     
     /**
+     * 모든 사진 삭제
+     */
+    @Query("DELETE FROM photos")
+    suspend fun deleteAllPhotos()
+    
+    /**
      * 즐겨찾기된 사진만 조회
      */
     @Query("SELECT * FROM photos WHERE isFavorite = 1 ORDER BY createdAt DESC")
@@ -155,4 +161,22 @@ interface PhotoDao {
      */
     @Query("SELECT * FROM photos WHERE strftime('%Y-%m', datetime(createdAt/1000, 'unixepoch')) = :yearMonth ORDER BY createdAt DESC")
     fun getPhotosByYearMonth(yearMonth: String): Flow<List<PhotoEntity>>
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (지도 표시용)
+     */
+    @Query("SELECT * FROM photos WHERE createdAt BETWEEN :startTime AND :endTime ORDER BY createdAt DESC")
+    suspend fun getPhotosByDateRange(startTime: Long, endTime: Long): List<PhotoEntity>
+    
+    /**
+     * 특정 날짜 범위의 사진 조회 (Flow 버전)
+     */
+    @Query("SELECT * FROM photos WHERE createdAt BETWEEN :startTime AND :endTime ORDER BY createdAt DESC")
+    fun getPhotosByDateRangeFlow(startTime: Long, endTime: Long): Flow<List<PhotoEntity>>
+    
+    /**
+     * ✅ MVP Ver2: 특정 연도에 방문한 고유한 역 이름 목록 조회 (노선도 캠페인 기능용)
+     */
+    @Query("SELECT DISTINCT location FROM photos WHERE strftime('%Y', datetime(createdAt/1000, 'unixepoch')) = :year AND location != '' AND location IS NOT NULL")
+    suspend fun getVisitedLocationsByYear(year: String): List<String>
 }

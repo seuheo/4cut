@@ -41,4 +41,29 @@ sealed class Screen(
         title = R.string.nav_profile,
         icon = R.drawable.ic_profile
     )
+    
+    object Onboarding : Screen(
+        route = "onboarding",
+        title = R.string.nav_onboarding,
+        icon = R.drawable.ic_home
+    )
+    
+    object FramePicker : Screen(
+        route = "frame_picker",
+        title = R.string.nav_frame,
+        icon = R.drawable.ic_frame
+    )
+    
+    object Campaign : Screen(
+        route = "campaign",
+        title = R.string.nav_campaign,
+        icon = R.drawable.ic_campaign
+    )
+    
+    // Crop 화면 (long_form 프레임용 이미지 크롭)
+    object Crop : Screen(
+        route = "crop",
+        title = R.string.nav_frame, // 임시로 프레임 아이콘 사용
+        icon = R.drawable.ic_frame
+    )
 }

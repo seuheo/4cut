@@ -181,19 +181,23 @@ class SearchViewModel(
                 _isLoading.value = true
                 _errorMessage.value = null
                 
-                // ✅ Repository를 통한 실제 검색 구현
-                // val results = photoRepository.searchPhotosAdvanced(
-                //     query = query,
-                //     seasons = seasons.toList(),
-                //     moods = moods.toList(),
-                //     weather = weather.toList(),
-                //     sortBy = sortBy.name.lowercase()
-                // )
-                // _searchResults.value = results
-                
-                // 임시 더미 데이터로 검색 결과 생성 (필터 적용)
-                val dummyResults = createDummySearchResults(query, seasons, moods, weather)
-                _searchResults.value = dummyResults
+                // Repository를 통한 실제 검색 구현
+                if (photoRepository != null) {
+                    val results = photoRepository.searchPhotosAdvanced(
+                        query = query,
+                        seasons = seasons.toList(),
+                        moods = moods.toList(),
+                        weather = weather.toList(),
+                        sortBy = sortBy.name.lowercase()
+                    )
+                    results.collect { searchResults ->
+                        _searchResults.value = searchResults
+                    }
+                } else {
+                    // 임시 더미 데이터로 검색 결과 생성 (필터 적용)
+                    val dummyResults = createDummySearchResults(query, seasons, moods, weather)
+                    _searchResults.value = dummyResults
+                }
                 
                 // 검색 히스토리에 추가
                 addToSearchHistory(query)
@@ -345,8 +349,9 @@ class SearchViewModel(
         fun provideFactory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val searchPreferences = SearchPreferences(context)
-                // TODO: PhotoRepository 주입 구현 - 현재는 더미 데이터만 사용
-                SearchViewModel(searchPreferences)
+                val database = com.example.a4cut.data.database.AppDatabase.getDatabase(context)
+                val photoRepository = com.example.a4cut.data.repository.PhotoRepository(database.photoDao())
+                SearchViewModel(searchPreferences, photoRepository)
             }
         }
     }

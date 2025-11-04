@@ -39,7 +39,10 @@ fun SearchScreen(
     onNavigateToPhotoDetail: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val viewModel: SearchViewModel = viewModel()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val viewModel: SearchViewModel = viewModel(
+        factory = com.example.a4cut.ui.viewmodel.SearchViewModel.provideFactory(context)
+    )
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val searchHistory by viewModel.searchHistory.collectAsState()

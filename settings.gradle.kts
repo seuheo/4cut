@@ -16,6 +16,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // FFmpeg-Android-Java는 JitPack을 통해 배포됨
+        maven { url = uri("https://www.jitpack.io") }
     }
 }
 

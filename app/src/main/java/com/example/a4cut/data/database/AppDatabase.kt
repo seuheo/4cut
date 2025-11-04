@@ -15,7 +15,7 @@ import com.example.a4cut.data.database.converter.Converters
  */
 @Database(
     entities = [PhotoEntity::class],
-    version = 3,
+    version = 5,  // videoPath 필드 추가로 버전 업데이트
     exportSchema = false
 )
 @TypeConverters(Converters::class)

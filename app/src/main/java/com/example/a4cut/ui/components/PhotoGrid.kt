@@ -212,15 +212,41 @@ private fun PhotoCell(
                 .padding(4.dp)
         ) {
             if (photo != null) {
-                // 선택된 사진 표시
-                Image(
-                    bitmap = photo.asImageBitmap(),
-                    contentDescription = "선택된 사진 ${index + 1}",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                // 디버그 로그 추가
+                println("PhotoCell[$index]: Bitmap 렌더링 시도 - 크기: ${photo.width}x${photo.height}, isRecycled: ${photo.isRecycled}")
+                
+                // Bitmap 유효성 검사
+                if (photo.isRecycled) {
+                    println("PhotoCell[$index]: Bitmap이 이미 재활용됨")
+                    // 재활용된 Bitmap 처리
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Bitmap 재활용됨",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+                    // 선택된 사진 표시
+                    val imageBitmap = photo.asImageBitmap()
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = "선택된 사진 ${index + 1}",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    println("PhotoCell[$index]: Image 컴포넌트 렌더링 성공")
+                }
                 
                 // 사진 번호 표시 (우상단)
                 Box(

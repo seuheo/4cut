@@ -4,38 +4,71 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.net.Uri
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.util.Log
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a4cut.data.model.Frame
+import kotlinx.coroutines.delay
+import com.example.a4cut.data.model.FrameFormat
+import com.example.a4cut.data.model.KtxStation
 import com.example.a4cut.data.repository.FrameRepository
 import com.example.a4cut.data.repository.PhotoRepository
+import com.example.a4cut.data.repository.KTXStationRepository
+import com.example.a4cut.data.service.LocationTaggingService
 import com.example.a4cut.data.database.AppDatabase
 import com.example.a4cut.ui.utils.ImagePicker
 import com.example.a4cut.ui.utils.PermissionHelper
 import com.example.a4cut.ui.utils.ImageComposer
+import com.example.a4cut.ui.utils.VideoSlideShowCreator
 import com.example.a4cut.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+
+/**
+ * Phase 2: 각 사진의 편집 상태(URI, 크기, 위치)를 관리하는 데이터 클래스
+ */
+data class PhotoState(
+    val bitmap: Bitmap?,
+    var scale: Float = 1f,
+    var offsetX: Float = 0f,
+    var offsetY: Float = 0f
+)
 
 /**
  * 프레임 화면의 ViewModel
  * 사진 선택, 프레임 적용, 이미지 합성 등 핵심 로직을 담당
- * Phase 3: Bitmap 기반 이미지 처리 및 권한 관리 기능 추가
+ * Phase 2: 제스처 기반 사진 편집 기능 추가
  */
 class FrameViewModel : ViewModel() {
     
     private val frameRepository = FrameRepository()
+    private val ktxStationRepository by lazy { KTXStationRepository() }
     private var imagePicker: ImagePicker? = null
     private var permissionHelper: PermissionHelper? = null
     private var imageComposer: ImageComposer? = null // ImageComposer 추가
     private var context: Context? = null // Context 저장
     private var photoRepository: PhotoRepository? = null // PhotoRepository 추가
+    private var locationTaggingService: LocationTaggingService? = null // 위치 태깅 서비스 추가
+    
+    // UI 업데이트 강제 트리거
+    private val _uiUpdateTrigger = MutableStateFlow(0L)
+    val uiUpdateTrigger: StateFlow<Long> = _uiUpdateTrigger.asStateFlow()
     
     // 프레임 관련 상태
     private val _frames = MutableStateFlow<List<Frame>>(emptyList())
@@ -44,13 +77,48 @@ class FrameViewModel : ViewModel() {
     private val _selectedFrame = MutableStateFlow<Frame?>(null)
     val selectedFrame: StateFlow<Frame?> = _selectedFrame.asStateFlow()
     
+    // 카테고리 관련 상태
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
+    
+    private val _framesByCategory = MutableStateFlow<List<Frame>>(emptyList())
+    val framesByCategory: StateFlow<List<Frame>> = _framesByCategory.asStateFlow()
+    
+    private val _categories = MutableStateFlow<List<String>>(emptyList())
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+    
+    // 포맷 관련 상태
+    private val _selectedFormat = MutableStateFlow(FrameFormat.STANDARD)
+    val selectedFormat: StateFlow<FrameFormat> = _selectedFormat.asStateFlow()
+    
+    private val _framesByFormat = MutableStateFlow<List<Frame>>(emptyList())
+    val framesByFormat: StateFlow<List<Frame>> = _framesByFormat.asStateFlow()
+    
+    private val _formats = MutableStateFlow<List<FrameFormat>>(emptyList())
+    val formats: StateFlow<List<FrameFormat>> = _formats.asStateFlow()
+    
     // 사진 관련 상태 (Bitmap 기반)
     private val _photos = MutableStateFlow<List<Bitmap?>>(List(4) { null })
     val photos: StateFlow<List<Bitmap?>> = _photos.asStateFlow()
     
+    // Phase 2: PhotoState 리스트로 사진 편집 상태 관리
+    private val _photoStates = mutableStateListOf<PhotoState>().apply {
+        // 4개의 빈 PhotoState로 초기화
+        repeat(4) { add(PhotoState(null)) }
+    }
+    val photoStates: SnapshotStateList<PhotoState> = _photoStates
+    
+    // 선택된 이미지 URI를 저장할 StateFlow 추가
+    private val _selectedImageUris = MutableStateFlow<List<Uri>>(emptyList())
+    val selectedImageUris: StateFlow<List<Uri>> = _selectedImageUris.asStateFlow()
+    
     // 테스트용 사진 목록
     private val _testPhotos = MutableStateFlow<List<Bitmap>>(emptyList())
     val testPhotos: StateFlow<List<Bitmap>> = _testPhotos.asStateFlow()
+    
+    // 고품질 예시 사진 목록
+    private val _examplePhotos = MutableStateFlow<List<Bitmap>>(emptyList())
+    val examplePhotos: StateFlow<List<Bitmap>> = _examplePhotos.asStateFlow()
     
     // 권한 관련 상태
     private val _hasImagePermission = MutableStateFlow(false)
@@ -66,9 +134,17 @@ class FrameViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
-    // 합성된 최종 이미지를 저장할 상태
+    // 합성된 최종 이미지를 저장할 상태 (Uri 방식으로 변경)
     private val _composedImage = MutableStateFlow<Bitmap?>(null)
     val composedImage: StateFlow<Bitmap?> = _composedImage.asStateFlow()
+    
+    // 합성된 이미지의 Uri 저장 (Bitmap 생명주기 문제 해결)
+    private val _composedImageUri = MutableStateFlow<Uri?>(null)
+    val composedImageUri: StateFlow<Uri?> = _composedImageUri.asStateFlow()
+    
+    // KTX역 선택 상태
+    private val _selectedKtxStation = MutableStateFlow<KtxStation?>(null)
+    val selectedKtxStation: StateFlow<KtxStation?> = _selectedKtxStation.asStateFlow()
     
     // 인생네컷 예시 이미지 상태
     private val _life4CutExample = MutableStateFlow<Bitmap?>(null)
@@ -87,29 +163,61 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 테스트용 사진들 로드
+     * KTX 역 선택
+     */
+    fun selectKtxStation(station: KtxStation?) {
+        _selectedKtxStation.value = station
+        Log.d("FrameViewModel", "KTX 역 선택됨: ${station?.stationName}")
+    }
+    
+    /**
+     * 테스트용 사진들 로드 (아이유 사진 4장) - 안전한 이미지 디코딩
      */
     private fun loadTestPhotos() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                println("테스트 사진 로드 시작")
+                println("아이유 사진 로드 시작")
                 val testPhotoIds = listOf(
-                    R.drawable.test_photo_1,
-                    R.drawable.test_photo_2,
-                    R.drawable.test_photo_3,
-                    R.drawable.test_photo_4,
-                    R.drawable.test_photo_5,
-                    R.drawable.test_photo_6,
-                    R.drawable.test_photo_7,
-                    R.drawable.test_photo_8
+                    R.drawable.iu1,
+                    R.drawable.iu2,
+                    R.drawable.iu3,
+                    R.drawable.iu4
                 )
                 
-                val bitmaps = testPhotoIds.mapNotNull { drawableId ->
+                val bitmaps = testPhotoIds.mapNotNull { drawableId: Int ->
                     try {
                         context?.let { ctx ->
-                            BitmapFactory.decodeResource(ctx.resources, drawableId)?.let { bitmap ->
-                                // 512x512 크기로 리사이즈
-                                Bitmap.createScaledBitmap(bitmap, 512, 512, true)
+                            // 안전한 이미지 디코딩을 위한 옵션 설정
+                            val options = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                                inPreferredConfig = Bitmap.Config.RGB_565 // 메모리 절약
+                                inSampleSize = 1
+                            }
+                            
+                            // 먼저 이미지 크기만 확인
+                            BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            // 이미지가 너무 크면 샘플링 적용
+                            if (options.outWidth > 1024 || options.outHeight > 1024) {
+                                options.inSampleSize = calculateInSampleSize(options, 512, 512)
+                            }
+                            
+                            // 실제 디코딩
+                            options.inJustDecodeBounds = false
+                            val bitmap = BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            bitmap?.let { bmp ->
+                                // 안전한 리사이징
+                                if (bmp.width != 512 || bmp.height != 512) {
+                                    val scaledBitmap = Bitmap.createScaledBitmap(bmp, 512, 512, true)
+                                    // 원본 해제 (샘플링으로 생성된 경우에만)
+                                    if (scaledBitmap != bmp) {
+                                        bmp.recycle()
+                                    }
+                                    scaledBitmap
+                                } else {
+                                    bmp
+                                }
                             }
                         }
                     } catch (e: Exception) {
@@ -128,7 +236,96 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 인생네컷 예시 이미지 생성
+     * 고품질 예시 사진들 로드 - 안전한 이미지 디코딩
+     */
+    private fun loadExamplePhotos() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                println("고품질 예시 사진 로드 시작")
+                val examplePhotoIds = listOf(
+                    R.drawable.example_photo_train_window,
+                    R.drawable.example_photo_station_platform,
+                    R.drawable.example_photo_travel_destination,
+                    R.drawable.example_photo_friends_together,
+                    R.drawable.example_photo_sunset_view,
+                    R.drawable.example_photo_city_skyline,
+                    R.drawable.example_photo_food_memory,
+                    R.drawable.example_photo_adventure_moment
+                )
+                
+                val bitmaps = examplePhotoIds.mapNotNull { drawableId: Int ->
+                    try {
+                        context?.let { ctx ->
+                            // 안전한 이미지 디코딩을 위한 옵션 설정
+                            val options = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                                inPreferredConfig = Bitmap.Config.RGB_565 // 메모리 절약
+                                inSampleSize = 1
+                            }
+                            
+                            // 먼저 이미지 크기만 확인
+                            BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            // 이미지가 너무 크면 샘플링 적용
+                            if (options.outWidth > 1024 || options.outHeight > 1024) {
+                                options.inSampleSize = calculateInSampleSize(options, 512, 512)
+                            }
+                            
+                            // 실제 디코딩
+                            options.inJustDecodeBounds = false
+                            val bitmap = BitmapFactory.decodeResource(ctx.resources, drawableId, options)
+                            
+                            bitmap?.let { bmp ->
+                                // 안전한 리사이징
+                                if (bmp.width != 512 || bmp.height != 512) {
+                                    val scaledBitmap = Bitmap.createScaledBitmap(bmp, 512, 512, true)
+                                    // 원본 해제 (샘플링으로 생성된 경우에만)
+                                    if (scaledBitmap != bmp) {
+                                        bmp.recycle()
+                                    }
+                                    scaledBitmap
+                                } else {
+                                    bmp
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("예시 사진 로드 실패: $drawableId - ${e.message}")
+                        null
+                    }
+                }
+                
+                println("고품질 예시 사진 로드 완료: ${bitmaps.size}개")
+                _examplePhotos.value = bitmaps
+            } catch (e: Exception) {
+                println("고품질 예시 사진 로드 전체 실패: ${e.message}")
+                _errorMessage.value = "예시 사진 로드 실패: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * 이미지 샘플링 크기 계산 (메모리 절약)
+     */
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val height = options.outHeight
+        val width = options.outWidth
+        var inSampleSize = 1
+        
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+            
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        
+        return inSampleSize
+    }
+    
+    /**
+     * 인생네컷 예시 이미지 생성 (기본)
      */
     private fun generateLife4CutExample() {
         viewModelScope.launch {
@@ -140,6 +337,43 @@ class FrameViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "인생네컷 예시 생성 실패: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * 동적 인생네컷 예시 생성 (랜덤 조합)
+     */
+    fun generateRandomLife4CutExample() {
+        viewModelScope.launch {
+            try {
+                context?.let { ctx ->
+                    val examplePhotos = _examplePhotos.value
+                    val frames = _frames.value
+                    
+                    if (examplePhotos.isNotEmpty() && frames.isNotEmpty()) {
+                        // 랜덤하게 4장의 예시 사진 선택
+                        val selectedPhotos = examplePhotos.shuffled().take(4)
+                        
+                        // 랜덤하게 프레임 선택
+                        val selectedFrame = frames.random()
+                        
+                        // 동적 예시 이미지 생성
+                        val exampleBitmap = createDynamicLife4CutExample(
+                            ctx, 
+                            selectedPhotos, 
+                            selectedFrame
+                        )
+                        _life4CutExample.value = exampleBitmap
+                        
+                        println("동적 인생네컷 예시 생성 완료: 프레임=${selectedFrame.name}")
+                    } else {
+                        // 기본 예시 생성
+                        generateLife4CutExample()
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "동적 예시 생성 실패: ${e.message}"
             }
         }
     }
@@ -280,6 +514,100 @@ class FrameViewModel : ViewModel() {
             val x = 200f + i * 100f
             canvas.drawCircle(x, height - 50f, 8f, dotPaint)
         }
+        
+        return bitmap
+    }
+    
+    /**
+     * 동적 인생네컷 예시 Bitmap 생성 (실제 사진과 프레임 조합)
+     */
+    private fun createDynamicLife4CutExample(
+        context: Context,
+        selectedPhotos: List<Bitmap>,
+        selectedFrame: Frame
+    ): Bitmap {
+        val width = 1080
+        val height = 1920
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        
+        // 선택된 프레임을 배경으로 사용
+        try {
+            val frameDrawable = context.getDrawable(selectedFrame.drawableId)
+            frameDrawable?.let { drawable ->
+                drawable.setBounds(0, 0, width, height)
+                drawable.draw(canvas)
+            }
+        } catch (e: Exception) {
+            println("프레임 로드 실패, 기본 배경 사용: ${e.message}")
+            // 기본 배경 그라데이션
+            val backgroundPaint = android.graphics.Paint()
+            val backgroundGradient = android.graphics.LinearGradient(
+                0f, 0f, width.toFloat(), height.toFloat(),
+                intArrayOf(0xFF1E3A8A.toInt(), 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt()),
+                floatArrayOf(0f, 0.5f, 1f),
+                android.graphics.Shader.TileMode.CLAMP
+            )
+            backgroundPaint.shader = backgroundGradient
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
+        }
+        
+        // 4컷 사진 영역에 실제 예시 사진들 배치
+        val margin = 140f
+        val spacing = 20f
+        val photoWidth = (width - 2 * margin - spacing) / 2
+        val photoHeight = (height - 2 * margin - spacing) / 2
+        
+        // 4개 위치에 사진 배치
+        val positions = listOf(
+            android.graphics.RectF(margin, margin, margin + photoWidth, margin + photoHeight), // 상단 좌측
+            android.graphics.RectF(margin + photoWidth + spacing, margin, width - margin, margin + photoHeight), // 상단 우측
+            android.graphics.RectF(margin, margin + photoHeight + spacing, margin + photoWidth, height - margin), // 하단 좌측
+            android.graphics.RectF(margin + photoWidth + spacing, margin + photoHeight + spacing, width - margin, height - margin) // 하단 우측
+        )
+        
+        selectedPhotos.forEachIndexed { index, photo ->
+            if (index < 4) {
+                val destRect = positions[index]
+                canvas.drawBitmap(photo, null, destRect, null)
+                
+                // 사진 테두리 추가
+                val borderPaint = android.graphics.Paint().apply {
+                    color = 0xFFFFFFFF.toInt()
+                    strokeWidth = 4f
+                    style = android.graphics.Paint.Style.STROKE
+                    isAntiAlias = true
+                }
+                canvas.drawRect(destRect, borderPaint)
+            }
+        }
+        
+        // 프레임 정보 텍스트 추가
+        val textPaint = android.graphics.Paint().apply {
+            color = 0xFFFFFFFF.toInt()
+            textSize = 48f
+            isAntiAlias = true
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        
+        val frameInfoText = "${selectedFrame.name} 프레임"
+        val textBounds = android.graphics.Rect()
+        textPaint.getTextBounds(frameInfoText, 0, frameInfoText.length, textBounds)
+        val textX = (width - textBounds.width()) / 2f
+        val textY = height - 80f
+        
+        // 텍스트 배경
+        val textBgPaint = android.graphics.Paint().apply {
+            color = 0x80000000.toInt() // 반투명 검은색
+        }
+        val textBgRect = android.graphics.RectF(
+            textX - 20f, textY - textBounds.height() - 20f,
+            textX + textBounds.width() + 20f, textY + 20f
+        )
+        canvas.drawRoundRect(textBgRect, 20f, 20f, textBgPaint)
+        
+        // 텍스트 그리기
+        canvas.drawText(frameInfoText, textX, textY, textPaint)
         
         return bitmap
     }
@@ -520,14 +848,38 @@ class FrameViewModel : ViewModel() {
         imagePicker = ImagePicker(context)
         permissionHelper = PermissionHelper(context)
         imageComposer = ImageComposer(context) // ImageComposer 초기화
+        locationTaggingService = LocationTaggingService(context) // 위치 태깅 서비스 초기화
         
         // PhotoRepository 초기화
         val database = AppDatabase.getDatabase(context)
         photoRepository = PhotoRepository(database.photoDao())
         
+        // FrameRepository에서 JSON 슬롯 정보 로드 (Phase 1 수정)
+        frameRepository.loadSlotsFromJson(context)
+        
+        // JSON 슬롯 정보 로드 후, _frames.value 업데이트
+        _frames.value = frameRepository.getFrames()
+        println("FrameViewModel: JSON 슬롯 정보 로드 완료, _frames 업데이트: ${_frames.value.size}개")
+        
+        // 이미 선택된 프레임이 있으면, 슬롯 정보가 포함된 최신 프레임으로 업데이트
+        _selectedFrame.value?.let { currentSelectedFrame ->
+            val updatedSelectedFrame = _frames.value.find { it.id == currentSelectedFrame.id }
+            if (updatedSelectedFrame != null && updatedSelectedFrame.slots != null) {
+                _selectedFrame.value = updatedSelectedFrame
+                println("FrameViewModel: 선택된 프레임 슬롯 정보 업데이트 - ${updatedSelectedFrame.name} (slots: ${updatedSelectedFrame.slots?.size ?: 0}개)")
+            }
+        }
+        
         checkImagePermission()
-        loadTestPhotos() // 테스트용 사진들 로드
-        generateLife4CutExample() // 인생네컷 예시 생성
+        
+        // 기존 사진 데이터가 없을 때만 테스트 사진들 로드
+        if (_photos.value.all { it == null }) {
+            loadTestPhotos() // 테스트용 사진들 로드
+            loadExamplePhotos() // 고품질 예시 사진들 로드
+            generateLife4CutExample() // 인생네컷 예시 생성
+        } else {
+            println("기존 사진 데이터가 있으므로 테스트 사진 로드 건너뜀")
+        }
         println("setContext 완료")
     }
     
@@ -550,6 +902,24 @@ class FrameViewModel : ViewModel() {
                 // StateFlow에서 한 번만 값을 가져오기
                 val frameList = frameRepository.getFrames()
                 _frames.value = frameList
+                
+                // 카테고리 목록 로드
+                val categoryList = frameRepository.getCategories()
+                _categories.value = categoryList
+                
+                // 포맷 목록 로드
+                val formatList = frameRepository.getFormats()
+                _formats.value = formatList
+                
+                // 첫 번째 포맷 자동 선택
+                if (formatList.isNotEmpty()) {
+                    selectFormat(formatList.first())
+                }
+                
+                // 첫 번째 카테고리 자동 선택
+                if (categoryList.isNotEmpty()) {
+                    selectCategory(categoryList.first())
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "프레임 로드 실패: ${e.message}"
             } finally {
@@ -562,25 +932,86 @@ class FrameViewModel : ViewModel() {
      * 프레임 선택
      */
     fun selectFrame(frame: Frame) {
-        _selectedFrame.value = frame
+        println("프레임 선택됨: ${frame.name} (ID: ${frame.id}, DrawableID: ${frame.drawableId})")
+        
+        // 최신 _frames.value에서 해당 프레임을 찾아서 선택 (JSON 슬롯 정보 포함)
+        val updatedFrame = _frames.value.find { it.id == frame.id } ?: frame
+        _selectedFrame.value = updatedFrame
+        println("프레임 선택 완료: ${updatedFrame.name} (ID: ${updatedFrame.id}, slots: ${updatedFrame.slots?.size ?: 0}개)")
+        
         clearError()
+        // 햅틱 피드백 추가
+        triggerHapticFeedback()
+    }
+    
+    /**
+     * 카테고리 선택
+     */
+    fun selectCategory(category: String) {
+        _selectedCategory.value = category
+        val framesInCategory = frameRepository.getFramesByCategory(category)
+        _framesByCategory.value = framesInCategory
+        Log.d("FrameViewModel", "카테고리 선택: $category, 프레임 수: ${framesInCategory.size}")
+    }
+    
+    /**
+     * 카테고리 선택 해제
+     */
+    fun clearCategorySelection() {
+        _selectedCategory.value = null
+        _framesByCategory.value = emptyList()
+    }
+    
+    /**
+     * 포맷 선택
+     */
+    fun selectFormat(format: FrameFormat) {
+        _selectedFormat.value = format
+        val framesInFormat = frameRepository.getFramesByFormat(format)
+        _framesByFormat.value = framesInFormat
+        _selectedFrame.value = null // 포맷 변경 시 프레임 선택 해제
+        Log.d("FrameViewModel", "포맷 선택: $format, 프레임 수: ${framesInFormat.size}")
+    }
+    
+    /**
+     * 포맷 선택 해제
+     */
+    fun clearFormatSelection() {
+        _selectedFormat.value = FrameFormat.STANDARD
+        _framesByFormat.value = emptyList()
     }
     
     /**
      * 사진 선택 (Bitmap 기반)
      */
     fun selectPhoto(index: Int, bitmap: Bitmap?) {
-        println("selectPhoto 호출됨: index=$index, bitmap=${bitmap != null}")
+        println("=== selectPhoto 호출됨 ===")
+        println("selectPhoto: index=$index, bitmap=${bitmap != null}")
+        if (bitmap != null) {
+            println("selectPhoto: bitmap 크기 = ${bitmap.width}x${bitmap.height}")
+        }
+        println("selectPhoto: 현재 사진 상태 = ${_photos.value.map { it != null }}")
+        
         if (index in 0..3) {
             val currentPhotos = _photos.value.toMutableList()
             currentPhotos[index] = bitmap
             _photos.value = currentPhotos
-            println("사진 선택 완료: 새로운 그리드 상태=${_photos.value.map { it != null }}")
+            
+            // Phase 2: PhotoState도 함께 업데이트
+            updatePhotoStateFromBitmap(index, bitmap)
+            
+            // UI 업데이트 트리거 설정 (크롭 후 이미지 반영을 위해)
+            _uiUpdateTrigger.value = System.currentTimeMillis()
+            
+            println("selectPhoto: 사진 선택 완료")
+            println("selectPhoto: 새로운 그리드 상태=${_photos.value.map { it != null }}")
+            println("selectPhoto: 선택된 사진 개수 = ${_photos.value.count { it != null }}")
             clearError()
         } else {
-            println("잘못된 사진 인덱스: $index")
+            println("selectPhoto: 잘못된 사진 인덱스: $index")
             _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
         }
+        println("=== selectPhoto 완료 ===")
     }
     
     /**
@@ -589,41 +1020,14 @@ class FrameViewModel : ViewModel() {
     fun removePhoto(index: Int) {
         if (index in 0..3) {
             val currentPhotos = _photos.value.toMutableList()
-            // 기존 Bitmap 메모리 해제
-            currentPhotos[index]?.let { bitmap ->
-                if (!bitmap.isRecycled) {
-                    bitmap.recycle()
-                }
-            }
+            // UI에서 사용 중인 bitmap은 즉시 해제하지 않음
+            // 대신 null로 설정하고 가비지 컬렉터가 처리하도록 함
             currentPhotos[index] = null
             _photos.value = currentPhotos
             clearError()
         }
     }
     
-    /**
-     * 사진 선택 토글 (있으면 제거, 없으면 추가 준비)
-     */
-    fun togglePhotoSelection(index: Int) {
-        if (index in 0..3) {
-            val currentPhotos = _photos.value.toMutableList()
-            val currentPhoto = currentPhotos[index]
-            
-            if (currentPhoto != null) {
-                // 사진이 있으면 제거
-                if (!currentPhoto.isRecycled) {
-                    currentPhoto.recycle()
-                }
-                currentPhotos[index] = null
-            }
-            // 사진이 없으면 추가 준비 (openImagePicker 호출 필요)
-            
-            _photos.value = currentPhotos
-            clearError()
-        } else {
-            _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
-        }
-    }
     
     /**
      * 테스트용 사진 선택
@@ -635,6 +1039,92 @@ class FrameViewModel : ViewModel() {
             clearError()
         } else {
             _errorMessage.value = "잘못된 사진 인덱스입니다"
+        }
+    }
+    
+    
+    /**
+     * Phase 1: 사진 선택 토글 (미리보기에서 사용)
+     */
+    fun togglePhotoSelection(index: Int) {
+        if (index in 0..3) {
+            val currentPhotos = _photos.value.toMutableList()
+            val currentPhoto = currentPhotos[index]
+            
+            if (currentPhoto != null) {
+                // 사진이 있으면 제거 (UI에서 사용 중인 bitmap은 즉시 해제하지 않음)
+                currentPhotos[index] = null
+                // PhotoState도 업데이트
+                updatePhotoStateFromBitmap(index, null)
+            } else {
+                // 사진이 없으면 랜덤 테스트 사진 추가
+                selectRandomTestPhoto()
+            }
+            
+            _photos.value = currentPhotos
+            clearError()
+        } else {
+            _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
+        }
+    }
+    
+    /**
+     * Phase 2: PhotoState를 Bitmap으로부터 초기화/업데이트
+     */
+    private fun updatePhotoStateFromBitmap(index: Int, bitmap: Bitmap?) {
+        if (index in 0..3) {
+            println("updatePhotoStateFromBitmap 시작: 인덱스 $index, bitmap=${bitmap != null}")
+            println("현재 스레드: ${Thread.currentThread().name}")
+            
+            // 해당 인덱스의 PhotoState 업데이트
+            val newPhotoState = PhotoState(
+                bitmap = bitmap,
+                scale = 1f,
+                offsetX = 0f,
+                offsetY = 0f
+            )
+            
+            // SnapshotStateList의 특성상 직접 인덱스 할당이 UI 업데이트를 트리거하지 않을 수 있음
+            // 따라서 새로운 리스트를 생성하여 할당
+            val newPhotoStates = _photoStates.toMutableList()
+            newPhotoStates[index] = newPhotoState
+            
+            println("새로운 PhotoState 리스트 생성 완료: ${newPhotoStates.map { it.bitmap != null }}")
+            
+            // 기존 리스트를 새 리스트로 교체하여 UI 업데이트 트리거
+            _photoStates.clear()
+            _photoStates.addAll(newPhotoStates)
+            
+            println("PhotoState 리스트 교체 완료")
+            println("updatePhotoStateFromBitmap 완료: 인덱스 $index 업데이트 완료, bitmap=${bitmap != null}")
+        }
+    }
+    
+    /**
+     * Phase 2: 특정 사진의 편집 상태(크기, 위치)를 업데이트하는 함수
+     */
+    fun updatePhotoState(index: Int, scale: Float, offsetX: Float, offsetY: Float) {
+        if (index in _photoStates.indices) {
+            val currentState = _photoStates[index]
+            _photoStates[index] = currentState.copy(
+                scale = (currentState.scale * scale).coerceIn(0.5f, 3f), // 확대/축소 범위 제한
+                offsetX = (currentState.offsetX + offsetX).coerceIn(-200f, 200f), // 이동 범위 제한
+                offsetY = (currentState.offsetY + offsetY).coerceIn(-200f, 200f)
+            )
+        }
+    }
+    
+    /**
+     * Phase 2: 사진 편집 상태 초기화
+     */
+    fun resetPhotoState(index: Int) {
+        if (index in _photoStates.indices) {
+            val currentState = _photoStates[index]
+            _photoStates[index] = currentState.copy(
+                scale = 1f,
+                offsetX = 0f,
+                offsetY = 0f
+            )
         }
     }
     
@@ -897,37 +1387,144 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
+     * 단일 이미지를 특정 인덱스에 적용
+     * @param uri 이미지 Uri
+     * @param index 적용할 인덱스 (0-3)
+     */
+    fun processSingleImageAt(uri: Uri, index: Int) {
+        if (index !in 0..3) {
+            _errorMessage.value = "잘못된 사진 인덱스입니다: $index"
+            return
+        }
+        
+        println("=== processSingleImageAt 시작 ===")
+        println("processSingleImageAt: index=$index, uri=$uri")
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            _isProcessing.value = true
+            try {
+                imagePicker?.let { picker ->
+                    // 단일 이미지를 처리하여 Bitmap으로 변환
+                    val processedBitmaps = picker.processImagesForGrid(listOf(uri), 512)
+                    val bitmap = processedBitmaps.firstOrNull()
+                    
+                    if (bitmap != null) {
+                        // 메인 스레드에서 특정 인덱스에 적용
+                        withContext(Dispatchers.Main) {
+                            selectPhoto(index, bitmap)
+                            println("processSingleImageAt: 인덱스 ${index}에 이미지 적용 완료")
+                            clearError()
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            _errorMessage.value = "이미지를 처리할 수 없습니다"
+                        }
+                    }
+                } ?: run {
+                    withContext(Dispatchers.Main) {
+                        _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
+                    }
+                }
+            } catch (e: Exception) {
+                println("이미지 처리 실패: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    _errorMessage.value = "이미지 처리 실패: ${e.message}"
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    _isProcessing.value = false
+                }
+            }
+        }
+    }
+    
+    /**
      * 이미지 선택 결과 처리
      */
     fun processSelectedImages(uris: List<Uri>) {
         if (uris.isEmpty()) return
         
-        viewModelScope.launch {
+        println("=== processSelectedImages 시작 ===")
+        println("선택된 URI 개수: ${uris.size}")
+        
+        viewModelScope.launch(Dispatchers.IO) {
             _isProcessing.value = true
             try {
                 imagePicker?.let { picker ->
-                    // 선택된 이미지들을 4컷 그리드에 맞게 처리
+                    println("이미지 처리 시작 - processImagesForGrid 호출")
+                    // 선택된 이미지들을 4컷 그리드에 맞게 처리 (백그라운드 스레드)
                     val processedBitmaps = picker.processImagesForGrid(uris, 512)
                     
+                    println("이미지 처리 완료: ${processedBitmaps.size}개의 Bitmap 생성")
+                    println("처리된 Bitmap 상태: ${processedBitmaps.map { it != null }}")
+                    
                     // 기존 Bitmap들 메모리 해제
+                    withContext(Dispatchers.Main) {
                     _photos.value.forEach { bitmap ->
                         bitmap?.let { 
                             if (!it.isRecycled) {
                                 it.recycle()
                             }
+                            }
                         }
                     }
                     
-                    // 새로운 Bitmap들로 교체
-                    _photos.value = processedBitmaps
+                    // UI 상태 업데이트는 메인 스레드에서 실행
+                    withContext(Dispatchers.Main) {
+                        println("=== 메인 스레드 UI 업데이트 시작 (processSelectedImages) ===")
+                        println("현재 스레드: ${Thread.currentThread().name}")
+                        
+                        // 4개 슬롯을 채우기 위해 리스트 확장
+                        val newPhotos = mutableListOf<Bitmap?>()
+                        repeat(4) { index ->
+                            if (index < processedBitmaps.size) {
+                                newPhotos.add(processedBitmaps[index])
+                            } else {
+                                newPhotos.add(null)
+                            }
+                        }
+                        
+                        println("새로운 photos 리스트 생성 완료: ${newPhotos.map { it != null }}")
+                        
+                        // StateFlow 업데이트 (새로운 리스트로 교체하여 UI 업데이트 보장)
+                        _photos.value = newPhotos
+                        println("_photos.value 업데이트 완료")
+                        
+                        // 강제 UI 업데이트를 위한 추가 트리거
+                        _photos.value = newPhotos.toList()
+                        println("_photos.value 강제 업데이트 완료")
+                        
+                        // PhotoState도 함께 업데이트
+                        processedBitmaps.forEachIndexed { index, bitmap ->
+                            if (index < 4) {
+                                updatePhotoStateFromBitmap(index, bitmap)
+                            }
+                        }
+                        
+                        // UI 업데이트 강제 트리거
+                        _uiUpdateTrigger.value = System.currentTimeMillis()
+                        println("UI 업데이트 트리거 설정 완료: ${_uiUpdateTrigger.value}")
+                        
+                        println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
+                        println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
+                        println("=== 메인 스레드 UI 업데이트 완료 (processSelectedImages) ===")
+                        
                     clearError()
+                    }
                 } ?: run {
+                    withContext(Dispatchers.Main) {
                     _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
+                    }
                 }
             } catch (e: Exception) {
+                println("이미지 처리 실패: ${e.message}")
+                withContext(Dispatchers.Main) {
                 _errorMessage.value = "이미지 처리 실패: ${e.message}"
+                }
             } finally {
+                withContext(Dispatchers.Main) {
                 _isProcessing.value = false
+                }
             }
         }
     }
@@ -936,17 +1533,35 @@ class FrameViewModel : ViewModel() {
      * 이미지 합성 시작
      */
     fun startImageComposition() {
+        println("=== startImageComposition 시작 ===")
+        println("selectedFrame: ${_selectedFrame.value}")
+        println("selectedFrame ID: ${_selectedFrame.value?.id}")
+        println("selectedFrame name: ${_selectedFrame.value?.name}")
+        println("photos: ${_photos.value.map { it != null }}")
+        println("photoStates: ${_photoStates.map { it.bitmap != null }}")
+        println("photoStates size: ${_photoStates.size}")
+        
         if (_selectedFrame.value == null) {
             _errorMessage.value = "프레임을 선택해주세요"
+            println("startImageComposition: 프레임이 선택되지 않음")
             return
         }
+
+        // 두 가지 방식으로 사진 확인
+        val hasPhotosInPhotos = _photos.value.any { it != null }
+        val hasPhotosInStates = _photoStates.any { it.bitmap != null }
         
-        val hasPhotos = _photos.value.any { it != null }
-        if (!hasPhotos) {
+        println("startImageComposition: hasPhotosInPhotos = $hasPhotosInPhotos")
+        println("startImageComposition: hasPhotosInStates = $hasPhotosInStates")
+        println("startImageComposition: _photos 상세 = ${_photos.value.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
+        println("startImageComposition: _photoStates 상세 = ${_photoStates.map { "${it.bitmap?.width ?: 0}x${it.bitmap?.height ?: 0}" }}")
+        
+        if (!hasPhotosInPhotos && !hasPhotosInStates) {
             _errorMessage.value = "최소 한 장의 사진을 선택해주세요"
+            println("startImageComposition: 사진이 선택되지 않음")
             return
         }
-        
+
         viewModelScope.launch {
             _isProcessing.value = true
             try {
@@ -956,24 +1571,62 @@ class FrameViewModel : ViewModel() {
                         bitmap.recycle()
                     }
                 }
-                
+
                 // 실제 KTX 시그니처 프레임 리소스 로드
                 val frameBitmap = loadKtxFrameBitmap()
-                
+
                 imageComposer?.let { composer ->
-                    val result = composer.composeImage(
-                        photos = _photos.value,
-                        frameBitmap = frameBitmap
-                    )
-                    _composedImage.value = result // 합성 결과 저장
+                    // 선택된 프레임 ID에 따른 분기 처리
+                    val selectedFrame = _selectedFrame.value
+                    println("=== FrameViewModel: 프레임 분기 처리 ===")
+                    println("선택된 프레임 ID: ${selectedFrame?.id}")
+                    println("선택된 프레임 이름: ${selectedFrame?.name}")
+                    println("사진 상태: ${_photoStates.map { it.bitmap != null }}")
+                    
+                    val result = when (selectedFrame?.id) {
+                        "life_4cut_frame", "image_e15024", "long_form_white", "long_form_black" -> {
+                            println("인생네컷 프레임 감지! composeLife4CutFrame 호출")
+                            // 인생네컷 프레임 전용 합성 함수 사용
+                            val photos = _photoStates.map { it.bitmap }
+                            println("FrameViewModel: 전달할 사진 데이터")
+                            println("  - _photoStates 개수: ${_photoStates.size}")
+                            println("  - photos 개수: ${photos.size}")
+                            println("  - photos null 체크: ${photos.map { it != null }}")
+                            println("  - photos 크기들: ${photos.map { "${it?.width ?: 0}x${it?.height ?: 0}" }}")
+                            println("  - 선택된 사진 개수: ${photos.count { it != null }}")
+                            
+                            if (photos.count { it != null } == 0) {
+                                println("경고: 선택된 사진이 없습니다!")
+                                _errorMessage.value = "사진을 먼저 선택해주세요"
+                                return@launch
+                            }
+                            
+                            composer.composeLife4CutFrame(frameBitmap, photos, selectedFrame.id, selectedFrame)
+                        }
+                        else -> {
+                            println("기존 프레임 감지! composeImageWithPhotoStates 호출")
+                            // 기존 합성 로직 사용
+                            composer.composeImageWithPhotoStates(
+                                photoStates = _photoStates.toList(),
+                                frameBitmap = frameBitmap
+                            )
+                        }
+                    }
+                    println("=== FrameViewModel: 프레임 분기 처리 완료 ===")
+                    
+                    // Bitmap을 임시 파일로 저장하고 Uri 저장
+                    val tempUri = saveComposedImageToTemp(result)
+                    _composedImageUri.value = tempUri
+                    _composedImage.value = result // 기존 호환성을 위해 유지
+                    
                     clearError()
                 } ?: run {
                     _errorMessage.value = "이미지 합성기를 초기화할 수 없습니다"
                 }
-                
+
                 // 프레임 메모리 해제
                 frameBitmap.recycle()
-                
+
             } catch (e: Exception) {
                 _errorMessage.value = "이미지 합성 실패: ${e.message}"
             } finally {
@@ -983,7 +1636,27 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 이미지 저장
+     * 합성된 이미지를 임시 파일로 저장하고 Uri 반환
+     */
+    private fun saveComposedImageToTemp(bitmap: Bitmap): Uri? {
+        return try {
+            val tempFile = java.io.File(context?.cacheDir, "composed_temp_${System.currentTimeMillis()}.jpg")
+            val outputStream = java.io.FileOutputStream(tempFile)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+            outputStream.close()
+            
+            val uri = Uri.fromFile(tempFile)
+            println("임시 파일 저장 완료: $uri")
+            uri
+        } catch (e: Exception) {
+            println("임시 파일 저장 실패: ${e.message}")
+            null
+        }
+    }
+    
+    /**
+     * 이미지 저장 (Phase 2 수정: 비동기 작업 순차 실행 보장)
+     * 동영상 생성이 완료된 후 DB 저장이 실행되도록 수정
      */
     fun saveImage() {
         val imageToSave = _composedImage.value
@@ -992,31 +1665,164 @@ class FrameViewModel : ViewModel() {
             return
         }
 
+        if (context == null) {
+            _errorMessage.value = "Context를 찾을 수 없습니다. 앱을 다시 시작해주세요."
+            return
+        }
+
+        // UI 상태를 먼저 업데이트 (메인 스레드)
+            _isProcessing.value = true
+
+        // 비동기 IO 작업을 위한 코루틴 시작
+        viewModelScope.launch(Dispatchers.IO) {
+            var imageUri: Uri? = null
+            var photoId: Long? = null
+            var errorOccurred = false
+
+            try {
+                Log.d("FrameViewModel", "saveImage 작업 시작 (IO 스레드)")
+
+                // 1. (AWAIT) 이미지 갤러리 저장
+                val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
+                imageUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
+                
+                if (imageUri == null) {
+                    throw IllegalStateException("갤러리 저장 실패 - Uri가 null")
+                }
+
+                Log.d("FrameViewModel", "갤러리 저장 완료: $imageUri")
+
+                // 2. (AWAIT) 즉시 DB 저장 (videoPath = null로 저장하여 사용자가 바로 확인할 수 있도록)
+                        val selectedStation = _selectedKtxStation.value
+                Log.d("FrameViewModel", "즉시 DB 저장 시작... (videoPath = null)")
+                        
+                photoId = if (photoRepository != null) {
+                    try {
+                        photoRepository?.createKTXPhoto(
+                            imagePath = imageUri.toString(),
+                            title = "KTX 네컷 사진",
+                            location = selectedStation?.stationName ?: "KTX 역",
+                            latitude = selectedStation?.latitude,
+                            longitude = selectedStation?.longitude,
+                            videoPath = null // <- 즉시 저장 시 동영상은 null
+                        )
+                    } catch (dbException: Exception) {
+                        Log.e("FrameViewModel", "DB 저장 중 오류 발생", dbException)
+                        throw dbException
+                    }
+                } else {
+                    Log.e("FrameViewModel", "photoRepository가 null입니다. DB 저장 실패")
+                    null
+                }
+
+                Log.d("FrameViewModel", "PhotoEntity 즉시 저장 완료: photoId=$photoId, imagePath=${imageUri.toString()}, videoPath=null")
+
+                // 3. 백그라운드에서 동영상 생성 및 DB 업데이트 (별도 코루틴)
+                if (photoId != null) {
+                    val savedPhotoId = photoId // 외부 변수 안전하게 캡처
+                    Log.d("FrameViewModel", "백그라운드 동영상 생성 시작... (photoId=$savedPhotoId)")
+                    viewModelScope.launch(Dispatchers.IO) {
+                        try {
+                            // 동영상 생성 (수십 초 소요)
+                            val videoPath = try {
+                                VideoSlideShowCreator.createSlideShowVideo(_photos.value, context!!)
+                            } catch (e: Exception) {
+                                Log.e("FrameViewModel", "동영상 생성 중 오류 발생", e)
+                                null
+                            }
+                            
+                            if (videoPath != null) {
+                                Log.d("FrameViewModel", "동영상 생성 완료: videoPath=$videoPath, photoId 업데이트 시작... (photoId=$savedPhotoId)")
+                                
+                                // 기존 PhotoEntity의 videoPath 필드만 업데이트
+                                photoRepository?.updateVideoPath(savedPhotoId.toInt(), videoPath)
+                                Log.d("FrameViewModel", "PhotoEntity videoPath 업데이트 완료: photoId=$savedPhotoId, videoPath=$videoPath")
+                            } else {
+                                Log.w("FrameViewModel", "동영상 생성 실패: photoId=${savedPhotoId}의 videoPath는 null로 유지됩니다.")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("FrameViewModel", "백그라운드 동영상 처리 중 오류 발생", e)
+                            // 백그라운드 오류는 사용자에게 노출하지 않음 (이미지는 저장됨)
+                        }
+                    }
+                }
+                        
+                        // 성공 메시지에 위치 정보 포함
+                        val successMessage = if (selectedStation != null) {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.stationName}에서 촬영)"
+                        } else {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
+                        }
+
+                // UI 업데이트는 메인 스레드에서 실행
+                withContext(Dispatchers.Main) {
+                        _successMessage.value = successMessage
+                    clearError()
+                }
+
+            } catch (e: Exception) {
+                errorOccurred = true
+                Log.e("FrameViewModel", "saveImage 중 오류 발생", e)
+
+                // 에러 발생 시 UI 업데이트 (메인 스레드)
+                withContext(Dispatchers.Main) {
+                    _errorMessage.value = when {
+                        e is IllegalStateException && e.message?.contains("Uri가 null") == true -> {
+                            "이미지 저장에 실패했습니다. 갤러리 권한을 확인해주세요."
+                        }
+                        e.message?.contains("DB") == true -> {
+                            "이미지는 저장되었지만 앱 내 저장에 실패했습니다."
+                        }
+                        else -> {
+                            "이미지 저장 실패: ${e.message}"
+                        }
+                    }
+                }
+            } finally {
+                // 모든 작업 완료 후 Main 스레드에서 UI 상태 업데이트
+                withContext(Dispatchers.Main) {
+                _isProcessing.value = false
+                }
+            }
+        }
+    }
+    
+    /**
+     * 범용 이미지 공유 기능 (Bug #6 수정)
+     * Android Share Sheet를 사용하여 모든 공유 앱 목록을 표시
+     */
+    fun shareImage() {
+        Log.d("FrameViewModel", "shareImage() 호출됨")
+        val imageToShare = _composedImage.value
+        if (imageToShare == null) {
+            Log.e("FrameViewModel", "합성된 이미지가 없습니다")
+            _errorMessage.value = "합성된 이미지가 없습니다. 먼저 이미지 합성을 해주세요."
+            return
+        }
+
+        Log.d("FrameViewModel", "이미지 공유 시작")
         viewModelScope.launch {
             _isProcessing.value = true
             try {
-                val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
-                val savedUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
+                // 1. 합성된 이미지를 임시 파일로 저장
+                val sharedImageFile = saveImageToCache(imageToShare)
+                Log.d("FrameViewModel", "이미지 캐시 저장 완료: ${sharedImageFile.absolutePath}")
                 
-                if (savedUri != null) {
-                    // 갤러리 저장 성공 시 데이터베이스에도 저장
-                    try {
-                        photoRepository?.createKTXPhoto(
-                            imagePath = savedUri.toString(),
-                            title = "KTX 네컷 사진",
-                            location = "KTX 역"
-                        )
-                        _successMessage.value = "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
-                    } catch (dbException: Exception) {
-                        // 데이터베이스 저장 실패해도 갤러리 저장은 성공했으므로 부분 성공 메시지
-                        _successMessage.value = "이미지는 갤러리에 저장되었지만 앱 저장에 실패했습니다."
-                    }
-                    clearError()
-                } else {
-                    _errorMessage.value = "이미지 저장에 실패했습니다."
+                // 2. 범용 공유 Intent 생성 (Instagram 전용이 아닌 Android Share Sheet)
+                context?.let { ctx ->
+                    val intent = createShareIntent(ctx, sharedImageFile)
+                    Log.d("FrameViewModel", "공유 Intent 생성 완료")
+                    // Intent 실행은 UI에서 처리해야 하므로 콜백으로 전달
+                    _instagramShareIntent.value = intent
+                } ?: run {
+                    Log.e("FrameViewModel", "Context를 찾을 수 없습니다")
+                    _errorMessage.value = "공유를 위한 컨텍스트를 찾을 수 없습니다."
                 }
+                
+                clearError()
             } catch (e: Exception) {
-                _errorMessage.value = "이미지 저장 실패: ${e.message}"
+                Log.e("FrameViewModel", "공유 실패: ${e.message}", e)
+                _errorMessage.value = "공유 실패: ${e.message}"
             } finally {
                 _isProcessing.value = false
             }
@@ -1024,38 +1830,11 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * 인스타그램 공유
+     * 인스타그램 공유 (하위 호환성 유지)
+     * @deprecated shareImage() 사용을 권장합니다
      */
-    fun shareToInstagram() {
-        val imageToShare = _composedImage.value
-        if (imageToShare == null) {
-            _errorMessage.value = "합성된 이미지가 없습니다. 먼저 이미지 합성을 해주세요."
-            return
-        }
-
-        viewModelScope.launch {
-            _isProcessing.value = true
-            try {
-                // 1. 합성된 이미지를 임시 파일로 저장
-                val sharedImageFile = saveImageToCache(imageToShare)
-                
-                // 2. Instagram Story Intent 생성 및 실행
-                context?.let { ctx ->
-                    val intent = createInstagramStoryIntent(ctx, sharedImageFile)
-                    // Intent 실행은 UI에서 처리해야 하므로 콜백으로 전달
-                    _instagramShareIntent.value = intent
-                } ?: run {
-                    _errorMessage.value = "공유를 위한 컨텍스트를 찾을 수 없습니다."
-                }
-                
-                clearError()
-            } catch (e: Exception) {
-                _errorMessage.value = "공유 실패: ${e.message}"
-            } finally {
-                _isProcessing.value = false
-            }
-        }
-    }
+    @Deprecated("shareImage() 사용을 권장합니다", ReplaceWith("shareImage()"))
+    fun shareToInstagram() = shareImage()
     
     // 성공 메시지 상태
     private val _successMessage = MutableStateFlow<String?>(null)
@@ -1066,6 +1845,32 @@ class FrameViewModel : ViewModel() {
      */
     private fun clearError() {
         _errorMessage.value = null
+    }
+    
+    /**
+     * 햅틱 피드백 트리거
+     */
+    private fun triggerHapticFeedback() {
+        context?.let { ctx ->
+            try {
+                val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val vibratorManager = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+                
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(50)
+                }
+            } catch (e: Exception) {
+                println("햅틱 피드백 실패: ${e.message}")
+            }
+        }
     }
     
     /**
@@ -1085,7 +1890,7 @@ class FrameViewModel : ViewModel() {
     /**
      * 특정 ID의 프레임 가져오기
      */
-    fun getFrameById(id: Int): Frame? {
+    fun getFrameById(id: String): Frame? {
         return frameRepository.getFrameById(id)
     }
     
@@ -1097,23 +1902,50 @@ class FrameViewModel : ViewModel() {
     }
     
     /**
-     * KTX 시그니처 프레임 리소스를 고품질 Bitmap으로 로드
+     * 선택된 프레임을 고품질 Bitmap으로 로드
      */
-    private fun loadKtxFrameBitmap(): Bitmap {
+    private fun loadSelectedFrameBitmap(): Bitmap {
         return try {
             context?.let { ctx ->
-                // ImageComposer의 고품질 벡터 드로어블 로딩 함수 사용
-                imageComposer?.loadVectorDrawableAsBitmap(
-                    context = ctx,
-                    drawableId = R.drawable.ktx_frame_signature,
-                    width = ImageComposer.OUTPUT_WIDTH,
-                    height = ImageComposer.OUTPUT_HEIGHT
-                ) ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
-            } ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+                val selectedFrame = _selectedFrame.value
+                if (selectedFrame != null) {
+                    println("선택된 프레임 로딩: ${selectedFrame.name} (DrawableID: ${selectedFrame.drawableId})")
+                    // 선택된 프레임 사용 (Vector Drawable + PNG 모두 지원)
+                    imageComposer?.loadDrawableAsBitmap(
+                        context = ctx,
+                        drawableId = selectedFrame.drawableId,
+                        width = ImageComposer.OUTPUT_WIDTH,
+                        height = ImageComposer.OUTPUT_HEIGHT
+                    ) ?: run {
+                        println("프레임 로딩 실패, 기본 프레임 사용")
+                        createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+                    }
+                } else {
+                    println("선택된 프레임 없음, 기본 프레임 사용")
+                    // 기본 프레임 사용
+                    imageComposer?.loadDrawableAsBitmap(
+                        context = ctx,
+                        drawableId = R.drawable.single_frame,
+                        width = ImageComposer.OUTPUT_WIDTH,
+                        height = ImageComposer.OUTPUT_HEIGHT
+                    ) ?: createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+                }
+            } ?: run {
+                println("Context 없음, 기본 프레임 생성")
+                createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
+            }
         } catch (e: Exception) {
+            println("프레임 로딩 오류: ${e.message}")
             // 리소스 로드 실패 시 기본 프레임 생성
             createDefaultFrameBitmap(ImageComposer.OUTPUT_WIDTH, ImageComposer.OUTPUT_HEIGHT)
         }
+    }
+    
+    /**
+     * KTX 시그니처 프레임 리소스를 고품질 Bitmap으로 로드 (하위 호환성)
+     */
+    private fun loadKtxFrameBitmap(): Bitmap {
+        return loadSelectedFrameBitmap()
     }
     
     /**
@@ -1144,18 +1976,136 @@ class FrameViewModel : ViewModel() {
     
     /**
      * 인스타그램 스토리 공유 Intent 생성
+     * @deprecated createShareIntent() 사용을 권장합니다
      */
+    @Deprecated("createShareIntent() 사용을 권장합니다")
     private fun createInstagramStoryIntent(context: Context, imageFile: File): Intent {
+        return createShareIntent(context, imageFile)
+    }
+    
+    /**
+     * 범용 이미지 공유 Intent 생성 (Bug #6 수정)
+     * Android Share Sheet를 사용하여 모든 공유 앱 목록을 표시
+     */
+    private fun createShareIntent(context: Context, imageFile: File): Intent {
         val imageUri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.provider",
             imageFile
         )
         
-        return Intent("com.instagram.share.ADD_TO_STORY").apply {
-            setDataAndType(imageUri, "image/jpeg")
+        return Intent(Intent.ACTION_SEND).apply {
+            type = "image/jpeg"
+            putExtra(Intent.EXTRA_STREAM, imageUri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            putExtra("interactive_asset_uri", imageUri)
+        }
+    }
+    
+    /**
+     * ActivityResultLauncher에서 호출할 함수
+     * 갤러리에서 선택된 이미지 URI들을 처리하여 Bitmap으로 변환
+     */
+    fun onImagesSelected(uris: List<Uri>) {
+        println("onImagesSelected 호출됨: ${uris.size}개의 URI")
+        if (uris.isEmpty()) {
+            println("선택된 URI가 없습니다")
+            return
+        }
+        
+        // 최대 4개의 이미지만 선택하여 상태 업데이트
+        _selectedImageUris.value = uris.take(4)
+        println("선택된 URI 저장 완료: ${_selectedImageUris.value.size}개")
+        
+        // 선택된 URI들을 Bitmap으로 변환하여 그리드에 배치 (백그라운드 스레드에서 처리)
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val imagePicker = imagePicker
+                if (imagePicker == null) {
+                    println("ImagePicker가 null입니다. Context를 다시 설정해주세요.")
+                    withContext(Dispatchers.Main) {
+                        _errorMessage.value = "이미지 처리기가 초기화되지 않았습니다. 앱을 다시 시작해주세요."
+                    }
+                    return@launch
+                }
+                
+                println("ImagePicker로 이미지 처리 시작")
+                
+                // 이미지 처리를 더 작은 단위로 나누어 메모리 압박 완화
+                val processedImages = mutableListOf<Bitmap?>()
+                for (i in uris.indices) {
+                    if (i >= 4) break // 최대 4개까지만 처리
+                    
+                    try {
+                        // 개별 이미지 처리로 메모리 효율성 향상
+                        val singleImageList = listOf(uris[i])
+                        val singleProcessed = imagePicker.processImagesForGrid(singleImageList, 512)
+                        processedImages.add(singleProcessed.firstOrNull())
+                        
+                        // 각 이미지 처리 후 잠시 대기하여 메인 스레드에 제어권 양보
+                        if (i < uris.size - 1) {
+                            delay(10) // 10ms 대기
+                        }
+                    } catch (e: Exception) {
+                        println("이미지 ${i} 처리 실패: ${e.message}")
+                        processedImages.add(null)
+                    }
+                }
+                
+                println("이미지 처리 완료: ${processedImages.size}개의 Bitmap 생성")
+                
+                // 메인 스레드에서 UI 업데이트
+                withContext(Dispatchers.Main) {
+                    println("=== 메인 스레드 UI 업데이트 시작 ===")
+                    println("현재 스레드: ${Thread.currentThread().name}")
+                    
+                    // 변환된 Bitmap들을 그리드에 배치
+                    val newPhotos = mutableListOf<Bitmap?>()
+                    
+                    // 기존 사진들을 새 리스트에 복사
+                    repeat(4) { index ->
+                        if (index < processedImages.size) {
+                            newPhotos.add(processedImages[index])
+                            println("그리드 위치 ${index}에 이미지 배치 완료 - Bitmap: ${processedImages[index] != null}")
+                        } else {
+                            newPhotos.add(null)
+                        }
+                    }
+                    
+                    println("새로운 photos 리스트 생성 완료: ${newPhotos.map { it != null }}")
+                    
+                    // StateFlow 업데이트 (새로운 리스트로 교체하여 UI 업데이트 보장)
+                    _photos.value = newPhotos
+                    println("_photos.value 업데이트 완료")
+                    
+                    // 강제 UI 업데이트를 위한 추가 트리거
+                    _photos.value = newPhotos.toList() // 새로운 인스턴스 생성
+                    println("_photos.value 강제 업데이트 완료")
+                            
+                            // PhotoState도 함께 업데이트
+                    processedImages.forEachIndexed { index, bitmap ->
+                        if (index < 4) {
+                            updatePhotoStateFromBitmap(index, bitmap)
+                        }
+                    }
+                    
+                    // UI 업데이트 강제 트리거
+                    _uiUpdateTrigger.value = System.currentTimeMillis()
+                    println("UI 업데이트 트리거 설정 완료: ${_uiUpdateTrigger.value}")
+                    
+                    println("사진 그리드 업데이트 완료: ${_photos.value.map { it != null }}")
+                    println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
+                    println("=== 메인 스레드 UI 업데이트 완료 ===")
+                    
+                    _successMessage.value = "갤러리에서 ${uris.size}장의 사진을 선택했습니다"
+                    clearError()
+                }
+            } catch (e: Exception) {
+                println("이미지 처리 중 오류 발생: ${e.message}")
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    _errorMessage.value = "이미지 처리 중 오류가 발생했습니다: ${e.message}"
+                }
+            }
         }
     }
     
@@ -1164,20 +2114,127 @@ class FrameViewModel : ViewModel() {
      */
     override fun onCleared() {
         super.onCleared()
-        // 모든 Bitmap 메모리 해제
-        _photos.value.forEach { bitmap ->
-            bitmap?.let { 
-                if (!it.isRecycled) {
-                    it.recycle()
-                }
-            }
-        }
-        // 합성된 이미지도 메모리 해제
+        // ViewModel이 정리될 때만 안전하게 메모리 해제
+        // UI에서 사용 중인 bitmap은 가비지 컬렉터가 처리하도록 함
+        // Bitmap 재활용을 방지하여 크래시 방지
+        // _photos.value.forEach { bitmap ->
+        //     bitmap?.let { 
+        //         if (!it.isRecycled) {
+        //             it.recycle()
+        //         }
+        //     }
+        // }
+        // 합성된 이미지는 UI에서 사용 중이므로 재활용하지 않음
+        // _composedImage.value?.let { bitmap ->
+        //     if (!bitmap.isRecycled) {
+        //         bitmap.recycle()
+        //     }
+        // }
+    }
+    
+    
+    /**
+     * KTX역 선택 해제
+     */
+    fun clearKtxStationSelection() {
+        _selectedKtxStation.value = null
+        println("KTX역 선택 해제됨")
+    }
+    
+    /**
+     * 선택된 사진 관련 상태만 초기화합니다. (FrameScreen -> PhotoSelectionScreen)
+     */
+    fun clearPhotoSelection() {
+        _photos.value = MutableList(4) { null }
+        _photoStates.clear()
+        _photoStates.addAll(MutableList(4) { PhotoState(null) })
+        _selectedImageUris.value = emptyList()
+        println("=== FrameViewModel: 사진 선택 초기화 완료 (뒤로가기) ===")
+    }
+
+    /**
+     * 선택된 프레임과 합성된 이미지 관련 상태만 초기화합니다. (FrameApplyScreen -> FrameScreen)
+     */
+    fun clearFrameSelectionAndComposition() {
+        _selectedFrame.value = null
+        // 이전 비트맵 메모리 해제 (주의해서 사용)
         _composedImage.value?.let { bitmap ->
             if (!bitmap.isRecycled) {
                 bitmap.recycle()
             }
         }
+        _composedImage.value = null
+        _composedImageUri.value = null
+        println("=== FrameViewModel: 프레임 선택 및 합성 결과 초기화 완료 (뒤로가기) ===")
     }
+
+    /**
+     * 합성된 이미지만 초기화합니다. (프레임 재선택 시)
+     */
+    fun clearComposedImage() {
+        _composedImage.value?.let { bitmap ->
+            if (!bitmap.isRecycled) {
+                bitmap.recycle()
+            }
+        }
+        _composedImage.value = null
+        _composedImageUri.value = null
+        println("=== FrameViewModel: 합성 결과만 초기화 완료 ===")
+    }
+
+    /**
+     * 모든 선택 상태(사진, 프레임, 합성 결과)를 초기화합니다. (저장 후 또는 전체 취소 시)
+     */
+    fun clearAllSelections() {
+        clearPhotoSelection()
+        clearFrameSelectionAndComposition()
+        // 포맷은 초기화하지 않음 (사용자 선택 유지)
+        println("=== FrameViewModel: 모든 선택 상태 초기화 완료 ===")
+    }
+
+    /**
+     * 상태 초기화 함수 (기존 함수 유지 - 하위 호환성)
+     * 사진 저장 완료 후 모든 선택 상태를 초기값으로 되돌림
+     */
+    fun resetState() {
+        clearAllSelections()
+        // 추가 초기화 (로딩 상태, 에러 메시지 등)
+        _isLoading.value = false
+        _isProcessing.value = false
+        _errorMessage.value = null
+        _selectedKtxStation.value = null
+        println("=== FrameViewModel 상태 초기화 완료 (resetState) ===")
+    }
+    
+    /**
+     * 프레임별 슬롯 좌표를 가져오는 함수 (미리보기용)
+     */
+    fun getSlotRectsForFrame(frame: Frame?): List<android.graphics.RectF>? {
+        return frame?.let { selectedFrame ->
+            when (selectedFrame.id) {
+                "life_4cut_frame", "image_e15024" -> {
+                    // 기본 인생네컷 프레임 레이아웃
+                    listOf(
+                        android.graphics.RectF(0.069f, 0.073f, 0.444f, 0.271f),  // 첫 번째 칸
+                        android.graphics.RectF(0.069f, 0.284f, 0.444f, 0.482f),  // 두 번째 칸
+                        android.graphics.RectF(0.069f, 0.495f, 0.444f, 0.693f),  // 세 번째 칸
+                        android.graphics.RectF(0.069f, 0.706f, 0.444f, 0.904f)   // 네 번째 칸
+                    )
+                }
+                "long_form_white", "long_form_black" -> {
+                    // 롱 폼 프레임 레이아웃 - 첫 번째 사진 위치 유지, 사진 간격만 살짝 줄임 (간격 1.5%)
+                    listOf(
+                        android.graphics.RectF(0.08f, 0.03f, 0.92f, 0.22f),  // 첫 번째 칸 (Top: 3%, Bottom: 22%) Height: 19%
+                        android.graphics.RectF(0.08f, 0.235f, 0.92f, 0.425f),  // 두 번째 칸 (Top: 23.5%, Bottom: 42.5%) Height: 19% / Gap: 1.5%
+                        android.graphics.RectF(0.08f, 0.44f, 0.92f, 0.63f),  // 세 번째 칸 (Top: 44%, Bottom: 63%) Height: 19% / Gap: 1.5%
+                        android.graphics.RectF(0.08f, 0.645f, 0.92f, 0.835f)   // 네 번째 칸 (Top: 64.5%, Bottom: 83.5%) Height: 19% / Gap: 1.5%
+                    )
+                }
+                else -> null
+            }
+        }
+    }
+    
+    
 }
 

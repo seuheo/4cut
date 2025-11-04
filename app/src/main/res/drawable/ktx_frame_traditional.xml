@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1080dp"
+    android:height="1920dp"
+    android:viewportWidth="1080"
+    android:viewportHeight="1920">
+
+    <!-- 배경 -->
+    <path android:pathData="M0,0 L1080,0 L1080,1920 L0,1920 Z"
+        android:fillColor="#FFFFF8DC" />
+
+    <!-- 상단 기차역 풍경 -->
+    <!-- 하늘 -->
+    <path android:pathData="M0,0 L1080,0 L1080,500 L0,500 Z"
+        android:fillColor="#FFFFE4B5" />
+    
+    <!-- 구름 -->
+    <path android:pathData="M100,50 C100,30 120,10 150,10 C180,10 200,30 200,50 C220,50 240,70 240,90 C240,110 220,130 200,130 C200,150 180,170 150,170 C120,170 100,150 100,130 C80,130 60,110 60,90 C60,70 80,50 100,50 Z"
+        android:fillColor="#FFFFFFFF" />
+    
+    <path android:pathData="M500,30 C500,10 520,-10 550,-10 C580,-10 600,10 600,30 C620,30 640,50 640,70 C640,90 620,110 600,110 C600,130 580,150 550,150 C520,150 500,130 500,110 C480,110 460,90 460,70 C460,50 480,30 500,30 Z"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- 나무들 -->
+    <path android:pathData="M50,200 L100,200 L100,400 L50,400 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M60,150 C60,120 80,100 110,100 C140,100 160,120 160,150 C180,150 200,170 200,200 C200,230 180,250 160,250 C160,280 140,300 110,300 C80,300 60,280 60,250 C40,250 20,230 20,200 C20,170 40,150 60,150 Z"
+        android:fillColor="#FF228B22" />
+    
+    <path android:pathData="M950,200 L1000,200 L1000,400 L950,400 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M960,150 C960,120 980,100 1010,100 C1040,100 1060,120 1060,150 C1080,150 1100,170 1100,200 C1100,230 1080,250 1060,250 C1060,280 1040,300 1010,300 C980,300 960,280 960,250 C940,250 920,230 920,200 C920,170 940,150 960,150 Z"
+        android:fillColor="#FF228B22" />
+
+    <!-- 중앙 기차역 건물 -->
+    <path android:pathData="M300,200 L700,200 L700,500 L300,500 Z"
+        android:fillColor="#FFDEB887" />
+    
+    <!-- 기와지붕 -->
+    <path android:pathData="M280,150 L720,150 L720,200 L280,200 Z"
+        android:fillColor="#FF1E3A8A" />
+    
+    <!-- 창문들 -->
+    <path android:pathData="M350,250 L400,250 L400,300 L350,300 Z"
+        android:fillColor="#FF87CEEB" />
+    <path android:pathData="M450,250 L500,250 L500,300 L450,300 Z"
+        android:fillColor="#FF87CEEB" />
+    <path android:pathData="M550,250 L600,250 L600,300 L550,300 Z"
+        android:fillColor="#FF87CEEB" />
+    
+    <path android:pathData="M350,350 L400,350 L400,400 L350,400 Z"
+        android:fillColor="#FF87CEEB" />
+    <path android:pathData="M450,350 L500,350 L500,400 L450,400 Z"
+        android:fillColor="#FF87CEEB" />
+    <path android:pathData="M550,350 L600,350 L600,400 L550,400 Z"
+        android:fillColor="#FF87CEEB" />
+    
+    <!-- 한자 글자 -->
+    <path android:pathData="M400,180 L420,180 L420,190 L400,190 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M430,180 L450,180 L450,190 L430,190 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M460,180 L480,180 L480,190 L460,190 Z"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- KTX 기차 -->
+    <path android:pathData="M400,450 L600,450 L600,500 L400,500 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M420,460 L580,460 L580,490 L420,490 Z"
+        android:fillColor="#FFE5E7EB" />
+
+    <!-- 중앙 사진 프레임 영역 -->
+    <path android:pathData="M200,500 L880,500 L880,1320 L200,1320 Z"
+        android:fillColor="#FFFFFFFF" />
+    
+    <!-- 4개 사진 슬롯 -->
+    <path android:pathData="M220,520 L420,520 L420,820 L220,820 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FF1E3A8A"
+        android:strokeWidth="2" />
+    
+    <path android:pathData="M440,520 L640,520 L640,820 L440,820 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FF1E3A8A"
+        android:strokeWidth="2" />
+    
+    <path android:pathData="M220,840 L420,840 L420,1140 L220,1140 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FF1E3A8A"
+        android:strokeWidth="2" />
+    
+    <path android:pathData="M440,840 L640,840 L640,1140 L440,1140 Z"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FF1E3A8A"
+        android:strokeWidth="2" />
+
+    <!-- 왼쪽 전통 등불 장식 -->
+    <path android:pathData="M100,600 L150,600 L150,700 L100,700 Z"
+        android:fillColor="#FF1E3A8A" />
+    <path android:pathData="M110,610 L140,610 L140,650 L110,650 Z"
+        android:fillColor="#FFFFFF00" />
+    <path android:pathData="M120,650 L130,650 L130,680 L120,680 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M125,680 L125,690 L120,690 L130,690 Z"
+        android:fillColor="#FFFF0000" />
+    
+    <path android:pathData="M100,800 L150,800 L150,900 L100,900 Z"
+        android:fillColor="#FF1E3A8A" />
+    <path android:pathData="M110,810 L140,810 L140,850 L110,850 Z"
+        android:fillColor="#FFFFFF00" />
+    <path android:pathData="M120,850 L130,850 L130,880 L120,880 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M125,880 L125,890 L120,890 L130,890 Z"
+        android:fillColor="#FFFF0000" />
+    
+    <!-- 항아리 -->
+    <path android:pathData="M120,900 L130,900 L130,920 L120,920 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M115,920 L135,920 L135,940 L115,940 Z"
+        android:fillColor="#FF8B4513" />
+
+    <!-- 오른쪽 전통 등불 장식 -->
+    <path android:pathData="M930,600 L980,600 L980,700 L930,700 Z"
+        android:fillColor="#FF1E3A8A" />
+    <path android:pathData="M940,610 L970,610 L970,650 L940,650 Z"
+        android:fillColor="#FFFFFF00" />
+    <path android:pathData="M950,650 L960,650 L960,680 L950,680 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M955,680 L955,690 L950,690 L960,690 Z"
+        android:fillColor="#FFFF0000" />
+    
+    <path android:pathData="M930,800 L980,800 L980,900 L930,900 Z"
+        android:fillColor="#FF1E3A8A" />
+    <path android:pathData="M940,810 L970,810 L970,850 L940,850 Z"
+        android:fillColor="#FFFFFF00" />
+    <path android:pathData="M950,850 L960,850 L960,880 L950,880 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M955,880 L955,890 L950,890 L960,890 Z"
+        android:fillColor="#FFFF0000" />
+    
+    <!-- 항아리 -->
+    <path android:pathData="M950,900 L960,900 L960,920 L950,920 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M945,920 L965,920 L965,940 L945,940 Z"
+        android:fillColor="#FF8B4513" />
+
+    <!-- 하단 기차 플랫폼 -->
+    <path android:pathData="M0,1320 L1080,1320 L1080,1920 L0,1920 Z"
+        android:fillColor="#FF1E3A8A" />
+    
+    <!-- 기찻길 -->
+    <path android:pathData="M0,1400 L1080,1400 L1080,1450 L0,1450 Z"
+        android:fillColor="#FF8B4513" />
+    
+    <!-- 아치형 입구 -->
+    <path android:pathData="M100,1400 L200,1400 L200,1500 L100,1500 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M110,1400 Q150,1350 190,1400"
+        android:strokeColor="#FF000000" android:strokeWidth="3" android:fillColor="#00000000" />
+    
+    <!-- 짐표들 -->
+    <path android:pathData="M300,1350 L350,1350 L350,1400 L300,1400 Z"
+        android:fillColor="#FF40E0D0" />
+    <path android:pathData="M310,1360 L340,1360 L340,1370 L310,1370 Z"
+        android:fillColor="#FF000000" />
+    
+    <path android:pathData="M400,1350 L450,1350 L450,1400 L400,1400 Z"
+        android:fillColor="#FF40E0D0" />
+    <path android:pathData="M410,1360 L440,1360 L440,1370 L410,1370 Z"
+        android:fillColor="#FF000000" />
+    
+    <!-- 기차표 -->
+    <path android:pathData="M500,1350 L600,1350 L600,1400 L500,1400 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M510,1360 L590,1360 L590,1370 L510,1370 Z"
+        android:fillColor="#FF000000" />
+    <path android:pathData="M510,1375 L590,1375 L590,1385 L510,1385 Z"
+        android:fillColor="#FF000000" />
+    
+    <!-- 라면 그릇 -->
+    <path android:pathData="M700,1350 L750,1350 L750,1400 L700,1400 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M710,1360 L740,1360 L740,1380 L710,1380 Z"
+        android:fillColor="#FFFFFF00" />
+    <path android:pathData="M720,1380 L730,1380 L730,1390 L720,1390 Z"
+        android:fillColor="#FF228B22" />
+    
+    <!-- 항아리 -->
+    <path android:pathData="M800,1350 L820,1350 L820,1400 L800,1400 Z"
+        android:fillColor="#FF8B4513" />
+    <path android:pathData="M805,1400 L815,1400 L815,1420 L805,1420 Z"
+        android:fillColor="#FF8B4513" />
+
+    <!-- KTX 로고 영역 -->
+    <path android:pathData="M200,1320 L880,1320 L880,1400 L200,1400 Z"
+        android:fillColor="#FF1E3A8A" />
+    
+    <!-- KTX 텍스트 -->
+    <path android:pathData="M300,1350 L320,1350 L320,1390 L300,1390 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M330,1350 L350,1350 L350,1390 L330,1390 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M360,1350 L380,1350 L380,1390 L360,1390 Z"
+        android:fillColor="#FFFFFFFF" />
+
+</vector>
+

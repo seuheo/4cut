@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +34,7 @@ fun PhotoLogCard(
     photo: PhotoEntity,
     onFavoriteToggle: (PhotoEntity) -> Unit,
     onCardClick: (PhotoEntity) -> Unit,
+    onMapClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
 
@@ -136,6 +138,19 @@ fun PhotoLogCard(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
+                        
+                        // 지도 아이콘 버튼
+                        IconButton(
+                            onClick = { onMapClick(photo.location) },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "지도에서 보기",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                 }
