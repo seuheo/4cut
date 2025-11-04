@@ -1000,6 +1000,9 @@ class FrameViewModel : ViewModel() {
             // Phase 2: PhotoState도 함께 업데이트
             updatePhotoStateFromBitmap(index, bitmap)
             
+            // UI 업데이트 트리거 설정 (크롭 후 이미지 반영을 위해)
+            _uiUpdateTrigger.value = System.currentTimeMillis()
+            
             println("selectPhoto: 사진 선택 완료")
             println("selectPhoto: 새로운 그리드 상태=${_photos.value.map { it != null }}")
             println("selectPhoto: 선택된 사진 개수 = ${_photos.value.count { it != null }}")
@@ -1457,11 +1460,11 @@ class FrameViewModel : ViewModel() {
                     
                     // 기존 Bitmap들 메모리 해제
                     withContext(Dispatchers.Main) {
-                        _photos.value.forEach { bitmap ->
-                            bitmap?.let { 
-                                if (!it.isRecycled) {
-                                    it.recycle()
-                                }
+                    _photos.value.forEach { bitmap ->
+                        bitmap?.let { 
+                            if (!it.isRecycled) {
+                                it.recycle()
+                            }
                             }
                         }
                     }
@@ -1506,21 +1509,21 @@ class FrameViewModel : ViewModel() {
                         println("PhotoState 업데이트 완료: ${_photoStates.map { it.bitmap != null }}")
                         println("=== 메인 스레드 UI 업데이트 완료 (processSelectedImages) ===")
                         
-                        clearError()
+                    clearError()
                     }
                 } ?: run {
                     withContext(Dispatchers.Main) {
-                        _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
+                    _errorMessage.value = "이미지 처리기를 초기화할 수 없습니다"
                     }
                 }
             } catch (e: Exception) {
                 println("이미지 처리 실패: ${e.message}")
                 withContext(Dispatchers.Main) {
-                    _errorMessage.value = "이미지 처리 실패: ${e.message}"
+                _errorMessage.value = "이미지 처리 실패: ${e.message}"
                 }
             } finally {
                 withContext(Dispatchers.Main) {
-                    _isProcessing.value = false
+                _isProcessing.value = false
                 }
             }
         }
@@ -1668,7 +1671,7 @@ class FrameViewModel : ViewModel() {
         }
 
         // UI 상태를 먼저 업데이트 (메인 스레드)
-        _isProcessing.value = true
+            _isProcessing.value = true
 
         // 비동기 IO 작업을 위한 코루틴 시작
         viewModelScope.launch(Dispatchers.IO) {
@@ -1682,7 +1685,7 @@ class FrameViewModel : ViewModel() {
                 // 1. (AWAIT) 이미지 갤러리 저장
                 val fileName = "KTX_4cut_${System.currentTimeMillis()}.jpg"
                 imageUri = imageComposer?.saveBitmapToGallery(imageToSave, fileName)
-
+                
                 if (imageUri == null) {
                     throw IllegalStateException("갤러리 저장 실패 - Uri가 null")
                 }
@@ -1690,9 +1693,9 @@ class FrameViewModel : ViewModel() {
                 Log.d("FrameViewModel", "갤러리 저장 완료: $imageUri")
 
                 // 2. (AWAIT) 즉시 DB 저장 (videoPath = null로 저장하여 사용자가 바로 확인할 수 있도록)
-                val selectedStation = _selectedKtxStation.value
+                        val selectedStation = _selectedKtxStation.value
                 Log.d("FrameViewModel", "즉시 DB 저장 시작... (videoPath = null)")
-                
+                        
                 photoId = if (photoRepository != null) {
                     try {
                         photoRepository?.createKTXPhoto(
@@ -1743,17 +1746,17 @@ class FrameViewModel : ViewModel() {
                         }
                     }
                 }
-
-                // 성공 메시지에 위치 정보 포함
-                val successMessage = if (selectedStation != null) {
-                    "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.stationName}에서 촬영)"
-                } else {
-                    "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
-                }
+                        
+                        // 성공 메시지에 위치 정보 포함
+                        val successMessage = if (selectedStation != null) {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다! (${selectedStation.stationName}에서 촬영)"
+                        } else {
+                            "이미지가 갤러리와 앱에 성공적으로 저장되었습니다!"
+                        }
 
                 // UI 업데이트는 메인 스레드에서 실행
                 withContext(Dispatchers.Main) {
-                    _successMessage.value = successMessage
+                        _successMessage.value = successMessage
                     clearError()
                 }
 
@@ -1778,7 +1781,7 @@ class FrameViewModel : ViewModel() {
             } finally {
                 // 모든 작업 완료 후 Main 스레드에서 UI 상태 업데이트
                 withContext(Dispatchers.Main) {
-                    _isProcessing.value = false
+                _isProcessing.value = false
                 }
             }
         }
@@ -2077,8 +2080,8 @@ class FrameViewModel : ViewModel() {
                     // 강제 UI 업데이트를 위한 추가 트리거
                     _photos.value = newPhotos.toList() // 새로운 인스턴스 생성
                     println("_photos.value 강제 업데이트 완료")
-                    
-                    // PhotoState도 함께 업데이트
+                            
+                            // PhotoState도 함께 업데이트
                     processedImages.forEachIndexed { index, bitmap ->
                         if (index < 4) {
                             updatePhotoStateFromBitmap(index, bitmap)

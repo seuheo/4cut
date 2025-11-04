@@ -1,7 +1,8 @@
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.compose.compiler) // Compose Compiler 플러그인 (Kotlin 2.0+ 필수)
+    // Kotlin 버전 명시적 설정 (2.0.21) - alias 대신 직접 버전 지정
+    id("org.jetbrains.kotlin.android") version "2.0.21"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     id("com.google.devtools.ksp") version "2.0.21-1.0.28" // Kotlin 2.0.21 호환 버전
 }
 
@@ -38,6 +39,10 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        // Kotlin 2.2.0으로 컴파일된 라이브러리 호환성 문제 해결
+        freeCompilerArgs += listOf(
+            "-Xskip-metadata-version-check"
+        )
     }
     buildFeatures {
         compose = true
@@ -50,6 +55,9 @@ android {
 }
 
 dependencies {
+    // Kotlin 표준 라이브러리 버전 명시적 설정 (Kotlin 2.0.21 호환)
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:2.0.21"))
+    
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.activity.compose)
@@ -90,9 +98,10 @@ dependencies {
     // AndroidSequenceEncoder API 사용으로 간단한 구현 가능
     implementation("org.jcodec:jcodec-android:0.2.5")
     
-    // Auto Background Remover (사진 배경 제거용)
+    // Auto Background Remover (사진 배경 제거용) - 임시로 제거 (Kotlin 2.2.0 호환성 문제)
     // 오프라인에서 AI 모델을 사용하여 배경을 제거하는 Android 라이브러리
-    implementation("com.github.GhayasAhmad:auto-background-remover:1.0.7")
+    // TODO: Kotlin 2.2.0 호환 버전이 출시되면 다시 추가
+    // implementation("com.github.GhayasAhmad:auto-background-remover:1.0.7")
     
     // Core Library Desugaring (Java 8+ API 지원)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")

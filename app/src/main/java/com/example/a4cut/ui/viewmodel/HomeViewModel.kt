@@ -92,20 +92,23 @@ class HomeViewModel : ViewModel() {
     )
     
     // 필터가 적용된 사진 목록 (지도가 사용할 목록)
-    val filteredPhotosForMap: StateFlow<List<PhotoEntity>> = combine(
-        photoLogs,
-        _mapLocationFilter
-    ) { photos, filter ->
-        if (filter != null) {
-            photos.filter { it.location == filter }
-        } else {
-            photos // 필터가 없으면 전체 목록
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    // 안전한 초기화를 위해 초기값을 제공하고 지연 실행
+    val filteredPhotosForMap: StateFlow<List<PhotoEntity>> = run {
+        combine(
+            photoLogs,
+            _mapLocationFilter
+        ) { photos, filter ->
+            if (filter != null) {
+                photos.filter { it.location == filter }
+            } else {
+                photos // 필터가 없으면 전체 목록
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    }
     
     // ✅ 추가: 가장 최근 사진 최대 5개를 리스트로 제공 (캐러셀용)
     val latestPhotos: StateFlow<List<PhotoEntity>> = photoLogs.map { photos ->
@@ -118,10 +121,12 @@ class HomeViewModel : ViewModel() {
     
     // ✅ 추가: 사진이 존재하는 날짜 목록을 가져옵니다. (displayedMonth 기준으로 필터링)
     // 모든 날짜를 반환하여 달력에 점 표시 (월 단위 필터링만 적용)
-    val datesWithPhotos: StateFlow<List<LocalDate>> = combine(
-        photoLogs,
-        _displayedMonth
-    ) { photos, displayedMonth ->
+    // 안전한 초기화를 위해 run 블록 사용
+    val datesWithPhotos: StateFlow<List<LocalDate>> = run {
+        combine(
+            photoLogs,
+            _displayedMonth
+        ) { photos, displayedMonth ->
         photos
             .filter { photo ->
                 // Calendar를 사용하여 API 호환성 확보
@@ -144,11 +149,12 @@ class HomeViewModel : ViewModel() {
             }
             .distinct()
             .sorted()
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    }
     
     /**
      * Context 설정 및 데이터베이스 초기화

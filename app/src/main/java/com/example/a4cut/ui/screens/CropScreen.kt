@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +32,7 @@ import coil.ImageLoader
 import coil.request.ImageRequest
 import com.example.a4cut.ui.utils.BackgroundRemover
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -52,6 +53,7 @@ fun CropScreen(
 ) {
     val context = LocalContext.current
     val imageUri = imageUriString.toUri()
+    val coroutineScope = rememberCoroutineScope() // Coroutine 스코프 생성
     
     // 비율 문자열을 파싱하여 너비와 높이 추출 (예: "497:336")
     val (slotWidth, slotHeight) = remember(aspectRatioString) {
@@ -167,7 +169,7 @@ fun CropScreen(
                         enabled = !isProcessingBackground && imageBitmap != null
                     ) {
                         Icon(
-                            Icons.Default.AutoFixHigh,
+                            Icons.Default.Edit,
                             contentDescription = if (removeBackground) "배경 제거 해제" else "배경 제거",
                             tint = if (removeBackground) {
                                 MaterialTheme.colorScheme.primary
@@ -213,21 +215,13 @@ fun CropScreen(
                                         println("크롭된 비트맵 생성 성공: ${cropped.width}x${cropped.height}")
                                         
                                         // 배경 제거 옵션이 활성화된 경우 배경 제거 수행
+                                        // 현재는 라이브러리가 비활성화되어 있어 원본 비트맵 사용
                                         var processedBitmap = cropped
                                         if (removeBackground && !isProcessingBackground) {
-                                            isProcessingBackground = true
-                                            try {
-                                                println("배경 제거 시작...")
-                                                processedBitmap = BackgroundRemover.remove(context, cropped)
-                                                println("배경 제거 완료: ${processedBitmap.width}x${processedBitmap.height}")
-                                            } catch (e: Exception) {
-                                                println("배경 제거 실패: ${e.message}")
-                                                e.printStackTrace()
-                                                // 배경 제거 실패 시 원본 크롭된 비트맵 사용
-                                                processedBitmap = cropped
-                                            } finally {
-                                                isProcessingBackground = false
-                                            }
+                                            // TODO: 배경 제거 라이브러리가 다시 추가되면 아래 코드 활성화
+                                            // 현재는 원본 비트맵 사용 (라이브러리 호환성 문제로 임시 비활성화)
+                                            println("배경 제거 기능이 현재 비활성화되어 있습니다 (Kotlin 호환성 문제)")
+                                            processedBitmap = cropped
                                         }
                                         
                                         // 크롭된 이미지를 임시 파일로 저장하고 Uri 반환
@@ -249,7 +243,14 @@ fun CropScreen(
                                             cropped.recycle()
                                         }
                                         
-                                        navController.popBackStack()
+                                        // 이전 화면으로 돌아가기 (안전하게 처리)
+                                        try {
+                                            if (navController.previousBackStackEntry != null && navController.previousBackStackEntry!!.destination.route != null) {
+                                                navController.popBackStack()
+                                            }
+                                        } catch (e: Exception) {
+                                            // 네비게이션 오류 시 무시 (이미 처리 완료)
+                                        }
                                     }
                                 } ?: run {
                                     println("❌ cropRect가 null")

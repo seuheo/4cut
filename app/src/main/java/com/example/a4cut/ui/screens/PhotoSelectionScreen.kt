@@ -88,10 +88,8 @@ fun PhotoSelectionScreen(
         if (selectedFrame == null) {
             println("PhotoSelectionScreen: 프레임이 선택되지 않음 - FrameSelectionScreen으로 이동")
             navController?.navigate("frame_selection") {
-                // 이전 PhotoSelectionScreen을 백 스택에서 제거
-                popUpTo(navController.graph.startDestinationId) {
-                    inclusive = false
-                }
+                // FrameSelectionScreen으로 이동 (백 스택은 유지)
+                launchSingleTop = true
             }
         }
     }
@@ -312,7 +310,7 @@ fun PhotoSelectionScreen(
                             imagePickerLauncher.launch("image/*")
                         } else {
                             // 일반 프레임이면 기존 동작 (togglePhotoSelection)
-                            frameViewModel.togglePhotoSelection(index)
+                        frameViewModel.togglePhotoSelection(index)
                         }
                     }
                 )
@@ -325,9 +323,9 @@ fun PhotoSelectionScreen(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        IosStyleButton(
-                            text = "갤러리에서 사진 선택하기",
-                            onClick = openGallery,
+                    IosStyleButton(
+                        text = "갤러리에서 사진 선택하기",
+                        onClick = openGallery,
                             icon = Icons.Default.Home,
                             enabled = !shouldUseCrop // long_form 프레임일 때는 비활성화
                         )
@@ -578,14 +576,14 @@ private fun PhotoGridItem(
                     }
                     
                     // 이미지를 칸에 꽉 차게 표시 (Crop 방식으로 비율 유지하면서 칸 전체 채우기)
-                    Image(
+                Image(
                         bitmap = imageBitmap,
-                        contentDescription = "사진 ${index + 1}",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                    contentDescription = "사진 ${index + 1}",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
                 }
                 
                 // 사진 위에 제거 버튼 오버레이

@@ -359,8 +359,15 @@ fun AppNavigation(
                     photoRepository = photoRepository, // DB 저장을 위한 Repository 전달
                     onBack = {
                         try {
-                            if (navController.previousBackStackEntry != null) {
+                            if (navController.previousBackStackEntry != null && navController.previousBackStackEntry!!.destination.route != null) {
                                 navController.popBackStack()
+                            } else {
+                                // 백 스택이 없으면 홈으로 이동
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        inclusive = true
+                                    }
+                                }
                             }
                         } catch (e: Exception) {
                             // 네비게이션 스택이 비어있거나 오류 발생 시 홈으로 이동
@@ -405,8 +412,15 @@ fun AppNavigation(
                 SearchScreen(
                     onNavigateBack = {
                         try {
-                            if (navController.previousBackStackEntry != null) {
+                            if (navController.previousBackStackEntry != null && navController.previousBackStackEntry!!.destination.route != null) {
                                 navController.popBackStack()
+                            } else {
+                                // 백 스택이 없으면 홈으로 이동
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        inclusive = true
+                                    }
+                                }
                             }
                         } catch (e: Exception) {
                             // 네비게이션 스택이 비어있거나 오류 발생 시 홈으로 이동
@@ -419,9 +433,7 @@ fun AppNavigation(
                     },
                     onNavigateToPhotoDetail = { photoId ->
                         try {
-                            if (navController.previousBackStackEntry != null) {
-                                navController.popBackStack()
-                            }
+                            // PhotoDetailScreen으로 이동 (popBackStack 불필요)
                             navController.navigate("photo_detail/$photoId")
                         } catch (e: Exception) {
                             // 네비게이션 오류 시 직접 이동
@@ -514,7 +526,7 @@ fun AppNavigation(
                     onNavigateBack = {
                         try {
                             if (navController.previousBackStackEntry != null) {
-                                navController.popBackStack()
+                        navController.popBackStack()
                             }
                         } catch (e: Exception) {
                             // 네비게이션 스택이 비어있거나 오류 발생 시 홈으로 이동
@@ -572,8 +584,15 @@ fun AppNavigation(
                     viewModel = photoDetailViewModel,
                     onNavigateBack = { 
                         try {
-                            if (navController.previousBackStackEntry != null) {
+                            if (navController.previousBackStackEntry != null && navController.previousBackStackEntry!!.destination.route != null) {
                                 navController.popBackStack()
+                            } else {
+                                // 백 스택이 없으면 홈으로 이동
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        inclusive = true
+                                    }
+                                }
                             }
                         } catch (e: Exception) {
                             // 네비게이션 오류 시 홈으로 이동

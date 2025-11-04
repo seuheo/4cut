@@ -508,7 +508,7 @@ class ImageComposer(private val context: Context) {
                 println("ImageComposer: 메모리 부족으로 Bitmap 크기 축소: ${width}x${height} -> ${scaledWidth}x${scaledHeight}")
                 Bitmap.createBitmap(scaledWidth, scaledHeight, config)
             } else {
-                Bitmap.createBitmap(width, height, config)
+            Bitmap.createBitmap(width, height, config)
             }
         } catch (e: OutOfMemoryError) {
             // 메모리 부족 시 가비지 컬렉션 강제 실행
@@ -521,7 +521,7 @@ class ImageComposer(private val context: Context) {
                 Bitmap.createBitmap(scaledWidth, scaledHeight, config)
             } catch (e2: OutOfMemoryError) {
                 println("ImageComposer: 메모리 부족으로 Bitmap 생성 실패: ${e2.message}")
-                null
+            null
             }
         } catch (e: Exception) {
             println("ImageComposer: Bitmap 생성 중 오류: ${e.message}")
